@@ -41,60 +41,65 @@
 
   /* Brand */
   --background: oklch(1 0 0);                  /* #FFFFFF */
-  --foreground: oklch(0.18 0 0);               /* #111111 */
-  --ink: oklch(0.18 0 0);
-  --ink-soft: oklch(0.45 0 0);                 /* ~#555 */
+  --foreground: oklch(0.12 0.03 260);          /* Elegant dark navy for main text */
+  --ink: oklch(0.12 0.03 260);
+  --ink-soft: oklch(0.42 0.04 260);            /* Elegant muted navy */
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0 0);
+  --card-foreground: oklch(0.12 0.03 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0 0);
+  --popover-foreground: oklch(0.12 0.03 260);
 
-  /* Football Field Green #1E7D32 */
-  --primary: oklch(0.55 0.15 145);
+  /* Elegant Navy Blue */
+  --primary: oklch(0.28 0.08 260);
   --primary-foreground: oklch(1 0 0);
-  /* Dark Green #145A24 */
-  --secondary: oklch(0.43 0.13 145);
+  /* Deeper Navy Blue / Midnight */
+  --secondary: oklch(0.20 0.07 260);
   --secondary-foreground: oklch(1 0 0);
 
-  --muted: oklch(0.97 0 0);                    /* #F5F5F5 */
-  --muted-foreground: oklch(0.45 0 0);
+  --muted: oklch(0.96 0.01 260);               /* Light gray-blue background */
+  --muted-foreground: oklch(0.42 0.04 260);
 
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.18 0 0);
+  --accent: oklch(0.94 0.02 260);              /* Nice soft accent blue-gray */
+  --accent-foreground: oklch(0.28 0.08 260);
 
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.56 0.15 145);
+  --success: oklch(0.56 0.15 145);             /* Kept as standard green for success states */
 
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0.55 0.15 145);
+  --border: oklch(0.90 0.01 260);
+  --input: oklch(0.90 0.01 260);
+  --ring: oklch(0.28 0.08 260);
 }
 
 .dark {
-  --background: oklch(0.14 0 0);
-  --foreground: oklch(0.98 0 0);
-  --ink: oklch(0.98 0 0);
-  --ink-soft: oklch(0.72 0 0);
-  --card: oklch(0.18 0 0);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.18 0 0);
-  --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.62 0.15 145);
-  --primary-foreground: oklch(0.14 0 0);
-  --secondary: oklch(0.48 0.13 145);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.22 0 0);
-  --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.22 0 0);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.6 0.22 27);
-  --destructive-foreground: oklch(0.98 0 0);
+  --background: oklch(0.10 0.03 260);         /* Dark navy background */
+  --foreground: oklch(0.98 0.01 260);         /* Bright cool gray-white */
+  --ink: oklch(0.98 0.01 260);
+  --ink-soft: oklch(0.72 0.03 260);           /* Muted text in dark mode */
+  --card: oklch(0.14 0.03 260);               /* Card background */
+  --card-foreground: oklch(0.98 0.01 260);
+  --popover: oklch(0.14 0.03 260);
+  --popover-foreground: oklch(0.98 0.01 260);
+  
+  --primary: oklch(0.55 0.12 260);            /* Elegant mid-blue for buttons/accents in dark mode */
+  --primary-foreground: oklch(0.10 0.03 260); /* Navy background text */
+  --secondary: oklch(0.42 0.09 260);          /* Darker blue for secondary hover */
+  --secondary-foreground: oklch(0.98 0.01 260);
+  
+  --muted: oklch(0.18 0.03 260);              /* Darker muted background */
+  --muted-foreground: oklch(0.72 0.03 260);
+  
+  --accent: oklch(0.18 0.03 260);
+  --accent-foreground: oklch(0.98 0.01 260);
+  
+  --destructive: oklch(0.60 0.22 27);
+  --destructive-foreground: oklch(0.98 0.01 260);
   --success: oklch(0.62 0.15 145);
+  
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.62 0.15 145);
+  --ring: oklch(0.55 0.12 260);
 }
 
 @layer base {
