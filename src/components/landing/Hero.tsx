@@ -3,8 +3,8 @@ import hero from "@/assets/hero-jersey.jpg";
 
 const TRUST = [
   "100% Original",
-  "Authenticity Verified",
-  "Collector Trusted",
+  "Keaslian Terverifikasi",
+  "Kolektor Terpercaya",
   "Pengiriman Seluruh Indonesia",
 ];
 
@@ -14,7 +14,7 @@ export function Hero() {
       <div className="absolute inset-0">
         <img
           src={hero}
-          alt="Premium football jersey in a moodily lit locker room"
+          alt="Jersey sepak bola premium di ruang ganti yang diterangi cahaya temaram"
           width={1280}
           height={1600}
           className="size-full object-cover opacity-55"
@@ -25,16 +25,16 @@ export function Hero() {
 
       <div className="relative container-swiss pt-32 md:pt-40 lg:pt-48 pb-16 md:pb-24">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 mb-12 md:mb-20">
-          <span className="eyebrow text-white/70">N° 01 — Hero</span>
+          <span className="eyebrow text-white/70">N° 01 — Utama</span>
           <span className="eyebrow text-white/70 hidden sm:block">
             Est. Jakarta · Indonesia
           </span>
         </div>
 
         <h1 className="display-xl text-white">
-          Original Jerseys.
+          Jersey Original.
           <br />
-          <span className="italic font-light tracking-tight">Vintage Memories.</span>
+          <span className="italic font-light tracking-tight">Memori Klasik.</span>
         </h1>
 
         <div className="mt-12 grid lg:grid-cols-12 gap-10 lg:gap-16 items-end">
