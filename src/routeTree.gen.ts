@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
@@ -29,6 +30,11 @@ import { Route as AuthenticatedDashboardPesananOrderNumberRouteImport } from './
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsRoute = CollectionsRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/collections': typeof CollectionsRoute
+  '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/collections': typeof CollectionsRoute
+  '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/collections': typeof CollectionsRoute
+  '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/collections'
+    | '/search'
     | '/shop'
     | '/product/$slug'
     | '/dashboard/profil'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/collections'
+    | '/search'
     | '/shop'
     | '/product/$slug'
     | '/dashboard/profil'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/collections'
+    | '/search'
     | '/shop'
     | '/_authenticated/_admin'
     | '/product/$slug'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   CollectionsRoute: typeof CollectionsRoute
+  SearchRoute: typeof SearchRoute
   ShopRoute: typeof ShopRoute
   ProductSlugRoute: typeof ProductSlugRoute
 }
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections': {
@@ -400,6 +420,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   CollectionsRoute: CollectionsRoute,
+  SearchRoute: SearchRoute,
   ShopRoute: ShopRoute,
   ProductSlugRoute: ProductSlugRoute,
 }
