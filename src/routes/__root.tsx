@@ -10,7 +10,6 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -37,9 +36,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -97,8 +93,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits." },
       { property: "og:description", content: "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits." },
       { name: "twitter:description", content: "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/74868fe5-e7ac-42d6-a424-644ede8fc14d/id-preview-9fcd285f--0dfa7851-b254-461f-9d4f-745911f99000.lovable.app-1781530887464.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/74868fe5-e7ac-42d6-a424-644ede8fc14d/id-preview-9fcd285f--0dfa7851-b254-461f-9d4f-745911f99000.lovable.app-1781530887464.png" },
+      { property: "og:image", content: "/og-image.png" },
+      { name: "twitter:image", content: "/og-image.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
