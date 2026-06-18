@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
 import { Route as AuthenticatedAdminAdminIndexRouteImport } from './routes/_authenticated/_admin/admin.index'
+import { Route as AuthenticatedDashboardPesananOrderNumberRouteImport } from './routes/_authenticated/dashboard.pesanan.$orderNumber'
 
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
@@ -77,6 +78,12 @@ const AuthenticatedAdminAdminIndexRoute =
     path: '/admin/',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedDashboardPesananOrderNumberRoute =
+  AuthenticatedDashboardPesananOrderNumberRouteImport.update({
+    id: '/dashboard/pesanan/$orderNumber',
+    path: '/dashboard/pesanan/$orderNumber',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin/': typeof AuthenticatedAdminAdminIndexRoute
   '/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
 }
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin': typeof AuthenticatedAdminAdminIndexRoute
   '/dashboard/pesanan': typeof AuthenticatedDashboardPesananIndexRoute
 }
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/_authenticated/_admin/admin/': typeof AuthenticatedAdminAdminIndexRoute
   '/_authenticated/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
 }
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/product/$slug'
     | '/dashboard/'
+    | '/dashboard/pesanan/$orderNumber'
     | '/admin/'
     | '/dashboard/pesanan/'
   fileRoutesByTo: FileRoutesByTo
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/product/$slug'
     | '/dashboard'
+    | '/dashboard/pesanan/$orderNumber'
     | '/admin'
     | '/dashboard/pesanan'
   id:
@@ -148,6 +160,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin'
     | '/product/$slug'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/dashboard/pesanan/$orderNumber'
     | '/_authenticated/_admin/admin/'
     | '/_authenticated/dashboard/pesanan/'
   fileRoutesById: FileRoutesById
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/dashboard/pesanan/$orderNumber': {
+      id: '/_authenticated/dashboard/pesanan/$orderNumber'
+      path: '/dashboard/pesanan/$orderNumber'
+      fullPath: '/dashboard/pesanan/$orderNumber'
+      preLoaderRoute: typeof AuthenticatedDashboardPesananOrderNumberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -261,12 +281,15 @@ const AuthenticatedAdminRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardPesananOrderNumberRoute: typeof AuthenticatedDashboardPesananOrderNumberRoute
   AuthenticatedDashboardPesananIndexRoute: typeof AuthenticatedDashboardPesananIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedDashboardPesananOrderNumberRoute:
+    AuthenticatedDashboardPesananOrderNumberRoute,
   AuthenticatedDashboardPesananIndexRoute:
     AuthenticatedDashboardPesananIndexRoute,
 }

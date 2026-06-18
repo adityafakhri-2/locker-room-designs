@@ -26,7 +26,7 @@ function OrderDetail() {
       const { data: order } = await supabase.from("orders").select("*, order_items(*), payments(*), shipments(*)").eq("order_number", orderNumber).maybeSingle();
       if (!order) return null;
       let proofUrl = "";
-      const payment = order.payments?.[0];
+      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as { id: string } | null);
       if (payment) {
         const { data: proofs } = await supabase.from("payment_proofs").select("*").eq("payment_id", payment.id).order("uploaded_at", { ascending: false }).limit(1);
         if (proofs && proofs[0]) proofUrl = await signedUrl("payment-proofs", proofs[0].image_url);
