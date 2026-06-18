@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as CheckoutSuccessOrderNumberRouteImport } from './routes/checkout.success.$orderNumber'
 import { Route as AuthenticatedDashboardWishlistRouteImport } from './routes/_authenticated/dashboard.wishlist'
 import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated/dashboard.profil'
 import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
@@ -68,6 +69,12 @@ const AuthenticatedDashboardIndexRoute =
     path: '/dashboard/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const CheckoutSuccessOrderNumberRoute =
+  CheckoutSuccessOrderNumberRouteImport.update({
+    id: '/success/$orderNumber',
+    path: '/success/$orderNumber',
+    getParentRoute: () => CheckoutRoute,
+  } as any)
 const AuthenticatedDashboardWishlistRoute =
   AuthenticatedDashboardWishlistRouteImport.update({
     id: '/dashboard/wishlist',
@@ -103,11 +110,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
+  '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin/': typeof AuthenticatedAdminAdminIndexRoute
@@ -117,11 +125,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
+  '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin': typeof AuthenticatedAdminAdminIndexRoute
@@ -133,12 +142,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRoute
+  '/checkout': typeof CheckoutRouteWithChildren
   '/shop': typeof ShopRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/_authenticated/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
+  '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/_authenticated/_admin/admin/': typeof AuthenticatedAdminAdminIndexRoute
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/dashboard/profil'
     | '/dashboard/wishlist'
+    | '/checkout/success/$orderNumber'
     | '/dashboard/'
     | '/dashboard/pesanan/$orderNumber'
     | '/admin/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/dashboard/profil'
     | '/dashboard/wishlist'
+    | '/checkout/success/$orderNumber'
     | '/dashboard'
     | '/dashboard/pesanan/$orderNumber'
     | '/admin'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/_authenticated/dashboard/profil'
     | '/_authenticated/dashboard/wishlist'
+    | '/checkout/success/$orderNumber'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/pesanan/$orderNumber'
     | '/_authenticated/_admin/admin/'
@@ -196,7 +209,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
-  CheckoutRoute: typeof CheckoutRoute
+  CheckoutRoute: typeof CheckoutRouteWithChildren
   ShopRoute: typeof ShopRoute
   ProductSlugRoute: typeof ProductSlugRoute
 }
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/checkout/success/$orderNumber': {
+      id: '/checkout/success/$orderNumber'
+      path: '/success/$orderNumber'
+      fullPath: '/checkout/success/$orderNumber'
+      preLoaderRoute: typeof CheckoutSuccessOrderNumberRouteImport
+      parentRoute: typeof CheckoutRoute
     }
     '/_authenticated/dashboard/wishlist': {
       id: '/_authenticated/dashboard/wishlist'
@@ -341,12 +361,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface CheckoutRouteChildren {
+  CheckoutSuccessOrderNumberRoute: typeof CheckoutSuccessOrderNumberRoute
+}
+
+const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutSuccessOrderNumberRoute: CheckoutSuccessOrderNumberRoute,
+}
+
+const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
+  CheckoutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
-  CheckoutRoute: CheckoutRoute,
+  CheckoutRoute: CheckoutRouteWithChildren,
   ShopRoute: ShopRoute,
   ProductSlugRoute: ProductSlugRoute,
 }
