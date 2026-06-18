@@ -1,24 +1,38 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useCart, useWishlist } from "@/hooks/use-commerce";
 
 const NAV = [
-  { label: "Shop", href: "#collections" },
-  { label: "Collections", href: "#collections" },
-  { label: "Vintage", href: "#vintage" },
-  { label: "About", href: "#about" },
+  { label: "Shop", to: "/shop" },
+  { label: "Collections", to: "/collections" },
+  { label: "About", to: "/about" },
+  { label: "Contact", to: "/contact" },
 ];
 
-export function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
+interface NavbarProps {
+  /** When true, navbar starts transparent (over hero). When false, solid from the start. */
+  overHero?: boolean;
+}
+
+export function Navbar({ overHero = false }: NavbarProps) {
+  const [scrolled, setScrolled] = useState(!overHero);
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const { data: cart } = useCart();
+  const { data: wishlist } = useWishlist();
+  const cartCount = cart?.reduce((s, i) => s + i.quantity, 0) ?? 0;
+  const wlCount = wishlist?.length ?? 0;
 
   useEffect(() => {
+    if (!overHero) return;
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [overHero]);
 
   return (
     <header
@@ -30,48 +44,47 @@ export function Navbar() {
       )}
     >
       <div className="container-swiss grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4 h-16 md:h-20">
-        <a href="#top" className="flex items-center gap-2 min-w-0">
+        <Link to="/" className="flex items-center gap-2 min-w-0">
           <span className="inline-block size-2.5 bg-primary" aria-hidden />
           <span className="font-display font-extrabold tracking-tight text-base md:text-lg uppercase whitespace-nowrap">
             The Locker Room
           </span>
-        </a>
+        </Link>
 
         <nav className="hidden sm:flex items-center justify-center gap-8 lg:gap-10">
           {NAV.map((n) => (
-            <a
+            <Link
               key={n.label}
-              href={n.href}
+              to={n.to}
               className="text-sm font-medium tracking-wide hover:opacity-60 transition-opacity"
             >
               {n.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
         <div className="hidden sm:flex items-center justify-end gap-5">
-          <button aria-label="Search" className="hover:opacity-60 transition-opacity">
+          <Link to="/search" aria-label="Search" className="hover:opacity-60 transition-opacity">
             <Search className="size-4" strokeWidth={1.5} />
-          </button>
-          <button aria-label="Wishlist" className="hover:opacity-60 transition-opacity">
+          </Link>
+          <Link to={user ? "/dashboard/wishlist" : "/auth"} aria-label="Wishlist" className="hover:opacity-60 transition-opacity relative">
             <Heart className="size-4" strokeWidth={1.5} />
-          </button>
-          <button aria-label="Cart" className="hover:opacity-60 transition-opacity relative">
+            {wlCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{wlCount}</span>
+            )}
+          </Link>
+          <Link to="/cart" aria-label="Cart" className="hover:opacity-60 transition-opacity relative">
             <ShoppingBag className="size-4" strokeWidth={1.5} />
-            <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">
-              2
-            </span>
-          </button>
-          <button aria-label="Login" className="hover:opacity-60 transition-opacity">
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{cartCount}</span>
+            )}
+          </Link>
+          <Link to={user ? "/dashboard" : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity">
             <User className="size-4" strokeWidth={1.5} />
-          </button>
+          </Link>
         </div>
 
-        <button
-          aria-label="Menu"
-          className="sm:hidden justify-self-end"
-          onClick={() => setOpen((v) => !v)}
-        >
+        <button aria-label="Menu" className="sm:hidden justify-self-end" onClick={() => setOpen((v) => !v)}>
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
       </div>
@@ -80,22 +93,14 @@ export function Navbar() {
         <div className="sm:hidden border-t border-border bg-background text-foreground">
           <nav className="container-swiss py-6 flex flex-col gap-4">
             {NAV.map((n) => (
-              <a
-                key={n.label}
-                href={n.href}
-                onClick={() => setOpen(false)}
-                className="text-base font-medium"
-              >
+              <Link key={n.label} to={n.to} onClick={() => setOpen(false)} className="text-base font-medium">
                 {n.label}
-              </a>
+              </Link>
             ))}
-            <div className="hairline my-2" />
-            <div className="flex items-center gap-6 text-muted-foreground">
-              <Search className="size-4" />
-              <Heart className="size-4" />
-              <ShoppingBag className="size-4" />
-              <User className="size-4" />
-            </div>
+            <Link to="/cart" onClick={() => setOpen(false)} className="text-base font-medium">Keranjang ({cartCount})</Link>
+            <Link to={user ? "/dashboard" : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium">
+              {user ? "Dashboard" : "Login / Daftar"}
+            </Link>
           </nav>
         </div>
       )}
