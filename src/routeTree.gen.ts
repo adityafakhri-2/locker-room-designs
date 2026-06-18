@@ -9,38 +9,445 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ShopRouteImport } from './routes/shop'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CollectionsRouteImport } from './routes/collections'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CartRouteImport } from './routes/cart'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as CheckoutSuccessOrderNumberRouteImport } from './routes/checkout.success.$orderNumber'
+import { Route as AuthenticatedDashboardWishlistRouteImport } from './routes/_authenticated/dashboard.wishlist'
+import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated/dashboard.profil'
+import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
+import { Route as AuthenticatedAdminAdminIndexRouteImport } from './routes/_authenticated/_admin/admin.index'
+import { Route as AuthenticatedDashboardPesananOrderNumberRouteImport } from './routes/_authenticated/dashboard.pesanan.$orderNumber'
+import { Route as AuthenticatedAdminAdminUlasanRouteImport } from './routes/_authenticated/_admin/admin.ulasan'
+import { Route as AuthenticatedAdminAdminPelangganRouteImport } from './routes/_authenticated/_admin/admin.pelanggan'
+import { Route as AuthenticatedAdminAdminLaporanRouteImport } from './routes/_authenticated/_admin/admin.laporan'
+import { Route as AuthenticatedAdminAdminKoleksiRouteImport } from './routes/_authenticated/_admin/admin.koleksi'
+import { Route as AuthenticatedAdminAdminKategoriRouteImport } from './routes/_authenticated/_admin/admin.kategori'
+import { Route as AuthenticatedAdminAdminProdukIndexRouteImport } from './routes/_authenticated/_admin/admin.produk.index'
+import { Route as AuthenticatedAdminAdminPesananIndexRouteImport } from './routes/_authenticated/_admin/admin.pesanan.index'
+import { Route as AuthenticatedAdminAdminProdukIdRouteImport } from './routes/_authenticated/_admin/admin.produk.$id'
+import { Route as AuthenticatedAdminAdminPesananOrderNumberRouteImport } from './routes/_authenticated/_admin/admin.pesanan.$orderNumber'
 
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionsRoute = CollectionsRouteImport.update({
+  id: '/collections',
+  path: '/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductSlugRoute = ProductSlugRouteImport.update({
+  id: '/product/$slug',
+  path: '/product/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/_admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const CheckoutSuccessOrderNumberRoute =
+  CheckoutSuccessOrderNumberRouteImport.update({
+    id: '/success/$orderNumber',
+    path: '/success/$orderNumber',
+    getParentRoute: () => CheckoutRoute,
+  } as any)
+const AuthenticatedDashboardWishlistRoute =
+  AuthenticatedDashboardWishlistRouteImport.update({
+    id: '/dashboard/wishlist',
+    path: '/dashboard/wishlist',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardProfilRoute =
+  AuthenticatedDashboardProfilRouteImport.update({
+    id: '/dashboard/profil',
+    path: '/dashboard/profil',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardPesananIndexRoute =
+  AuthenticatedDashboardPesananIndexRouteImport.update({
+    id: '/dashboard/pesanan/',
+    path: '/dashboard/pesanan/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminIndexRoute =
+  AuthenticatedAdminAdminIndexRouteImport.update({
+    id: '/admin/',
+    path: '/admin/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedDashboardPesananOrderNumberRoute =
+  AuthenticatedDashboardPesananOrderNumberRouteImport.update({
+    id: '/dashboard/pesanan/$orderNumber',
+    path: '/dashboard/pesanan/$orderNumber',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminUlasanRoute =
+  AuthenticatedAdminAdminUlasanRouteImport.update({
+    id: '/admin/ulasan',
+    path: '/admin/ulasan',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminPelangganRoute =
+  AuthenticatedAdminAdminPelangganRouteImport.update({
+    id: '/admin/pelanggan',
+    path: '/admin/pelanggan',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminLaporanRoute =
+  AuthenticatedAdminAdminLaporanRouteImport.update({
+    id: '/admin/laporan',
+    path: '/admin/laporan',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminKoleksiRoute =
+  AuthenticatedAdminAdminKoleksiRouteImport.update({
+    id: '/admin/koleksi',
+    path: '/admin/koleksi',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminKategoriRoute =
+  AuthenticatedAdminAdminKategoriRouteImport.update({
+    id: '/admin/kategori',
+    path: '/admin/kategori',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminProdukIndexRoute =
+  AuthenticatedAdminAdminProdukIndexRouteImport.update({
+    id: '/admin/produk/',
+    path: '/admin/produk/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminPesananIndexRoute =
+  AuthenticatedAdminAdminPesananIndexRouteImport.update({
+    id: '/admin/pesanan/',
+    path: '/admin/pesanan/',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminProdukIdRoute =
+  AuthenticatedAdminAdminProdukIdRouteImport.update({
+    id: '/admin/produk/$id',
+    path: '/admin/produk/$id',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminPesananOrderNumberRoute =
+  AuthenticatedAdminAdminPesananOrderNumberRouteImport.update({
+    id: '/admin/pesanan/$orderNumber',
+    path: '/admin/pesanan/$orderNumber',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
+  '/checkout': typeof CheckoutRouteWithChildren
+  '/collections': typeof CollectionsRoute
+  '/contact': typeof ContactRoute
+  '/search': typeof SearchRoute
+  '/shop': typeof ShopRoute
+  '/product/$slug': typeof ProductSlugRoute
+  '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
+  '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/admin/kategori': typeof AuthenticatedAdminAdminKategoriRoute
+  '/admin/koleksi': typeof AuthenticatedAdminAdminKoleksiRoute
+  '/admin/laporan': typeof AuthenticatedAdminAdminLaporanRoute
+  '/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
+  '/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
+  '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
+  '/admin/': typeof AuthenticatedAdminAdminIndexRoute
+  '/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
+  '/admin/pesanan/$orderNumber': typeof AuthenticatedAdminAdminPesananOrderNumberRoute
+  '/admin/produk/$id': typeof AuthenticatedAdminAdminProdukIdRoute
+  '/admin/pesanan/': typeof AuthenticatedAdminAdminPesananIndexRoute
+  '/admin/produk/': typeof AuthenticatedAdminAdminProdukIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
+  '/checkout': typeof CheckoutRouteWithChildren
+  '/collections': typeof CollectionsRoute
+  '/contact': typeof ContactRoute
+  '/search': typeof SearchRoute
+  '/shop': typeof ShopRoute
+  '/product/$slug': typeof ProductSlugRoute
+  '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
+  '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/admin/kategori': typeof AuthenticatedAdminAdminKategoriRoute
+  '/admin/koleksi': typeof AuthenticatedAdminAdminKoleksiRoute
+  '/admin/laporan': typeof AuthenticatedAdminAdminLaporanRoute
+  '/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
+  '/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
+  '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
+  '/admin': typeof AuthenticatedAdminAdminIndexRoute
+  '/dashboard/pesanan': typeof AuthenticatedDashboardPesananIndexRoute
+  '/admin/pesanan/$orderNumber': typeof AuthenticatedAdminAdminPesananOrderNumberRoute
+  '/admin/produk/$id': typeof AuthenticatedAdminAdminProdukIdRoute
+  '/admin/pesanan': typeof AuthenticatedAdminAdminPesananIndexRoute
+  '/admin/produk': typeof AuthenticatedAdminAdminProdukIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/auth': typeof AuthRoute
+  '/cart': typeof CartRoute
+  '/checkout': typeof CheckoutRouteWithChildren
+  '/collections': typeof CollectionsRoute
+  '/contact': typeof ContactRoute
+  '/search': typeof SearchRoute
+  '/shop': typeof ShopRoute
+  '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/product/$slug': typeof ProductSlugRoute
+  '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/_authenticated/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
+  '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/_admin/admin/kategori': typeof AuthenticatedAdminAdminKategoriRoute
+  '/_authenticated/_admin/admin/koleksi': typeof AuthenticatedAdminAdminKoleksiRoute
+  '/_authenticated/_admin/admin/laporan': typeof AuthenticatedAdminAdminLaporanRoute
+  '/_authenticated/_admin/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
+  '/_authenticated/_admin/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
+  '/_authenticated/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
+  '/_authenticated/_admin/admin/': typeof AuthenticatedAdminAdminIndexRoute
+  '/_authenticated/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
+  '/_authenticated/_admin/admin/pesanan/$orderNumber': typeof AuthenticatedAdminAdminPesananOrderNumberRoute
+  '/_authenticated/_admin/admin/produk/$id': typeof AuthenticatedAdminAdminProdukIdRoute
+  '/_authenticated/_admin/admin/pesanan/': typeof AuthenticatedAdminAdminPesananIndexRoute
+  '/_authenticated/_admin/admin/produk/': typeof AuthenticatedAdminAdminProdukIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/auth'
+    | '/cart'
+    | '/checkout'
+    | '/collections'
+    | '/contact'
+    | '/search'
+    | '/shop'
+    | '/product/$slug'
+    | '/dashboard/profil'
+    | '/dashboard/wishlist'
+    | '/checkout/success/$orderNumber'
+    | '/dashboard/'
+    | '/admin/kategori'
+    | '/admin/koleksi'
+    | '/admin/laporan'
+    | '/admin/pelanggan'
+    | '/admin/ulasan'
+    | '/dashboard/pesanan/$orderNumber'
+    | '/admin/'
+    | '/dashboard/pesanan/'
+    | '/admin/pesanan/$orderNumber'
+    | '/admin/produk/$id'
+    | '/admin/pesanan/'
+    | '/admin/produk/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/auth'
+    | '/cart'
+    | '/checkout'
+    | '/collections'
+    | '/contact'
+    | '/search'
+    | '/shop'
+    | '/product/$slug'
+    | '/dashboard/profil'
+    | '/dashboard/wishlist'
+    | '/checkout/success/$orderNumber'
+    | '/dashboard'
+    | '/admin/kategori'
+    | '/admin/koleksi'
+    | '/admin/laporan'
+    | '/admin/pelanggan'
+    | '/admin/ulasan'
+    | '/dashboard/pesanan/$orderNumber'
+    | '/admin'
+    | '/dashboard/pesanan'
+    | '/admin/pesanan/$orderNumber'
+    | '/admin/produk/$id'
+    | '/admin/pesanan'
+    | '/admin/produk'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/about'
+    | '/auth'
+    | '/cart'
+    | '/checkout'
+    | '/collections'
+    | '/contact'
+    | '/search'
+    | '/shop'
+    | '/_authenticated/_admin'
+    | '/product/$slug'
+    | '/_authenticated/dashboard/profil'
+    | '/_authenticated/dashboard/wishlist'
+    | '/checkout/success/$orderNumber'
+    | '/_authenticated/dashboard/'
+    | '/_authenticated/_admin/admin/kategori'
+    | '/_authenticated/_admin/admin/koleksi'
+    | '/_authenticated/_admin/admin/laporan'
+    | '/_authenticated/_admin/admin/pelanggan'
+    | '/_authenticated/_admin/admin/ulasan'
+    | '/_authenticated/dashboard/pesanan/$orderNumber'
+    | '/_authenticated/_admin/admin/'
+    | '/_authenticated/dashboard/pesanan/'
+    | '/_authenticated/_admin/admin/pesanan/$orderNumber'
+    | '/_authenticated/_admin/admin/produk/$id'
+    | '/_authenticated/_admin/admin/pesanan/'
+    | '/_authenticated/_admin/admin/produk/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
+  AuthRoute: typeof AuthRoute
+  CartRoute: typeof CartRoute
+  CheckoutRoute: typeof CheckoutRouteWithChildren
+  CollectionsRoute: typeof CollectionsRoute
+  ContactRoute: typeof ContactRoute
+  SearchRoute: typeof SearchRoute
+  ShopRoute: typeof ShopRoute
+  ProductSlugRoute: typeof ProductSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collections': {
+      id: '/collections'
+      path: '/collections'
+      fullPath: '/collections'
+      preLoaderRoute: typeof CollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +455,219 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/product/$slug': {
+      id: '/product/$slug'
+      path: '/product/$slug'
+      fullPath: '/product/$slug'
+      preLoaderRoute: typeof ProductSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/_admin': {
+      id: '/_authenticated/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/checkout/success/$orderNumber': {
+      id: '/checkout/success/$orderNumber'
+      path: '/success/$orderNumber'
+      fullPath: '/checkout/success/$orderNumber'
+      preLoaderRoute: typeof CheckoutSuccessOrderNumberRouteImport
+      parentRoute: typeof CheckoutRoute
+    }
+    '/_authenticated/dashboard/wishlist': {
+      id: '/_authenticated/dashboard/wishlist'
+      path: '/dashboard/wishlist'
+      fullPath: '/dashboard/wishlist'
+      preLoaderRoute: typeof AuthenticatedDashboardWishlistRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/profil': {
+      id: '/_authenticated/dashboard/profil'
+      path: '/dashboard/profil'
+      fullPath: '/dashboard/profil'
+      preLoaderRoute: typeof AuthenticatedDashboardProfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/pesanan/': {
+      id: '/_authenticated/dashboard/pesanan/'
+      path: '/dashboard/pesanan'
+      fullPath: '/dashboard/pesanan/'
+      preLoaderRoute: typeof AuthenticatedDashboardPesananIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_admin/admin/': {
+      id: '/_authenticated/_admin/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/dashboard/pesanan/$orderNumber': {
+      id: '/_authenticated/dashboard/pesanan/$orderNumber'
+      path: '/dashboard/pesanan/$orderNumber'
+      fullPath: '/dashboard/pesanan/$orderNumber'
+      preLoaderRoute: typeof AuthenticatedDashboardPesananOrderNumberRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_admin/admin/ulasan': {
+      id: '/_authenticated/_admin/admin/ulasan'
+      path: '/admin/ulasan'
+      fullPath: '/admin/ulasan'
+      preLoaderRoute: typeof AuthenticatedAdminAdminUlasanRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/pelanggan': {
+      id: '/_authenticated/_admin/admin/pelanggan'
+      path: '/admin/pelanggan'
+      fullPath: '/admin/pelanggan'
+      preLoaderRoute: typeof AuthenticatedAdminAdminPelangganRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/laporan': {
+      id: '/_authenticated/_admin/admin/laporan'
+      path: '/admin/laporan'
+      fullPath: '/admin/laporan'
+      preLoaderRoute: typeof AuthenticatedAdminAdminLaporanRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/koleksi': {
+      id: '/_authenticated/_admin/admin/koleksi'
+      path: '/admin/koleksi'
+      fullPath: '/admin/koleksi'
+      preLoaderRoute: typeof AuthenticatedAdminAdminKoleksiRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/kategori': {
+      id: '/_authenticated/_admin/admin/kategori'
+      path: '/admin/kategori'
+      fullPath: '/admin/kategori'
+      preLoaderRoute: typeof AuthenticatedAdminAdminKategoriRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/produk/': {
+      id: '/_authenticated/_admin/admin/produk/'
+      path: '/admin/produk'
+      fullPath: '/admin/produk/'
+      preLoaderRoute: typeof AuthenticatedAdminAdminProdukIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/pesanan/': {
+      id: '/_authenticated/_admin/admin/pesanan/'
+      path: '/admin/pesanan'
+      fullPath: '/admin/pesanan/'
+      preLoaderRoute: typeof AuthenticatedAdminAdminPesananIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/produk/$id': {
+      id: '/_authenticated/_admin/admin/produk/$id'
+      path: '/admin/produk/$id'
+      fullPath: '/admin/produk/$id'
+      preLoaderRoute: typeof AuthenticatedAdminAdminProdukIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/_admin/admin/pesanan/$orderNumber': {
+      id: '/_authenticated/_admin/admin/pesanan/$orderNumber'
+      path: '/admin/pesanan/$orderNumber'
+      fullPath: '/admin/pesanan/$orderNumber'
+      preLoaderRoute: typeof AuthenticatedAdminAdminPesananOrderNumberRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminAdminKategoriRoute: typeof AuthenticatedAdminAdminKategoriRoute
+  AuthenticatedAdminAdminKoleksiRoute: typeof AuthenticatedAdminAdminKoleksiRoute
+  AuthenticatedAdminAdminLaporanRoute: typeof AuthenticatedAdminAdminLaporanRoute
+  AuthenticatedAdminAdminPelangganRoute: typeof AuthenticatedAdminAdminPelangganRoute
+  AuthenticatedAdminAdminUlasanRoute: typeof AuthenticatedAdminAdminUlasanRoute
+  AuthenticatedAdminAdminIndexRoute: typeof AuthenticatedAdminAdminIndexRoute
+  AuthenticatedAdminAdminPesananOrderNumberRoute: typeof AuthenticatedAdminAdminPesananOrderNumberRoute
+  AuthenticatedAdminAdminProdukIdRoute: typeof AuthenticatedAdminAdminProdukIdRoute
+  AuthenticatedAdminAdminPesananIndexRoute: typeof AuthenticatedAdminAdminPesananIndexRoute
+  AuthenticatedAdminAdminProdukIndexRoute: typeof AuthenticatedAdminAdminProdukIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminAdminKategoriRoute: AuthenticatedAdminAdminKategoriRoute,
+    AuthenticatedAdminAdminKoleksiRoute: AuthenticatedAdminAdminKoleksiRoute,
+    AuthenticatedAdminAdminLaporanRoute: AuthenticatedAdminAdminLaporanRoute,
+    AuthenticatedAdminAdminPelangganRoute:
+      AuthenticatedAdminAdminPelangganRoute,
+    AuthenticatedAdminAdminUlasanRoute: AuthenticatedAdminAdminUlasanRoute,
+    AuthenticatedAdminAdminIndexRoute: AuthenticatedAdminAdminIndexRoute,
+    AuthenticatedAdminAdminPesananOrderNumberRoute:
+      AuthenticatedAdminAdminPesananOrderNumberRoute,
+    AuthenticatedAdminAdminProdukIdRoute: AuthenticatedAdminAdminProdukIdRoute,
+    AuthenticatedAdminAdminPesananIndexRoute:
+      AuthenticatedAdminAdminPesananIndexRoute,
+    AuthenticatedAdminAdminProdukIndexRoute:
+      AuthenticatedAdminAdminProdukIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedDashboardProfilRoute: typeof AuthenticatedDashboardProfilRoute
+  AuthenticatedDashboardWishlistRoute: typeof AuthenticatedDashboardWishlistRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardPesananOrderNumberRoute: typeof AuthenticatedDashboardPesananOrderNumberRoute
+  AuthenticatedDashboardPesananIndexRoute: typeof AuthenticatedDashboardPesananIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedDashboardProfilRoute: AuthenticatedDashboardProfilRoute,
+  AuthenticatedDashboardWishlistRoute: AuthenticatedDashboardWishlistRoute,
+  AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedDashboardPesananOrderNumberRoute:
+    AuthenticatedDashboardPesananOrderNumberRoute,
+  AuthenticatedDashboardPesananIndexRoute:
+    AuthenticatedDashboardPesananIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface CheckoutRouteChildren {
+  CheckoutSuccessOrderNumberRoute: typeof CheckoutSuccessOrderNumberRoute
+}
+
+const CheckoutRouteChildren: CheckoutRouteChildren = {
+  CheckoutSuccessOrderNumberRoute: CheckoutSuccessOrderNumberRoute,
+}
+
+const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
+  CheckoutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
+  AuthRoute: AuthRoute,
+  CartRoute: CartRoute,
+  CheckoutRoute: CheckoutRouteWithChildren,
+  CollectionsRoute: CollectionsRoute,
+  ContactRoute: ContactRoute,
+  SearchRoute: SearchRoute,
+  ShopRoute: ShopRoute,
+  ProductSlugRoute: ProductSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
