@@ -19,6 +19,7 @@ import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardWishlistRouteImport } from './routes/_authenticated/dashboard.wishlist'
+import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated/dashboard.profil'
 import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
 import { Route as AuthenticatedAdminAdminIndexRouteImport } from './routes/_authenticated/_admin/admin.index'
 import { Route as AuthenticatedDashboardPesananOrderNumberRouteImport } from './routes/_authenticated/dashboard.pesanan.$orderNumber'
@@ -73,6 +74,12 @@ const AuthenticatedDashboardWishlistRoute =
     path: '/dashboard/wishlist',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardProfilRoute =
+  AuthenticatedDashboardProfilRouteImport.update({
+    id: '/dashboard/profil',
+    path: '/dashboard/profil',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardPesananIndexRoute =
   AuthenticatedDashboardPesananIndexRouteImport.update({
     id: '/dashboard/pesanan/',
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
@@ -112,6 +120,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
@@ -128,6 +137,7 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
+  '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/_authenticated/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/shop'
     | '/product/$slug'
+    | '/dashboard/profil'
     | '/dashboard/wishlist'
     | '/dashboard/'
     | '/dashboard/pesanan/$orderNumber'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/shop'
     | '/product/$slug'
+    | '/dashboard/profil'
     | '/dashboard/wishlist'
     | '/dashboard'
     | '/dashboard/pesanan/$orderNumber'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/_authenticated/_admin'
     | '/product/$slug'
+    | '/_authenticated/dashboard/profil'
     | '/_authenticated/dashboard/wishlist'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/pesanan/$orderNumber'
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardWishlistRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard/profil': {
+      id: '/_authenticated/dashboard/profil'
+      path: '/dashboard/profil'
+      fullPath: '/dashboard/profil'
+      preLoaderRoute: typeof AuthenticatedDashboardProfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/pesanan/': {
       id: '/_authenticated/dashboard/pesanan/'
       path: '/dashboard/pesanan'
@@ -300,6 +320,7 @@ const AuthenticatedAdminRouteRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
+  AuthenticatedDashboardProfilRoute: typeof AuthenticatedDashboardProfilRoute
   AuthenticatedDashboardWishlistRoute: typeof AuthenticatedDashboardWishlistRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedDashboardPesananOrderNumberRoute: typeof AuthenticatedDashboardPesananOrderNumberRoute
@@ -308,6 +329,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
+  AuthenticatedDashboardProfilRoute: AuthenticatedDashboardProfilRoute,
   AuthenticatedDashboardWishlistRoute: AuthenticatedDashboardWishlistRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedDashboardPesananOrderNumberRoute:
