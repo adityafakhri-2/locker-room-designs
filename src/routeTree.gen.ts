@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
 import { Route as AuthenticatedAdminAdminIndexRouteImport } from './routes/_authenticated/_admin/admin.index'
 
 const ShopRoute = ShopRouteImport.update({
@@ -64,6 +65,12 @@ const AuthenticatedDashboardIndexRoute =
     path: '/dashboard/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardPesananIndexRoute =
+  AuthenticatedDashboardPesananIndexRouteImport.update({
+    id: '/dashboard/pesanan/',
+    path: '/dashboard/pesanan/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAdminIndexRoute =
   AuthenticatedAdminAdminIndexRouteImport.update({
     id: '/admin/',
@@ -80,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/admin/': typeof AuthenticatedAdminAdminIndexRoute
+  '/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
   '/product/$slug': typeof ProductSlugRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/admin': typeof AuthenticatedAdminAdminIndexRoute
+  '/dashboard/pesanan': typeof AuthenticatedDashboardPesananIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,6 +112,7 @@ export interface FileRoutesById {
   '/product/$slug': typeof ProductSlugRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/_admin/admin/': typeof AuthenticatedAdminAdminIndexRoute
+  '/_authenticated/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/dashboard/'
     | '/admin/'
+    | '/dashboard/pesanan/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/dashboard'
     | '/admin'
+    | '/dashboard/pesanan'
   id:
     | '__root__'
     | '/'
@@ -137,6 +149,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/_authenticated/dashboard/'
     | '/_authenticated/_admin/admin/'
+    | '/_authenticated/dashboard/pesanan/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard/pesanan/': {
+      id: '/_authenticated/dashboard/pesanan/'
+      path: '/dashboard/pesanan'
+      fullPath: '/dashboard/pesanan/'
+      preLoaderRoute: typeof AuthenticatedDashboardPesananIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/_admin/admin/': {
       id: '/_authenticated/_admin/admin/'
       path: '/admin'
@@ -241,11 +261,14 @@ const AuthenticatedAdminRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardPesananIndexRoute: typeof AuthenticatedDashboardPesananIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedDashboardPesananIndexRoute:
+    AuthenticatedDashboardPesananIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
