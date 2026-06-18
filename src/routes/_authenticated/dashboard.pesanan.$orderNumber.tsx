@@ -38,7 +38,7 @@ function OrderDetail() {
   if (q.isLoading) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Memuat...</DashboardShell>);
   const order = q.data?.order;
   if (!order) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Pesanan tidak ditemukan.</DashboardShell>);
-  const payment = order.payments?.[0];
+  const payment = (Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; reject_reason: string | null } | null;
   const bank = BANKS.find((b) => b.code === payment?.bank);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
