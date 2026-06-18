@@ -1,8 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Heart } from "lucide-react";
+import { toast } from "sonner";
 import { formatIDR } from "@/lib/format";
 import { useToggleWishlist, useWishlist } from "@/hooks/use-commerce";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 export interface ProductCardData {
@@ -25,6 +27,8 @@ const BADGE_LABEL: Record<string, string> = {
 };
 
 export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactNode }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: wl } = useWishlist();
   const toggle = useToggleWishlist();
   const liked = wl?.some((w) => w.product_id === p.id) ?? false;
@@ -51,7 +55,15 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
         )}
         <button
           aria-label="Wishlist"
-          onClick={(e) => { e.preventDefault(); toggle.mutate(p.id); }}
+          onClick={(e) => {
+            e.preventDefault();
+            if (!user) {
+              toast.error("Silakan masuk terlebih dahulu");
+              navigate({ to: "/auth" });
+              return;
+            }
+            toggle.mutate(p.id);
+          }}
           className="absolute top-3 right-3 grid place-items-center size-8 bg-background/95 hover:bg-background"
         >
           <Heart className={cn("size-3.5", liked && "fill-primary text-primary")} strokeWidth={1.5} />

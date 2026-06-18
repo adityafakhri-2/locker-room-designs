@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductDetail() {
+  const navigate = useNavigate();
   const { slug } = useParams({ from: "/product/$slug" });
   const { user } = useAuth();
   const [size, setSize] = useState<string | null>(null);
@@ -125,18 +126,28 @@ function ProductDetail() {
                 </div>
               </div>
             )}
-
             <div className="mt-8 flex gap-3">
               <Button
                 className="flex-1 h-12"
                 disabled={p.stock <= 0 || addToCart.isPending}
                 onClick={() => {
-                  if (!user) { toast.error("Silakan login terlebih dahulu"); return; }
+                  if (!user) {
+                    toast.error("Silakan masuk terlebih dahulu");
+                    navigate({ to: "/auth" });
+                    return;
+                  }
                   if (p.sizes && p.sizes.length > 0 && !size) { toast.error("Pilih ukuran"); return; }
                   addToCart.mutate({ product_id: p.id, size }, { onSuccess: () => toast.success("Ditambahkan ke keranjang") });
                 }}
               >{p.stock <= 0 ? "Stok Habis" : "Tambah ke Keranjang"}</Button>
-              <Button variant="outline" className="h-12" onClick={() => { if (!user) return toast.error("Silakan login"); toggleWl.mutate(p.id); }}>
+              <Button variant="outline" className="h-12" onClick={() => {
+                if (!user) {
+                  toast.error("Silakan masuk terlebih dahulu");
+                  navigate({ to: "/auth" });
+                  return;
+                }
+                toggleWl.mutate(p.id);
+              }}>
                 <Heart className={cn("size-4", liked && "fill-primary text-primary")} />
               </Button>
             </div>
