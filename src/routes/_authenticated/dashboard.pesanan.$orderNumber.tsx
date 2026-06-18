@@ -72,7 +72,7 @@ function OrderDetail() {
           <Card>
             <h3 className="font-extrabold mb-3">Timeline</h3>
             <ol className="space-y-2 text-sm">
-              {(Array.isArray(order.timeline) ? order.timeline : []).map((t, i) => (
+              {((Array.isArray(order.timeline) ? order.timeline : []) as Array<{ status: string; at: string }>).map((t, i) => (
                 <li key={i} className="flex gap-3"><span className="size-2 bg-primary mt-2" /><div><div className="font-semibold">{statusLabel(t.status)}</div><div className="text-xs text-muted-foreground">{formatDateTime(t.at)}</div></div></li>
               ))}
             </ol>
