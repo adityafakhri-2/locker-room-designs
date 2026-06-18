@@ -17,7 +17,7 @@ function AdminReviews() {
     queryFn: async () => (await supabase.from("reviews").select("*, products(name)").order("created_at", { ascending: false })).data ?? [],
   });
   const setStatus = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, boolean> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: { approved?: boolean; hidden?: boolean } }) => {
       const { error } = await supabase.from("reviews").update(patch).eq("id", id);
       if (error) throw error;
     },

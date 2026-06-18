@@ -28,6 +28,7 @@ import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
 import { Route as AuthenticatedAdminAdminIndexRouteImport } from './routes/_authenticated/_admin/admin.index'
 import { Route as AuthenticatedDashboardPesananOrderNumberRouteImport } from './routes/_authenticated/dashboard.pesanan.$orderNumber'
+import { Route as AuthenticatedAdminAdminUlasanRouteImport } from './routes/_authenticated/_admin/admin.ulasan'
 import { Route as AuthenticatedAdminAdminPelangganRouteImport } from './routes/_authenticated/_admin/admin.pelanggan'
 import { Route as AuthenticatedAdminAdminKoleksiRouteImport } from './routes/_authenticated/_admin/admin.koleksi'
 import { Route as AuthenticatedAdminAdminKategoriRouteImport } from './routes/_authenticated/_admin/admin.kategori'
@@ -136,6 +137,12 @@ const AuthenticatedDashboardPesananOrderNumberRoute =
     path: '/dashboard/pesanan/$orderNumber',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAdminUlasanRoute =
+  AuthenticatedAdminAdminUlasanRouteImport.update({
+    id: '/admin/ulasan',
+    path: '/admin/ulasan',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminAdminPelangganRoute =
   AuthenticatedAdminAdminPelangganRouteImport.update({
     id: '/admin/pelanggan',
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/admin/kategori': typeof AuthenticatedAdminAdminKategoriRoute
   '/admin/koleksi': typeof AuthenticatedAdminAdminKoleksiRoute
   '/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
+  '/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin/': typeof AuthenticatedAdminAdminIndexRoute
   '/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
@@ -223,6 +231,7 @@ export interface FileRoutesByTo {
   '/admin/kategori': typeof AuthenticatedAdminAdminKategoriRoute
   '/admin/koleksi': typeof AuthenticatedAdminAdminKoleksiRoute
   '/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
+  '/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin': typeof AuthenticatedAdminAdminIndexRoute
   '/dashboard/pesanan': typeof AuthenticatedDashboardPesananIndexRoute
@@ -252,6 +261,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/admin/kategori': typeof AuthenticatedAdminAdminKategoriRoute
   '/_authenticated/_admin/admin/koleksi': typeof AuthenticatedAdminAdminKoleksiRoute
   '/_authenticated/_admin/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
+  '/_authenticated/_admin/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
   '/_authenticated/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/_authenticated/_admin/admin/': typeof AuthenticatedAdminAdminIndexRoute
   '/_authenticated/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/admin/kategori'
     | '/admin/koleksi'
     | '/admin/pelanggan'
+    | '/admin/ulasan'
     | '/dashboard/pesanan/$orderNumber'
     | '/admin/'
     | '/dashboard/pesanan/'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/admin/kategori'
     | '/admin/koleksi'
     | '/admin/pelanggan'
+    | '/admin/ulasan'
     | '/dashboard/pesanan/$orderNumber'
     | '/admin'
     | '/dashboard/pesanan'
@@ -334,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/admin/kategori'
     | '/_authenticated/_admin/admin/koleksi'
     | '/_authenticated/_admin/admin/pelanggan'
+    | '/_authenticated/_admin/admin/ulasan'
     | '/_authenticated/dashboard/pesanan/$orderNumber'
     | '/_authenticated/_admin/admin/'
     | '/_authenticated/dashboard/pesanan/'
@@ -492,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardPesananOrderNumberRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/_admin/admin/ulasan': {
+      id: '/_authenticated/_admin/admin/ulasan'
+      path: '/admin/ulasan'
+      fullPath: '/admin/ulasan'
+      preLoaderRoute: typeof AuthenticatedAdminAdminUlasanRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/_admin/admin/pelanggan': {
       id: '/_authenticated/_admin/admin/pelanggan'
       path: '/admin/pelanggan'
@@ -548,6 +568,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAdminKategoriRoute: typeof AuthenticatedAdminAdminKategoriRoute
   AuthenticatedAdminAdminKoleksiRoute: typeof AuthenticatedAdminAdminKoleksiRoute
   AuthenticatedAdminAdminPelangganRoute: typeof AuthenticatedAdminAdminPelangganRoute
+  AuthenticatedAdminAdminUlasanRoute: typeof AuthenticatedAdminAdminUlasanRoute
   AuthenticatedAdminAdminIndexRoute: typeof AuthenticatedAdminAdminIndexRoute
   AuthenticatedAdminAdminPesananOrderNumberRoute: typeof AuthenticatedAdminAdminPesananOrderNumberRoute
   AuthenticatedAdminAdminProdukIdRoute: typeof AuthenticatedAdminAdminProdukIdRoute
@@ -561,6 +582,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminAdminKoleksiRoute: AuthenticatedAdminAdminKoleksiRoute,
     AuthenticatedAdminAdminPelangganRoute:
       AuthenticatedAdminAdminPelangganRoute,
+    AuthenticatedAdminAdminUlasanRoute: AuthenticatedAdminAdminUlasanRoute,
     AuthenticatedAdminAdminIndexRoute: AuthenticatedAdminAdminIndexRoute,
     AuthenticatedAdminAdminPesananOrderNumberRoute:
       AuthenticatedAdminAdminPesananOrderNumberRoute,
