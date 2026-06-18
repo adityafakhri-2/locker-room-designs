@@ -41,6 +41,17 @@ function OrderDetail() {
   const payment = (Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; reject_reason: string | null } | null;
   const bank = BANKS.find((b) => b.code === payment?.bank);
 
+  const displayStatus = (order.status === "pending" && payment?.status === "waiting_verification")
+    ? "waiting_verification"
+    : order.status;
+
+  const timeline = [...((Array.isArray(order.timeline) ? order.timeline : []) as Array<{ status: string; at: string }>)];
+  if (order.status === "pending" && payment?.status === "waiting_verification") {
+    if (timeline.length > 0 && timeline[timeline.length - 1].status !== "waiting_verification") {
+      timeline.push({ status: "waiting_verification", at: order.updated_at });
+    }
+  }
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !payment || !user) return;
@@ -63,7 +74,7 @@ function OrderDetail() {
     <DashboardShell items={CUSTOMER_NAV} title="Akun Saya">
       <PageHeader
         eyebrow={order.order_number}
-        title={statusLabel(order.status)}
+        title={statusLabel(displayStatus)}
         action={<Link to="/dashboard/pesanan" className="text-sm text-muted-foreground hover:underline">← Kembali</Link>}
       />
 
@@ -72,7 +83,7 @@ function OrderDetail() {
           <Card>
             <h3 className="font-extrabold mb-3">Timeline</h3>
             <ol className="space-y-2 text-sm">
-              {((Array.isArray(order.timeline) ? order.timeline : []) as Array<{ status: string; at: string }>).map((t, i) => (
+              {timeline.map((t, i) => (
                 <li key={i} className="flex gap-3"><span className="size-2 bg-primary mt-2" /><div><div className="font-semibold">{statusLabel(t.status)}</div><div className="text-xs text-muted-foreground">{formatDateTime(t.at)}</div></div></li>
               ))}
             </ol>

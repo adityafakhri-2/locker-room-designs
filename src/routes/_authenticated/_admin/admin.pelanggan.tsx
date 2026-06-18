@@ -13,19 +13,27 @@ function AdminCustomers() {
   const q = useQuery({
     queryKey: ["admin-customers"],
     queryFn: async () => {
-      const { data: roles } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "customer");
       
+      if (rolesError) {
+        throw new Error(rolesError.message);
+      }
+      
       const customerIds = roles?.map((r) => r.user_id) ?? [];
       if (customerIds.length === 0) return [];
 
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .in("id", customerIds)
         .order("created_at", { ascending: false });
+
+      if (profilesError) {
+        throw new Error(profilesError.message);
+      }
 
       return profiles ?? [];
     },
@@ -34,7 +42,17 @@ function AdminCustomers() {
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader eyebrow="Pelanggan" title="Daftar Pelanggan" />
       <Card>
-        {q.data?.length ? (
+        {q.isLoading ? (
+          <p className="text-sm text-muted-foreground animate-pulse">Memuat data pelanggan...</p>
+        ) : q.isError ? (
+          <div className="text-sm text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-md">
+            <p className="font-semibold">Gagal memuat data pelanggan:</p>
+            <p className="mt-1 font-mono text-xs">{q.error instanceof Error ? q.error.message : String(q.error)}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Catatan: Pastikan Anda telah menjalankan baris SQL RLS kebijakan untuk admin di Supabase SQL Editor.
+            </p>
+          </div>
+        ) : q.data?.length ? (
           <table className="w-full text-sm">
             <thead><tr className="text-left eyebrow text-muted-foreground border-b border-border"><th className="py-2">Nama</th><th>Email</th><th>HP</th><th>Kota</th><th>Bergabung</th></tr></thead>
             <tbody>

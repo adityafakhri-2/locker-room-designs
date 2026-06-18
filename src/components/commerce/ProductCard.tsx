@@ -20,10 +20,10 @@ export interface ProductCardData {
 }
 
 const BADGE_LABEL: Record<string, string> = {
-  original_verified: "Original Verified",
-  match_worn: "Match Worn",
-  collector_item: "Collector Item",
-  limited_edition: "Limited Edition",
+  original_verified: "Original Terverifikasi",
+  match_worn: "Jersey Pertandingan (Match Worn)",
+  collector_item: "Barang Koleksi (Collector Item)",
+  limited_edition: "Edisi Terbatas (Limited Edition)",
 };
 
 export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactNode }) {

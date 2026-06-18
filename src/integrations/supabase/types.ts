@@ -540,8 +540,9 @@ export type Database = {
             | null
           brand: string | null
           category_id: string | null
+          category_ids: string[]
           collector_score: number
-          condition: Database["public"]["Enums"]["condition_rating"] | null
+          condition: string | null
           country: string | null
           cover_image_url: string | null
           created_at: string
@@ -556,6 +557,7 @@ export type Database = {
           sizes: string[]
           slug: string
           sold_count: number
+          size_stock: Json
           stock: number
           story: string | null
           team: string | null
@@ -568,8 +570,9 @@ export type Database = {
             | null
           brand?: string | null
           category_id?: string | null
+          category_ids?: string[]
           collector_score?: number
-          condition?: Database["public"]["Enums"]["condition_rating"] | null
+          condition?: string | null
           country?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -584,6 +587,7 @@ export type Database = {
           sizes?: string[]
           slug: string
           sold_count?: number
+          size_stock?: Json
           stock?: number
           story?: string | null
           team?: string | null
@@ -596,8 +600,9 @@ export type Database = {
             | null
           brand?: string | null
           category_id?: string | null
+          category_ids?: string[]
           collector_score?: number
-          condition?: Database["public"]["Enums"]["condition_rating"] | null
+          condition?: string | null
           country?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -612,6 +617,7 @@ export type Database = {
           sizes?: string[]
           slug?: string
           sold_count?: number
+          size_stock?: Json
           stock?: number
           story?: string | null
           team?: string | null
@@ -627,6 +633,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_conditions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -843,6 +867,7 @@ export type Database = {
         Returns: boolean
       }
       next_order_number: { Args: never; Returns: string }
+      has_registered_users: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "customer"

@@ -46,7 +46,7 @@ function AdminDashboard() {
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader eyebrow="Admin" title="Dashboard" />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><div className="eyebrow text-muted-foreground">Total Revenue</div><div className="display-md mt-2">{formatIDR(stats.data?.totalRevenue ?? 0)}</div></Card>
+        <Card><div className="eyebrow text-muted-foreground">Total Revenue</div><div className="display-md mt-2 text-2xl sm:text-3xl lg:text-xl xl:text-3xl truncate" title={formatIDR(stats.data?.totalRevenue ?? 0)}>{formatIDR(stats.data?.totalRevenue ?? 0)}</div></Card>
         <Card><div className="eyebrow text-muted-foreground">Total Pesanan</div><div className="display-md mt-2">{stats.data?.ordersCount ?? 0}</div></Card>
         <Card><div className="eyebrow text-muted-foreground">Total Produk</div><div className="display-md mt-2">{stats.data?.productsCount ?? 0}</div></Card>
         <Card><div className="eyebrow text-muted-foreground">Total Pelanggan</div><div className="display-md mt-2">{stats.data?.customersCount ?? 0}</div></Card>

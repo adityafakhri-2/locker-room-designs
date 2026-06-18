@@ -31,7 +31,7 @@ function ShopPage() {
     queryKey: ["products", category, sort, q],
     queryFn: async () => {
       let qy = supabase.from("products").select("*").eq("is_active", true);
-      if (category !== "all") qy = qy.eq("category_id", category);
+      if (category !== "all") qy = qy.contains("category_ids", [category]);
       if (q) qy = qy.ilike("name", `%${q}%`);
       if (sort === "price_low") qy = qy.order("price", { ascending: true });
       else if (sort === "price_high") qy = qy.order("price", { ascending: false });

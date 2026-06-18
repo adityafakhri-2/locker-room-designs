@@ -4,6 +4,8 @@ import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart, useWishlist } from "@/hooks/use-commerce";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const NAV = [
   { label: "Shop", to: "/shop" },
@@ -25,6 +27,13 @@ export function Navbar({ overHero = false }: NavbarProps) {
   const { data: wishlist } = useWishlist();
   const cartCount = cart?.reduce((s, i) => s + i.quantity, 0) ?? 0;
   const wlCount = wishlist?.length ?? 0;
+
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => (await supabase.from("profiles").select("nama_lengkap, email").eq("id", user!.id).maybeSingle()).data,
+  });
+  const displayName = profileQuery.data?.nama_lengkap || user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || user?.email || "";
 
   useEffect(() => {
     if (!overHero) return;
@@ -64,7 +73,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
         </nav>
 
         <div className="hidden sm:flex items-center justify-end gap-5">
-          <Link to="/search" aria-label="Search" className="hover:opacity-60 transition-opacity">
+          <Link to="/search" search={{ q: "" }} aria-label="Search" className="hover:opacity-60 transition-opacity">
             <Search className="size-4" strokeWidth={1.5} />
           </Link>
           <Link to={user ? "/dashboard/wishlist" : "/auth"} aria-label="Wishlist" className="hover:opacity-60 transition-opacity relative">
@@ -79,7 +88,12 @@ export function Navbar({ overHero = false }: NavbarProps) {
               <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{cartCount}</span>
             )}
           </Link>
-          <Link to={user ? "/dashboard" : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity">
+          <Link to={user ? "/dashboard" : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity flex items-center gap-2">
+            {user && (
+              <span className="text-xs font-semibold max-w-[120px] truncate">
+                {displayName}
+              </span>
+            )}
             <User className="size-4" strokeWidth={1.5} />
           </Link>
         </div>
@@ -99,7 +113,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
             ))}
             <Link to="/cart" onClick={() => setOpen(false)} className="text-base font-medium">Keranjang ({cartCount})</Link>
             <Link to={user ? "/dashboard" : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium">
-              {user ? "Dashboard" : "Login / Daftar"}
+              {user ? `Dashboard (${displayName})` : "Login / Daftar"}
             </Link>
           </nav>
         </div>

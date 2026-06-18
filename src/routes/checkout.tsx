@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatIDR, SHIPPING_RATES, BANKS } from "@/lib/format";
 import { useCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — The Locker Room" }] }),
@@ -27,6 +28,39 @@ function CheckoutPage() {
     recipient_provinsi: "", recipient_kode_pos: "", note: "", courier: "JNE", bank: "BCA",
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const profileQuery = useQuery({
+    queryKey: ["profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
+  });
+
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (user && !initialized) {
+      const metadataName = user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
+      if (profileQuery.data) {
+        const p = profileQuery.data;
+        setForm((f) => ({
+          ...f,
+          recipient_name: p.nama_lengkap || metadataName,
+          recipient_no_hp: p.no_hp || "",
+          recipient_alamat: p.alamat || "",
+          recipient_kota: p.kota || "",
+          recipient_provinsi: p.provinsi || "",
+          recipient_kode_pos: p.kode_pos || "",
+        }));
+        setInitialized(true);
+      } else if (profileQuery.isFetched) {
+        setForm((f) => ({
+          ...f,
+          recipient_name: metadataName,
+        }));
+        setInitialized(true);
+      }
+    }
+  }, [profileQuery.data, profileQuery.isFetched, user, initialized]);
 
   if (authLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
   if (!user) {

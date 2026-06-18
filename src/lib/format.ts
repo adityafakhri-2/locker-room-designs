@@ -38,7 +38,7 @@ export function statusLabel(s: string): string {
     delivered: "Selesai",
     cancelled: "Dibatalkan",
     waiting_payment: "Menunggu Pembayaran",
-    waiting_verification: "Menunggu Verifikasi",
+    waiting_verification: "Sudah Dibayar (Menunggu Konfirmasi)",
     approved: "Disetujui",
     rejected: "Ditolak",
   };

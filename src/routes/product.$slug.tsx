@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams, notFound, useNavigate } from "@tansta
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Heart, ShieldCheck, Star } from "lucide-react";
+import { Heart, ShieldCheck, Star, Shirt, Gem, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -16,6 +16,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/product/$slug")({
   component: ProductDetail,
 });
+
+const BADGE_MAP: Record<string, { label: string; icon: any }> = {
+  original_verified: { label: "Original Terverifikasi", icon: ShieldCheck },
+  match_worn: { label: "Jersey Pertandingan (Match Worn)", icon: Shirt },
+  collector_item: { label: "Barang Koleksi (Collector Item)", icon: Gem },
+  limited_edition: { label: "Edisi Terbatas (Limited Edition)", icon: Sparkles }
+};
 
 function ProductDetail() {
   const navigate = useNavigate();
@@ -46,9 +53,9 @@ function ProductDetail() {
   });
 
   const related = useQuery({
-    queryKey: ["related", q.data?.category_id, q.data?.id],
-    enabled: !!q.data?.category_id,
-    queryFn: async () => (await supabase.from("products").select("*").eq("category_id", q.data!.category_id!).neq("id", q.data!.id).eq("is_active", true).limit(4)).data ?? [],
+    queryKey: ["related", q.data?.category_ids, q.data?.id],
+    enabled: !!q.data?.category_ids && q.data.category_ids.length > 0,
+    queryFn: async () => (await supabase.from("products").select("*").overlaps("category_ids", q.data!.category_ids).neq("id", q.data!.id).eq("is_active", true).limit(4)).data ?? [],
   });
 
   const addToCart = useAddToCart();
@@ -67,6 +74,16 @@ function ProductDetail() {
   const allImages = [p.cover_image_url, ...images.map((i) => i.url)].filter(Boolean) as string[];
   const cert = p.product_certificates?.[0];
   const avgRating = reviewsQ.data?.length ? (reviewsQ.data.reduce((s, r) => s + r.rating, 0) / reviewsQ.data.length) : 0;
+
+  const sizeStockMap = (p as any).size_stock as Record<string, number> | null ?? {};
+  const isSizeOutOfStock = (s: string) => {
+    if (s in sizeStockMap) {
+      return sizeStockMap[s] <= 0;
+    }
+    return p.stock <= 0;
+  };
+  const selectedSizeStock = size ? (sizeStockMap[size] ?? p.stock) : p.stock;
+  const isOutOfStock = p.stock <= 0 || (size ? selectedSizeStock <= 0 : false);
 
   return (
     <>
@@ -95,11 +112,16 @@ function ProductDetail() {
           </div>
 
           <div>
-            {p.authenticity_badge && (
-              <span className="inline-flex items-center gap-2 eyebrow text-primary mb-4">
-                <ShieldCheck className="size-4" /> {p.authenticity_badge.replace("_", " ")}
-              </span>
-            )}
+            {p.authenticity_badge && (() => {
+              const badge = BADGE_MAP[p.authenticity_badge];
+              if (!badge) return null;
+              const Icon = badge.icon;
+              return (
+                <span className="inline-flex items-center gap-2 eyebrow text-primary mb-4">
+                  <Icon className="size-4" /> {badge.label}
+                </span>
+              );
+            })()}
             <h1 className="display-md">{p.name}</h1>
             <p className="text-sm text-muted-foreground mt-2">{[p.team, p.league, p.release_year].filter(Boolean).join(" · ")}</p>
 
@@ -120,16 +142,33 @@ function ProductDetail() {
               <div className="mt-8">
                 <div className="eyebrow text-muted-foreground mb-3">Ukuran</div>
                 <div className="flex flex-wrap gap-2">
-                  {p.sizes.map((s) => (
-                    <button key={s} onClick={() => setSize(s)} className={cn("min-w-14 h-11 px-4 border text-sm font-medium", size === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-foreground")}>{s}</button>
-                  ))}
+                  {p.sizes.map((s) => {
+                    const outOfStock = isSizeOutOfStock(s);
+                    return (
+                      <button
+                        key={s}
+                        disabled={outOfStock}
+                        onClick={() => setSize(s)}
+                        className={cn(
+                          "min-w-14 h-11 px-4 border text-sm font-medium transition-all",
+                          outOfStock
+                            ? "border-border text-muted-foreground/40 line-through cursor-not-allowed bg-muted/20"
+                            : size === s
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border hover:border-foreground"
+                        )}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
             <div className="mt-8 flex gap-3">
               <Button
                 className="flex-1 h-12"
-                disabled={p.stock <= 0 || addToCart.isPending}
+                disabled={isOutOfStock || addToCart.isPending}
                 onClick={() => {
                   if (!user) {
                     toast.error("Silakan masuk terlebih dahulu");
@@ -139,7 +178,9 @@ function ProductDetail() {
                   if (p.sizes && p.sizes.length > 0 && !size) { toast.error("Pilih ukuran"); return; }
                   addToCart.mutate({ product_id: p.id, size }, { onSuccess: () => toast.success("Ditambahkan ke keranjang") });
                 }}
-              >{p.stock <= 0 ? "Stok Habis" : "Tambah ke Keranjang"}</Button>
+              >
+                {p.stock <= 0 ? "Stok Habis" : size && selectedSizeStock <= 0 ? "Stok Ukuran Habis" : "Tambah ke Keranjang"}
+              </Button>
               <Button variant="outline" className="h-12" onClick={() => {
                 if (!user) {
                   toast.error("Silakan masuk terlebih dahulu");
