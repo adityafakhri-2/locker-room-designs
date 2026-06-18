@@ -12,7 +12,23 @@ export const Route = createFileRoute("/_authenticated/_admin/admin/pelanggan")({
 function AdminCustomers() {
   const q = useQuery({
     queryKey: ["admin-customers"],
-    queryFn: async () => (await supabase.from("profiles").select("*").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "customer");
+      
+      const customerIds = roles?.map((r) => r.user_id) ?? [];
+      if (customerIds.length === 0) return [];
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", customerIds)
+        .order("created_at", { ascending: false });
+
+      return profiles ?? [];
+    },
   });
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">

@@ -26,7 +26,7 @@ function AdminDashboard() {
       const [products, orders, customers, revenue] = await Promise.all([
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("id, grand_total, status, created_at, order_number, recipient_name"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "customer"),
         supabase.from("orders").select("grand_total, status"),
       ]);
       const allOrders = orders.data ?? [];

@@ -23,24 +23,73 @@ function AuthPage() {
   async function login(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Berhasil masuk");
-    navigate({ to: "/dashboard" });
+    
+    if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        return toast.error(
+          "Email belum terkonfirmasi! Silakan cek kotak masuk email Anda untuk melakukan verifikasi, atau nonaktifkan 'Confirm email' di Dashboard Supabase -> Auth -> Providers -> Email jika sedang masa pengembangan."
+        );
+      }
+      return toast.error(error.message);
+    }
+
+    if (data?.user) {
+      // Check user role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      toast.success("Berhasil masuk");
+      if (roleData) {
+        navigate({ to: "/admin" });
+      } else {
+        navigate({ to: "/dashboard" });
+      }
+    }
   }
 
   async function register(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: window.location.origin, data: { nama_lengkap: namaLengkap } },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Akun berhasil dibuat. Silakan login.");
+    
+    if (error) {
+      if (error.status === 429 || error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("too many requests")) {
+        return toast.error(
+          "Batas pengiriman email pendaftaran terlampaui (Rate Limit 429). Silakan tunggu beberapa menit, atau konfirmasi email pengguna secara manual di Dashboard Supabase (Auth -> Users -> Klik User -> Confirm User)."
+        );
+      }
+      return toast.error(error.message);
+    }
+
+    if (data?.session) {
+      // Check user role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      toast.success("Registrasi berhasil, masuk ke dashboard...");
+      if (roleData) {
+        navigate({ to: "/admin" });
+      } else {
+        navigate({ to: "/dashboard" });
+      }
+    } else {
+      toast.success("Registrasi berhasil! Silakan cek kotak masuk email Anda untuk melakukan verifikasi akun.");
+    }
   }
 
   return (
