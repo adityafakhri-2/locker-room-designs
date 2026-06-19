@@ -74,9 +74,9 @@ function ShopPage() {
           <div className="grid lg:grid-cols-[200px_minmax(0,1fr)] gap-10">
             <aside className="space-y-2">
               <div className="eyebrow text-muted-foreground mb-3">Kategori</div>
-              <button onClick={() => setCategory("all")} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 ${category === "all" ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>Semua</button>
+              <button onClick={() => setCategory("all")} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 cursor-pointer ${category === "all" ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>Semua</button>
               {cats.data?.map((c) => (
-                <button key={c.id} onClick={() => setCategory(c.id)} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 ${category === c.id ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>{c.name}</button>
+                <button key={c.id} onClick={() => setCategory(c.id)} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 cursor-pointer ${category === c.id ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>{c.name}</button>
               ))}
             </aside>
 

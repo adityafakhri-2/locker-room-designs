@@ -53,7 +53,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
       )}
     >
       <div className="container-swiss grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4 h-16 md:h-20">
-        <Link to="/" className="flex items-center gap-2 min-w-0">
+        <Link to="/" className="flex items-center gap-2 min-w-0 cursor-pointer">
           <span className="inline-block size-2.5 bg-primary" aria-hidden />
           <span className="font-display font-extrabold tracking-tight text-base md:text-lg uppercase whitespace-nowrap">
             The Locker Room
@@ -65,7 +65,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
             <Link
               key={n.label}
               to={n.to}
-              className="text-sm font-medium tracking-wide hover:opacity-60 transition-opacity"
+              className="text-sm font-medium tracking-wide hover:opacity-60 transition-opacity cursor-pointer"
             >
               {n.label}
             </Link>
@@ -73,22 +73,22 @@ export function Navbar({ overHero = false }: NavbarProps) {
         </nav>
 
         <div className="hidden sm:flex items-center justify-end gap-5">
-          <Link to="/search" search={{ q: "" }} aria-label="Search" className="hover:opacity-60 transition-opacity">
+          <Link to="/search" search={{ q: "" }} aria-label="Search" className="hover:opacity-60 transition-opacity cursor-pointer">
             <Search className="size-4" strokeWidth={1.5} />
           </Link>
-          <Link to={user ? "/dashboard/wishlist" : "/auth"} aria-label="Wishlist" className="hover:opacity-60 transition-opacity relative">
+          <Link to={user ? "/dashboard/wishlist" : "/auth"} aria-label="Wishlist" className="hover:opacity-60 transition-opacity relative cursor-pointer">
             <Heart className="size-4" strokeWidth={1.5} />
             {wlCount > 0 && (
               <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{wlCount}</span>
             )}
           </Link>
-          <Link to="/cart" aria-label="Cart" className="hover:opacity-60 transition-opacity relative">
+          <Link to="/cart" aria-label="Cart" className="hover:opacity-60 transition-opacity relative cursor-pointer">
             <ShoppingBag className="size-4" strokeWidth={1.5} />
             {cartCount > 0 && (
               <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{cartCount}</span>
             )}
           </Link>
-          <Link to={user ? "/dashboard" : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity flex items-center gap-2">
+          <Link to={user ? "/dashboard" : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer">
             {user && (
               <span className="text-xs font-semibold max-w-[120px] truncate">
                 {displayName}
@@ -98,7 +98,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
           </Link>
         </div>
 
-        <button aria-label="Menu" className="sm:hidden justify-self-end" onClick={() => setOpen((v) => !v)}>
+        <button aria-label="Menu" className="sm:hidden justify-self-end cursor-pointer" onClick={() => setOpen((v) => !v)}>
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
       </div>
@@ -107,12 +107,12 @@ export function Navbar({ overHero = false }: NavbarProps) {
         <div className="sm:hidden border-t border-border bg-background text-foreground">
           <nav className="container-swiss py-6 flex flex-col gap-4">
             {NAV.map((n) => (
-              <Link key={n.label} to={n.to} onClick={() => setOpen(false)} className="text-base font-medium">
+              <Link key={n.label} to={n.to} onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">
                 {n.label}
               </Link>
             ))}
-            <Link to="/cart" onClick={() => setOpen(false)} className="text-base font-medium">Keranjang ({cartCount})</Link>
-            <Link to={user ? "/dashboard" : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium">
+            <Link to="/cart" onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">Keranjang ({cartCount})</Link>
+            <Link to={user ? "/dashboard" : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">
               {user ? `Dashboard (${displayName})` : "Login / Daftar"}
             </Link>
           </nav>

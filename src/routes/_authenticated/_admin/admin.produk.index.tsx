@@ -7,8 +7,15 @@ import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShel
 import { ADMIN_NAV } from "./admin.index";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
-import { Plus, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
+import { Plus, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, X, Image } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,8 +37,16 @@ function AdminProducts() {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
   const [sortField, setSortField] = useState<"name" | "category" | "stock" | "price" | "is_active" | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
+
+  const categoriesQuery = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: async () => (await supabase.from("categories").select("*").order("name")).data ?? [],
+  });
 
   const q = useQuery({
     queryKey: ["admin-products"],
@@ -66,11 +81,32 @@ function AdminProducts() {
 
   const filteredProducts = (q.data ?? []).filter((p) => {
     const term = search.toLowerCase();
-    return (
+    const matchesSearch =
       p.name.toLowerCase().includes(term) ||
       (p.team && p.team.toLowerCase().includes(term)) ||
-      (p.categories?.name && p.categories.name.toLowerCase().includes(term))
-    );
+      (p.categories?.name && p.categories.name.toLowerCase().includes(term));
+
+    if (!matchesSearch) return false;
+
+    if (categoryFilter !== "all") {
+      const hasCategory =
+        p.category_id === categoryFilter ||
+        (Array.isArray(p.category_ids) && p.category_ids.includes(categoryFilter));
+      if (!hasCategory) return false;
+    }
+
+    if (statusFilter !== "all") {
+      const wantActive = statusFilter === "active";
+      if (p.is_active !== wantActive) return false;
+    }
+
+    if (stockFilter !== "all") {
+      if (stockFilter === "empty" && p.stock !== 0) return false;
+      if (stockFilter === "low" && (p.stock === 0 || p.stock > 5)) return false;
+      if (stockFilter === "available" && p.stock === 0) return false;
+    }
+
+    return true;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -107,8 +143,8 @@ function AdminProducts() {
         <Button asChild><Link to="/admin/produk/$id" params={{ id: "baru" }}><Plus className="size-4 mr-1" />Tambah Produk</Link></Button>
       } />
       <Card>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="relative flex-1 min-w-[240px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input 
               value={search} 
@@ -124,6 +160,49 @@ function AdminProducts() {
                 <X className="size-4" />
               </button>
             )}
+          </div>
+
+          <div className="w-[180px]">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Pilih Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori</SelectItem>
+                {categoriesQuery.data?.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-[140px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Pilih Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="inactive">Tidak Aktif</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-[140px]">
+            <Select value={stockFilter} onValueChange={setStockFilter}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Pilih Stok" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Stok</SelectItem>
+                <SelectItem value="available">Tersedia</SelectItem>
+                <SelectItem value="low">Stok Menipis (≤ 5)</SelectItem>
+                <SelectItem value="empty">Stok Habis (0)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -190,12 +269,32 @@ function AdminProducts() {
                   {sortedProducts.map((p) => (
                     <tr key={p.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
                       <td className="py-3 pr-4">
-                        <Link to="/admin/produk/$id" params={{ id: p.id }} className="font-semibold hover:underline">
-                          {p.name}
-                        </Link>
-                        <div className="text-xs text-muted-foreground">{p.team}</div>
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 bg-muted rounded border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {p.cover_image_url ? (
+                              <img src={p.cover_image_url} alt="" className="size-full object-cover" />
+                            ) : (
+                              <Image className="size-5 text-muted-foreground/50" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <Link to="/admin/produk/$id" params={{ id: p.id }} className="font-semibold hover:underline block truncate max-w-[280px]">
+                              {p.name}
+                            </Link>
+                            <div className="text-xs text-muted-foreground">{p.team || "—"}</div>
+                          </div>
+                        </div>
                       </td>
-                      <td className="text-xs pr-4">{p.categories?.name ?? "—"}</td>
+                      <td className="text-xs pr-4 max-w-[150px] truncate">
+                        {Array.isArray(p.category_ids) && p.category_ids.length > 0 ? (
+                          categoriesQuery.data
+                            ?.filter((c) => p.category_ids.includes(c.id))
+                            .map((c) => c.name)
+                            .join(", ") || "—"
+                        ) : (
+                          p.categories?.name ?? "—"
+                        )}
+                      </td>
                       <td className="text-xs pr-4">{p.stock}</td>
                       <td className="tabular-nums pr-4">{formatIDR(p.price)}</td>
                       <td className="text-xs pr-4">{p.is_active ? "✓" : "—"}</td>

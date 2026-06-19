@@ -10,6 +10,17 @@ import { Button } from "@/components/ui/button";
 import { formatIDR, BANKS, statusLabel } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
 import { CheckCircle2, Clock, AlertCircle, Copy, ArrowRight, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/checkout/success/$orderNumber")({
   component: PaymentPage,
@@ -23,6 +34,7 @@ function PaymentPage() {
   
   const [uploading, setUploading] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [forceShowUpload, setForceShowUpload] = useState(false);
 
   const q = useQuery({
     queryKey: ["order-success", orderNumber],
@@ -104,13 +116,29 @@ function PaymentPage() {
       const path = `${user.id}/${order!.id}-${Date.now()}-${file.name}`;
       await uploadFile("payment-proofs", path, file);
       await supabase.from("payment_proofs").insert({ payment_id: payment.id, image_url: path });
-      await supabase.from("payments").update({ status: "waiting_verification" }).eq("id", payment.id);
+      await supabase.from("payments").update({ 
+        status: "waiting_verification",
+        updated_at: new Date().toISOString()
+      }).eq("id", payment.id);
       toast.success("Bukti transfer diunggah");
+      setForceShowUpload(false);
       qc.invalidateQueries({ queryKey: ["order-success", orderNumber] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleCancelOrder() {
+    if (!order) return;
+    try {
+      const { error } = await supabase.rpc("cancel_own_order", { target_order_id: order.id });
+      if (error) throw error;
+      toast.success("Pesanan berhasil dibatalkan");
+      qc.invalidateQueries({ queryKey: ["order-success", orderNumber] });
+    } catch (e) {
+      toast.error("Gagal membatalkan pesanan: " + (e as Error).message);
     }
   }
 
@@ -141,7 +169,7 @@ function PaymentPage() {
           <h1 className="display-lg mt-6">Pesanan Tidak Ditemukan</h1>
           <p className="mt-4 text-muted-foreground">Kami tidak dapat menemukan pesanan dengan nomor tersebut.</p>
           <div className="mt-8">
-            <Button asChild><Link to="/shop">Kembali Belanja</Link></Button>
+            <Button asChild className="cursor-pointer"><Link to="/shop" className="cursor-pointer">Kembali Belanja</Link></Button>
           </div>
         </div>
         <Footer />
@@ -183,8 +211,14 @@ function PaymentPage() {
             <div className="bg-destructive/5 border border-destructive/30 p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <AlertCircle className="size-8 text-destructive flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="font-extrabold text-destructive">Waktu Pembayaran Habis / Dibatalkan</h3>
-                <p className="text-sm text-muted-foreground mt-0.5">Pesanan ini telah dibatalkan secara otomatis karena melewati batas waktu 24 jam.</p>
+                <h3 className="font-extrabold text-destructive">Pesanan Dibatalkan</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {order.cancel_reason === "customer" 
+                    ? "Pesanan ini telah dibatalkan atas permintaan Anda." 
+                    : order.cancel_reason === "admin"
+                    ? "Pesanan ini telah dibatalkan oleh Admin."
+                    : "Pesanan ini telah dibatalkan secara otomatis karena melewati batas waktu 24 jam."}
+                </p>
               </div>
               <div className="font-bold text-destructive bg-destructive/10 px-4 py-2 border border-destructive/20 uppercase text-sm tracking-widest">
                 Dibatalkan
@@ -260,24 +294,45 @@ function PaymentPage() {
                 </div>
 
                 {payment && payment.status === "waiting_payment" && order.status === "pending" && (
-                  <div className="border-2 border-dashed border-border p-6 text-center space-y-3 rounded">
-                    <Upload className="size-8 mx-auto text-muted-foreground animate-bounce" />
-                    <div className="text-xs text-muted-foreground">
-                      Format file: JPG, JPEG, PNG. Maks. 5MB.
-                    </div>
-                    <label className="inline-block">
-                      <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
-                        Pilih File Bukti
-                      </span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleUpload} 
-                        disabled={uploading} 
-                        className="hidden" 
-                      />
-                    </label>
-                    {uploading && <div className="text-xs text-primary font-semibold animate-pulse mt-2">Mengunggah...</div>}
+                  <div className="space-y-3">
+                    {(!q.data?.proofUrl || forceShowUpload) ? (
+                      <div className="border-2 border-dashed border-border p-6 text-center space-y-3 rounded">
+                        <Upload className="size-8 mx-auto text-muted-foreground animate-pulse" />
+                        <div className="text-xs text-muted-foreground">
+                          Format file: JPG, JPEG, PNG. Maks. 5MB.
+                        </div>
+                        <label className="inline-block">
+                          <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
+                            Pilih File Bukti
+                          </span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleUpload} 
+                            disabled={uploading} 
+                            className="hidden" 
+                          />
+                        </label>
+                        {uploading && <div className="text-xs text-primary font-semibold animate-pulse mt-2">Mengunggah...</div>}
+                        {q.data?.proofUrl && (
+                          <Button 
+                            variant="ghost" 
+                            onClick={() => setForceShowUpload(false)} 
+                            className="w-full text-xs h-8 text-muted-foreground hover:text-foreground cursor-pointer mt-2"
+                          >
+                            Batal Unggah Ulang
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setForceShowUpload(true)} 
+                        className="w-full text-xs h-9 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+                      >
+                        Unggah Ulang Bukti Pembayaran
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -286,6 +341,42 @@ function PaymentPage() {
                     <CheckCircle2 className="size-8 text-primary mx-auto" />
                     <h4 className="font-bold text-sm">Menunggu Verifikasi</h4>
                     <p className="text-xs text-muted-foreground">Bukti pembayaran telah berhasil diunggah. Kami sedang memproses verifikasi transaksi Anda.</p>
+                    {q.data?.proofUrl && (
+                      <div className="pt-2 border-t border-primary/10 mt-2">
+                        {forceShowUpload ? (
+                          <div className="space-y-2">
+                            <label className="block text-center mt-2">
+                              <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
+                                Pilih File Baru
+                              </span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleUpload} 
+                                disabled={uploading} 
+                                className="hidden" 
+                              />
+                            </label>
+                            {uploading && <div className="text-xs text-primary font-semibold animate-pulse mt-2">Mengunggah...</div>}
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => setForceShowUpload(false)} 
+                              className="w-full text-[11px] h-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setForceShowUpload(true)} 
+                            className="w-full text-xs h-9 border-primary/20 text-primary hover:bg-primary/5 cursor-pointer mt-1"
+                          >
+                            Unggah Ulang Bukti Pembayaran
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -296,19 +387,40 @@ function PaymentPage() {
                     {payment.reject_reason && <p className="text-xs text-muted-foreground">Alasan: {payment.reject_reason}</p>}
                     {order.status === "pending" && (
                       <div className="border-t border-destructive/15 pt-3">
-                        <label className="block text-center">
-                          <span className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
-                            Unggah Ulang Bukti
-                          </span>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleUpload} 
-                            disabled={uploading} 
-                            className="hidden" 
-                          />
-                        </label>
-                        {uploading && <div className="text-xs text-destructive font-semibold animate-pulse mt-2">Mengunggah...</div>}
+                        {(!q.data?.proofUrl || forceShowUpload) ? (
+                          <div className="space-y-2">
+                            <label className="block text-center">
+                              <span className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
+                                Pilih File Bukti Baru
+                              </span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleUpload} 
+                                disabled={uploading} 
+                                className="hidden" 
+                              />
+                            </label>
+                            {uploading && <div className="text-xs text-destructive font-semibold animate-pulse mt-2">Mengunggah...</div>}
+                            {q.data?.proofUrl && (
+                              <Button 
+                                variant="ghost" 
+                                onClick={() => setForceShowUpload(false)} 
+                                className="w-full text-xs h-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                              >
+                                Batal Unggah Ulang
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setForceShowUpload(true)} 
+                            className="w-full text-xs h-9 border-destructive/30 text-destructive hover:bg-destructive/5 cursor-pointer"
+                          >
+                            Unggah Ulang Bukti Pembayaran
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -335,12 +447,35 @@ function PaymentPage() {
               {/* Navigation Action Buttons */}
               <div className="flex flex-col gap-2.5 pt-4 border-t border-border">
                 <Button variant="outline" className="w-full cursor-pointer flex items-center justify-center gap-2" asChild>
-                  <Link to="/dashboard/pesanan">
+                  <Link to="/dashboard/pesanan" className="cursor-pointer">
                     Lihat Daftar Pesanan <ArrowRight className="size-4" />
                   </Link>
                 </Button>
+                {order.status === "pending" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 cursor-pointer">
+                        Batalkan Pesanan
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Batalkan Pesanan?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Apakah Anda yakin ingin membatalkan pesanan ini? Stok produk akan dikembalikan dan tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="cursor-pointer">Kembali</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancelOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/95 cursor-pointer">
+                          Batalkan Pesanan
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
                 <Button variant="ghost" className="w-full cursor-pointer" asChild>
-                  <Link to="/shop">
+                  <Link to="/shop" className="cursor-pointer">
                     Lanjut Belanja
                   </Link>
                 </Button>

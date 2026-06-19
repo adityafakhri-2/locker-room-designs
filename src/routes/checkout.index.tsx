@@ -13,7 +13,7 @@ import { useCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 
-export const Route = createFileRoute("/checkout")({
+export const Route = createFileRoute("/checkout/")({
   head: () => ({ meta: [{ title: "Checkout — The Locker Room" }] }),
   component: CheckoutPage,
 });

@@ -13,12 +13,12 @@ import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CollectionsRouteImport } from './routes/collections'
-import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CheckoutIndexRouteImport } from './routes/checkout.index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
@@ -58,11 +58,6 @@ const CollectionsRoute = CollectionsRouteImport.update({
   path: '/collections',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
@@ -87,6 +82,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutIndexRoute = CheckoutIndexRouteImport.update({
+  id: '/checkout/',
+  path: '/checkout/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductSlugRoute = ProductSlugRouteImport.update({
   id: '/product/$slug',
   path: '/product/$slug',
@@ -104,9 +104,9 @@ const AuthenticatedDashboardIndexRoute =
   } as any)
 const CheckoutSuccessOrderNumberRoute =
   CheckoutSuccessOrderNumberRouteImport.update({
-    id: '/success/$orderNumber',
-    path: '/success/$orderNumber',
-    getParentRoute: () => CheckoutRoute,
+    id: '/checkout/success/$orderNumber',
+    path: '/checkout/success/$orderNumber',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedDashboardWishlistRoute =
   AuthenticatedDashboardWishlistRouteImport.update({
@@ -198,12 +198,12 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/checkout/': typeof CheckoutIndexRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
   '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
@@ -226,12 +226,12 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/checkout': typeof CheckoutIndexRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
   '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
@@ -256,13 +256,13 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
-  '/checkout': typeof CheckoutRouteWithChildren
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
+  '/checkout/': typeof CheckoutIndexRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/_authenticated/dashboard/wishlist': typeof AuthenticatedDashboardWishlistRoute
   '/checkout/success/$orderNumber': typeof CheckoutSuccessOrderNumberRoute
@@ -287,12 +287,12 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/cart'
-    | '/checkout'
     | '/collections'
     | '/contact'
     | '/search'
     | '/shop'
     | '/product/$slug'
+    | '/checkout/'
     | '/dashboard/profil'
     | '/dashboard/wishlist'
     | '/checkout/success/$orderNumber'
@@ -315,12 +315,12 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/cart'
-    | '/checkout'
     | '/collections'
     | '/contact'
     | '/search'
     | '/shop'
     | '/product/$slug'
+    | '/checkout'
     | '/dashboard/profil'
     | '/dashboard/wishlist'
     | '/checkout/success/$orderNumber'
@@ -344,13 +344,13 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/cart'
-    | '/checkout'
     | '/collections'
     | '/contact'
     | '/search'
     | '/shop'
     | '/_authenticated/_admin'
     | '/product/$slug'
+    | '/checkout/'
     | '/_authenticated/dashboard/profil'
     | '/_authenticated/dashboard/wishlist'
     | '/checkout/success/$orderNumber'
@@ -375,12 +375,13 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
-  CheckoutRoute: typeof CheckoutRouteWithChildren
   CollectionsRoute: typeof CollectionsRoute
   ContactRoute: typeof ContactRoute
   SearchRoute: typeof SearchRoute
   ShopRoute: typeof ShopRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  CheckoutIndexRoute: typeof CheckoutIndexRoute
+  CheckoutSuccessOrderNumberRoute: typeof CheckoutSuccessOrderNumberRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -411,13 +412,6 @@ declare module '@tanstack/react-router' {
       path: '/collections'
       fullPath: '/collections'
       preLoaderRoute: typeof CollectionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -455,6 +449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/': {
+      id: '/checkout/'
+      path: '/checkout'
+      fullPath: '/checkout/'
+      preLoaderRoute: typeof CheckoutIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/product/$slug': {
       id: '/product/$slug'
       path: '/product/$slug'
@@ -478,10 +479,10 @@ declare module '@tanstack/react-router' {
     }
     '/checkout/success/$orderNumber': {
       id: '/checkout/success/$orderNumber'
-      path: '/success/$orderNumber'
+      path: '/checkout/success/$orderNumber'
       fullPath: '/checkout/success/$orderNumber'
       preLoaderRoute: typeof CheckoutSuccessOrderNumberRouteImport
-      parentRoute: typeof CheckoutRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard/wishlist': {
       id: '/_authenticated/dashboard/wishlist'
@@ -643,30 +644,19 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface CheckoutRouteChildren {
-  CheckoutSuccessOrderNumberRoute: typeof CheckoutSuccessOrderNumberRoute
-}
-
-const CheckoutRouteChildren: CheckoutRouteChildren = {
-  CheckoutSuccessOrderNumberRoute: CheckoutSuccessOrderNumberRoute,
-}
-
-const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
-  CheckoutRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
-  CheckoutRoute: CheckoutRouteWithChildren,
   CollectionsRoute: CollectionsRoute,
   ContactRoute: ContactRoute,
   SearchRoute: SearchRoute,
   ShopRoute: ShopRoute,
   ProductSlugRoute: ProductSlugRoute,
+  CheckoutIndexRoute: CheckoutIndexRoute,
+  CheckoutSuccessOrderNumberRoute: CheckoutSuccessOrderNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

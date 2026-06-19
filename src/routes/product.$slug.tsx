@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams, notFound, useNavigate } from "@tansta
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Heart, ShieldCheck, Star, Shirt, Gem, Sparkles } from "lucide-react";
+import { Heart, ShieldCheck, Star, Shirt, Gem, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -30,6 +30,15 @@ function ProductDetail() {
   const { user } = useAuth();
   const [size, setSize] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  const changeImage = (index: number) => {
+    setFade(false);
+    setTimeout(() => {
+      setActiveImg(index);
+      setFade(true);
+    }, 150);
+  };
 
   const q = useQuery({
     queryKey: ["product", slug],
@@ -101,13 +110,42 @@ function ProductDetail() {
 
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
           <div>
-            <div className="aspect-[4/5] bg-muted overflow-hidden">
-              {allImages[activeImg] ? <img src={allImages[activeImg]} alt={p.name} className="size-full object-cover" /> : <div className="size-full grid place-items-center text-muted-foreground">No image</div>}
+            <div className="relative group aspect-[4/5] bg-muted overflow-hidden">
+              {allImages[activeImg] ? (
+                <img 
+                  src={allImages[activeImg]} 
+                  alt={p.name} 
+                  className={cn(
+                    "size-full object-cover transition-opacity duration-150 ease-in-out",
+                    fade ? "opacity-100" : "opacity-0"
+                  )} 
+                />
+              ) : (
+                <div className="size-full grid place-items-center text-muted-foreground">No image</div>
+              )}
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => changeImage(activeImg === 0 ? allImages.length - 1 : activeImg - 1)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
+                    aria-label="Gambar sebelumnya"
+                  >
+                    <ChevronLeft className="size-6" />
+                  </button>
+                  <button
+                    onClick={() => changeImage(activeImg === allImages.length - 1 ? 0 : activeImg + 1)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
+                    aria-label="Gambar selanjutnya"
+                  >
+                    <ChevronRight className="size-6" />
+                  </button>
+                </>
+              )}
             </div>
             {allImages.length > 1 && (
               <div className="mt-3 grid grid-cols-5 gap-2">
                 {allImages.map((src, i) => (
-                  <button key={i} onClick={() => setActiveImg(i)} className={cn("aspect-square overflow-hidden bg-muted border", i === activeImg ? "border-primary" : "border-transparent")}>
+                  <button key={i} onClick={() => changeImage(i)} className={cn("aspect-square overflow-hidden bg-muted border", i === activeImg ? "border-primary" : "border-transparent")}>
                     <img src={src} alt="" className="size-full object-cover" />
                   </button>
                 ))}

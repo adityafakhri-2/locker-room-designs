@@ -297,8 +297,9 @@ export type Database = {
           },
         ]
       }
-      orders: {
+       orders: {
         Row: {
+          cancel_reason: string | null
           courier: string | null
           created_at: string
           grand_total: number
@@ -320,6 +321,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_reason?: string | null
           courier?: string | null
           created_at?: string
           grand_total?: number
@@ -341,6 +343,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_reason?: string | null
           courier?: string | null
           created_at?: string
           grand_total?: number
@@ -869,6 +872,18 @@ export type Database = {
       next_order_number: { Args: never; Returns: string }
       has_registered_users: { Args: never; Returns: boolean }
       check_and_cancel_expired_orders: { Args: never; Returns: unknown }
+      cancel_own_order: {
+        Args: {
+          target_order_id: string
+        }
+        Returns: unknown
+      }
+      confirm_delivery_own_order: {
+        Args: {
+          target_order_id: string
+        }
+        Returns: unknown
+      }
     }
     Enums: {
       app_role: "admin" | "customer"
