@@ -1,11 +1,19 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem { label: string; to: string }
 
 export function DashboardShell({ items, title, children }: { items: NavItem[]; title: string; children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  }
+
   return (
     <div className="min-h-screen pt-20 md:pt-24 bg-muted/30">
       <div className="container-swiss py-8 md:py-12 grid lg:grid-cols-[240px_minmax(0,1fr)] gap-8 lg:gap-12">
@@ -27,6 +35,12 @@ export function DashboardShell({ items, title, children }: { items: NavItem[]; t
                 </Link>
               );
             })}
+            <button
+              onClick={handleLogout}
+              className="px-3 py-2.5 text-sm font-bold border-l-2 border-transparent text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-600 transition-colors text-left cursor-pointer whitespace-nowrap"
+            >
+              Logout
+            </button>
           </nav>
         </aside>
         <main className="min-w-0">{children}</main>

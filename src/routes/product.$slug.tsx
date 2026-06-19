@@ -169,7 +169,7 @@ function ProductDetail() {
 
             <div className="mt-6 flex items-baseline gap-4">
               <span className="text-3xl font-extrabold">{formatIDR(p.price)}</span>
-              <span className="text-xs text-muted-foreground">Stok: {p.stock}</span>
+              <span className="text-xs text-muted-foreground">Stok: {selectedSizeStock}</span>
             </div>
 
             {reviewsQ.data && reviewsQ.data.length > 0 && (
