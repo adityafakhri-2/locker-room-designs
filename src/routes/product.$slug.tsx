@@ -71,7 +71,11 @@ function ProductDetail() {
   }
   const p = q.data;
   const images = (p.product_images ?? []).slice().sort((a, b) => a.sort_order - b.sort_order);
-  const allImages = [p.cover_image_url, ...images.map((i) => i.url)].filter(Boolean) as string[];
+  const mappedUrls = images.map((i) => {
+    if (i.url.startsWith("http://") || i.url.startsWith("https://")) return i.url;
+    return supabase.storage.from("product-images").getPublicUrl(i.url).data.publicUrl;
+  });
+  const allImages = Array.from(new Set([p.cover_image_url, ...mappedUrls])).filter(Boolean) as string[];
   const cert = p.product_certificates?.[0];
   const avgRating = reviewsQ.data?.length ? (reviewsQ.data.reduce((s, r) => s + r.rating, 0) / reviewsQ.data.length) : 0;
 
@@ -176,7 +180,16 @@ function ProductDetail() {
                     return;
                   }
                   if (p.sizes && p.sizes.length > 0 && !size) { toast.error("Pilih ukuran"); return; }
-                  addToCart.mutate({ product_id: p.id, size }, { onSuccess: () => toast.success("Ditambahkan ke keranjang") });
+                  addToCart.mutate({ product_id: p.id, size }, { 
+                    onSuccess: () => {
+                      toast.success("Berhasil ditambahkan ke keranjang", {
+                        action: {
+                          label: "Lihat Keranjang",
+                          onClick: () => navigate({ to: "/cart" })
+                        }
+                      });
+                    }
+                  });
                 }}
               >
                 {p.stock <= 0 ? "Stok Habis" : size && selectedSizeStock <= 0 ? "Stok Ukuran Habis" : "Tambah ke Keranjang"}

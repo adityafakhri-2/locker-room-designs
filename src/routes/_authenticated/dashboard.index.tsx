@@ -22,13 +22,21 @@ function DashboardHome() {
     queryKey: ["dash", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const [orders, wl] = await Promise.all([
+      await supabase.rpc("check_and_cancel_expired_orders");
+      const [orders, wl, profile] = await Promise.all([
         supabase.from("orders").select("id, order_number, status, grand_total, created_at, payments(status)").eq("user_id", user!.id).order("created_at", { ascending: false }),
         supabase.from("wishlists").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("profiles").select("nama_lengkap").eq("id", user!.id).maybeSingle(),
       ]);
       const all = orders.data ?? [];
       const active = all.filter((o) => !["delivered", "cancelled"].includes(o.status));
-      return { all, active, last: all[0], wlCount: wl.count ?? 0 };
+      return { 
+        all, 
+        active, 
+        last: all[0], 
+        wlCount: wl.count ?? 0,
+        namaLengkap: profile.data?.nama_lengkap || ""
+      };
     },
   });
 
@@ -39,7 +47,7 @@ function DashboardHome() {
 
   return (
     <DashboardShell items={CUSTOMER_NAV} title="Akun Saya">
-      <PageHeader eyebrow="Dashboard" title={`Halo, ${user?.email ?? ""}`} />
+      <PageHeader eyebrow="Dashboard" title={`Halo, ${q.data?.namaLengkap || user?.email || ""}`} />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card><div className="eyebrow text-muted-foreground">Total Pesanan</div><div className="display-md mt-2">{q.data?.all.length ?? 0}</div></Card>
         <Card><div className="eyebrow text-muted-foreground">Pesanan Aktif</div><div className="display-md mt-2">{q.data?.active.length ?? 0}</div></Card>

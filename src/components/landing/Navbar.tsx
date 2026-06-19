@@ -31,7 +31,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
     enabled: !!user,
-    queryFn: async () => (await supabase.from("profiles").select("nama_lengkap, email").eq("id", user!.id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
   });
   const displayName = profileQuery.data?.nama_lengkap || user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || user?.email || "";
 

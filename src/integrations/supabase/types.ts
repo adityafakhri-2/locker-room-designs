@@ -868,6 +868,7 @@ export type Database = {
       }
       next_order_number: { Args: never; Returns: string }
       has_registered_users: { Args: never; Returns: boolean }
+      check_and_cancel_expired_orders: { Args: never; Returns: unknown }
     }
     Enums: {
       app_role: "admin" | "customer"

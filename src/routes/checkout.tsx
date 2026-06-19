@@ -33,34 +33,44 @@ function CheckoutPage() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
-  const [initialized, setInitialized] = useState(false);
+  function fillFromProfile() {
+    if (!profileQuery.data) {
+      toast.error("Data profil tidak ditemukan");
+      return;
+    }
+    const p = profileQuery.data;
+    const metadataName = user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || "";
+    setForm((f) => ({
+      ...f,
+      recipient_name: p.nama_lengkap || metadataName || f.recipient_name,
+      recipient_no_hp: p.no_hp || "",
+      recipient_alamat: p.alamat || "",
+      recipient_kota: p.kota || "",
+      recipient_provinsi: p.provinsi || "",
+      recipient_kode_pos: p.kode_pos || "",
+    }));
+    toast.success("Data alamat disalin dari profil Anda");
+  }
 
   useEffect(() => {
-    if (user && !initialized) {
+    if (user && profileQuery.data) {
+      const p = profileQuery.data;
       const metadataName = user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
-      if (profileQuery.data) {
-        const p = profileQuery.data;
-        setForm((f) => ({
-          ...f,
-          recipient_name: p.nama_lengkap || metadataName,
-          recipient_no_hp: p.no_hp || "",
-          recipient_alamat: p.alamat || "",
-          recipient_kota: p.kota || "",
-          recipient_provinsi: p.provinsi || "",
-          recipient_kode_pos: p.kode_pos || "",
-        }));
-        setInitialized(true);
-      } else if (profileQuery.isFetched) {
-        setForm((f) => ({
-          ...f,
-          recipient_name: metadataName,
-        }));
-        setInitialized(true);
-      }
+      setForm((f) => ({
+        ...f,
+        recipient_name: f.recipient_name || p.nama_lengkap || metadataName,
+        recipient_no_hp: f.recipient_no_hp || p.no_hp || "",
+        recipient_alamat: f.recipient_alamat || p.alamat || "",
+        recipient_kota: f.recipient_kota || p.kota || "",
+        recipient_provinsi: f.recipient_provinsi || p.provinsi || "",
+        recipient_kode_pos: f.recipient_kode_pos || p.kode_pos || "",
+      }));
     }
-  }, [profileQuery.data, profileQuery.isFetched, user, initialized]);
+  }, [profileQuery.data, user]);
 
   if (authLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
   if (!user) {
@@ -140,7 +150,20 @@ function CheckoutPage() {
         <form onSubmit={submit} className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-10">
           <div className="space-y-8">
             <section>
-              <h2 className="display-md mb-6">Alamat Pengiriman</h2>
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <h2 className="display-md">Alamat Pengiriman</h2>
+                {profileQuery.data && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={fillFromProfile}
+                    className="cursor-pointer text-xs h-8"
+                  >
+                    Gunakan Data Profil Saya
+                  </Button>
+                )}
+              </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2"><Label>Nama Penerima</Label><Input required value={form.recipient_name} onChange={(e) => set("recipient_name", e.target.value)} /></div>
                 <div><Label>Nomor HP</Label><Input required value={form.recipient_no_hp} onChange={(e) => set("recipient_no_hp", e.target.value)} /></div>
@@ -157,7 +180,7 @@ function CheckoutPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(SHIPPING_RATES).map(([k, v]) => (
                   <button type="button" key={k} onClick={() => set("courier", k)}
-                    className={`border p-4 text-left ${form.courier === k ? "border-primary bg-accent" : "border-border"}`}>
+                    className={`border p-4 text-left cursor-pointer transition-all ${form.courier === k ? "border-primary bg-accent" : "border-border"}`}>
                     <div className="font-semibold">{k}</div>
                     <div className="text-xs text-muted-foreground mt-1">{formatIDR(v)}</div>
                   </button>
@@ -171,7 +194,7 @@ function CheckoutPage() {
               <div className="grid grid-cols-3 gap-3">
                 {BANKS.map((b) => (
                   <button type="button" key={b.code} onClick={() => set("bank", b.code)}
-                    className={`border p-4 text-center ${form.bank === b.code ? "border-primary bg-accent" : "border-border"}`}>
+                    className={`border p-4 text-center cursor-pointer transition-all ${form.bank === b.code ? "border-primary bg-accent" : "border-border"}`}>
                     <div className="font-semibold">{b.name}</div>
                   </button>
                 ))}
@@ -202,7 +225,7 @@ function CheckoutPage() {
             <div className="border-t border-border mt-4 pt-4 flex justify-between text-base font-extrabold">
               <span>Total</span><span>{formatIDR(total)}</span>
             </div>
-            <Button type="submit" className="w-full mt-6 h-12" disabled={loading || items.length === 0}>
+            <Button type="submit" className="w-full mt-6 h-12 cursor-pointer" disabled={loading || items.length === 0}>
               {loading ? "Memproses..." : "Buat Pesanan"}
             </Button>
           </aside>

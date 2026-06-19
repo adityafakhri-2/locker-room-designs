@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Heart, Trash2 } from "lucide-react";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { CUSTOMER_NAV } from "./dashboard.index";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/wishlist")({
 });
 
 function WishlistPage() {
+  const navigate = useNavigate();
   const wl = useWishlist();
   const toggle = useToggleWishlist();
   const addToCart = useAddToCart();
@@ -35,7 +36,20 @@ function WishlistPage() {
               <p className="text-xs text-muted-foreground">{w.products?.team}</p>
               <p className="text-sm font-semibold mt-1">{formatIDR(w.products?.price ?? 0)}</p>
               <div className="flex gap-2 mt-3">
-                <Button size="sm" className="flex-1" onClick={() => addToCart.mutate({ product_id: w.product_id }, { onSuccess: () => toast.success("Ditambahkan") })}>+ Cart</Button>
+                <Button 
+                  size="sm" 
+                  className="flex-1" 
+                  onClick={() => addToCart.mutate({ product_id: w.product_id }, { 
+                    onSuccess: () => toast.success("Berhasil ditambahkan ke keranjang", {
+                      action: {
+                        label: "Lihat Keranjang",
+                        onClick: () => navigate({ to: "/cart" })
+                      }
+                    }) 
+                  })}
+                >
+                  + Cart
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => toggle.mutate(w.product_id)}><Trash2 className="size-3" /></Button>
               </div>
             </Card>

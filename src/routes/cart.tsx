@@ -1,11 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Trash2, Plus, Minus } from "lucide-react";
+import { useState } from "react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 import { useCart, useRemoveFromCart, useUpdateCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Keranjang — The Locker Room" }] }),
@@ -18,6 +29,13 @@ function CartPage() {
   const update = useUpdateCart();
   const remove = useRemoveFromCart();
   const navigate = useNavigate();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+
+  function handleDeleteClick(id: string) {
+    setDeleteItemId(id);
+    setDeleteConfirmOpen(true);
+  }
 
   if (loading) return (<><Navbar /><div className="pt-32 container-swiss min-h-screen">Memuat...</div></>);
   if (!user) {
@@ -64,12 +82,12 @@ function CartPage() {
                     {i.size && <p className="text-xs text-muted-foreground mt-1">Ukuran: {i.size}</p>}
                     <p className="text-sm font-semibold mt-2">{formatIDR(i.products?.price ?? 0)}</p>
                     <div className="flex items-center gap-2 mt-3">
-                      <button onClick={() => update.mutate({ id: i.id, quantity: i.quantity - 1 })} className="size-7 border border-border grid place-items-center"><Minus className="size-3" /></button>
+                      <button onClick={() => update.mutate({ id: i.id, quantity: i.quantity - 1 })} className="size-7 border border-border grid place-items-center cursor-pointer hover:border-foreground transition-colors"><Minus className="size-3" /></button>
                       <span className="w-8 text-center text-sm tabular-nums">{i.quantity}</span>
-                      <button onClick={() => update.mutate({ id: i.id, quantity: i.quantity + 1 })} className="size-7 border border-border grid place-items-center"><Plus className="size-3" /></button>
+                      <button onClick={() => update.mutate({ id: i.id, quantity: i.quantity + 1 })} className="size-7 border border-border grid place-items-center cursor-pointer hover:border-foreground transition-colors"><Plus className="size-3" /></button>
                     </div>
                   </div>
-                  <button onClick={() => remove.mutate(i.id)} className="text-muted-foreground hover:text-destructive self-start"><Trash2 className="size-4" /></button>
+                  <button onClick={() => handleDeleteClick(i.id)} className="text-muted-foreground hover:text-destructive self-start cursor-pointer transition-colors"><Trash2 className="size-4" /></button>
                 </div>
               ))}
             </div>
@@ -83,12 +101,37 @@ function CartPage() {
               <div className="border-t border-border mt-4 pt-4 flex justify-between text-base font-extrabold">
                 <span>Total</span><span>{formatIDR(subtotal)}</span>
               </div>
-              <Button className="w-full mt-6 h-12" onClick={() => navigate({ to: "/checkout" })}>Lanjut ke Checkout</Button>
+              <Button className="w-full mt-6 h-12 cursor-pointer" onClick={() => navigate({ to: "/checkout" })}>Lanjut ke Checkout</Button>
             </aside>
           </div>
         )}
       </div>
       <Footer />
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Barang dari Keranjang</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus barang ini dari keranjang belanja Anda?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+              onClick={() => {
+                if (deleteItemId) {
+                  remove.mutate(deleteItemId);
+                }
+                setDeleteConfirmOpen(false);
+              }}
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

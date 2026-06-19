@@ -1,6 +1,6 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +9,7 @@ import { CUSTOMER_NAV } from "./dashboard.index";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDateTime, statusLabel, BANKS } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
+import { Clock, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/pesanan/$orderNumber")({
   component: OrderDetail,
@@ -19,10 +20,14 @@ function OrderDetail() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const q = useQuery({
     queryKey: ["order", orderNumber],
     queryFn: async () => {
+      // Call RPC check first
+      await supabase.rpc("check_and_cancel_expired_orders");
+      
       const { data: order } = await supabase.from("orders").select("*, order_items(*), payments(*), shipments(*)").eq("order_number", orderNumber).maybeSingle();
       if (!order) return null;
       let proofUrl = "";
@@ -35,11 +40,42 @@ function OrderDetail() {
     },
   });
 
-  if (q.isLoading) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Memuat...</DashboardShell>);
   const order = q.data?.order;
+  const payment = order ? ((Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; reject_reason: string | null } | null) : null;
+  const bank = payment ? BANKS.find((b) => b.code === payment.bank) : null;
+
+  const createdAt = order ? new Date(order.created_at) : null;
+  const deadline = createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
+
+  useEffect(() => {
+    if (!order || order.status !== "pending" || !payment || !["waiting_payment", "rejected"].includes(payment.status) || !deadline) {
+      setTimeLeft(null);
+      return;
+    }
+    const updateTimer = async () => {
+      const diff = deadline.getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft(0);
+        await supabase.rpc("check_and_cancel_expired_orders");
+        qc.invalidateQueries({ queryKey: ["order", orderNumber] });
+      } else {
+        setTimeLeft(Math.floor(diff / 1000));
+      }
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order, payment, deadline, orderNumber, qc]);
+
+  const formatTimeLeft = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h} jam ${m} menit ${s} detik`;
+  };
+
+  if (q.isLoading) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Memuat...</DashboardShell>);
   if (!order) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Pesanan tidak ditemukan.</DashboardShell>);
-  const payment = (Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; reject_reason: string | null } | null;
-  const bank = BANKS.find((b) => b.code === payment?.bank);
 
   const displayStatus = (order.status === "pending" && payment?.status === "waiting_verification")
     ? "waiting_verification"
@@ -126,7 +162,28 @@ function OrderDetail() {
                 <div className="mt-2 text-base font-extrabold">{formatIDR(order.grand_total)}</div>
               </div>
             )}
-            {payment && payment.status === "waiting_payment" && (
+            
+            {payment && payment.status === "waiting_payment" && order.status === "pending" && timeLeft !== null && timeLeft > 0 && (
+              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs rounded flex items-center gap-2">
+                <Clock className="size-4 animate-pulse flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">Sisa Waktu Pembayaran:</div>
+                  <div className="font-mono mt-0.5">{formatTimeLeft(timeLeft)}</div>
+                </div>
+              </div>
+            )}
+
+            {order.status === "cancelled" && (
+              <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded flex items-center gap-2">
+                <AlertCircle className="size-4 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold">Pesanan Dibatalkan</div>
+                  <div className="mt-0.5">Waktu pembayaran telah habis atau pesanan dibatalkan.</div>
+                </div>
+              </div>
+            )}
+
+            {payment && payment.status === "waiting_payment" && order.status === "pending" && (
               <div className="mt-4">
                 <label className="block">
                   <span className="text-sm font-semibold">Upload Bukti Transfer</span>
@@ -141,10 +198,12 @@ function OrderDetail() {
               <div className="mt-4 text-sm">
                 <p className="text-destructive font-semibold">Pembayaran ditolak</p>
                 {payment.reject_reason && <p className="text-muted-foreground">{payment.reject_reason}</p>}
-                <label className="block mt-3">
-                  <span className="text-sm font-semibold">Upload ulang</span>
-                  <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} className="mt-2 block w-full text-xs" />
-                </label>
+                {order.status === "pending" && (
+                  <label className="block mt-3">
+                    <span className="text-sm font-semibold">Upload ulang</span>
+                    <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} className="mt-2 block w-full text-xs" />
+                  </label>
+                )}
               </div>
             )}
             {q.data?.proofUrl && <img src={q.data.proofUrl} alt="Bukti transfer" className="mt-4 w-full border border-border" />}

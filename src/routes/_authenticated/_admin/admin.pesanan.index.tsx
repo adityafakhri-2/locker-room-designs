@@ -32,6 +32,7 @@ function AdminOrders() {
   const q = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
+      await supabase.rpc("check_and_cancel_expired_orders");
       const [ordersRes, profilesRes] = await Promise.all([
         supabase.from("orders").select("*, payments(status)").order("created_at", { ascending: false }),
         supabase.from("profiles").select("id, email, nama_lengkap")

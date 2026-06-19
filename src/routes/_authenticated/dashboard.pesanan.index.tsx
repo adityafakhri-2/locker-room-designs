@@ -15,7 +15,10 @@ function OrdersPage() {
   const q = useQuery({
     queryKey: ["my-orders", user?.id],
     enabled: !!user,
-    queryFn: async () => (await supabase.from("orders").select("*, payments(status)").eq("user_id", user!.id).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => {
+      await supabase.rpc("check_and_cancel_expired_orders");
+      return (await supabase.from("orders").select("*, payments(status)").eq("user_id", user!.id).order("created_at", { ascending: false })).data ?? [];
+    },
   });
 
   return (

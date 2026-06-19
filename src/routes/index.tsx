@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Toaster } from "@/components/ui/sonner";
+
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { TrustStats } from "@/components/landing/TrustStats";
@@ -53,7 +53,6 @@ function Index() {
       <FAQ />
       <FinalCTA />
       <Footer />
-      <Toaster position="bottom-right" />
     </main>
   );
 }
