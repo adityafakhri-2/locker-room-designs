@@ -131,6 +131,8 @@ function ProductForm() {
   const [priceSuggestion, setPriceSuggestion] = useState<{ suggestedPrice: number; analysis: string } | null>(null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [images, setImages] = useState<{ id?: string; url: string; storage_path?: string; originalSize?: number; compressedSize?: number }[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+  const [deletedStoragePaths, setDeletedStoragePaths] = useState<string[]>([]);
 
   const [showBrandSuggestions, setShowBrandSuggestions] = useState(false);
   const [showLeagueSuggestions, setShowLeagueSuggestions] = useState(false);
@@ -437,6 +439,17 @@ function ProductForm() {
     }
   }
 
+  function handleDeleteImage(index: number) {
+    const img = images[index];
+    if (img.id) {
+      setDeletedImageIds((prev) => [...prev, img.id!]);
+    }
+    if (img.storage_path) {
+      setDeletedStoragePaths((prev) => [...prev, img.storage_path!]);
+    }
+    setImages((prev) => prev.filter((_, idx) => idx !== index));
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -484,6 +497,20 @@ function ProductForm() {
         product_id: productId!, url: i.storage_path!, sort_order: idx,
       }));
       if (newOnes.length) await supabase.from("product_images").insert(newOnes);
+
+      // Delete removed images from database
+      if (deletedImageIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("product_images")
+          .delete()
+          .in("id", deletedImageIds);
+        if (deleteError) throw deleteError;
+      }
+
+      // Delete removed files from Supabase Storage
+      if (deletedStoragePaths.length > 0) {
+        await supabase.storage.from("product-images").remove(deletedStoragePaths);
+      }
       toast.success(isNew ? "Produk dibuat" : "Produk disimpan");
       navigate({ to: "/admin/produk" });
     } catch (e) {
@@ -971,7 +998,7 @@ function ProductForm() {
               <div key={i} className="relative flex flex-col bg-muted border border-border overflow-hidden rounded-md shadow-sm">
                 <div className="relative aspect-square w-full">
                   <img src={img.url} alt="" className="size-full object-cover" />
-                  <button type="button" onClick={() => setImages((arr) => arr.filter((_, j) => j !== i))} className="absolute top-1 right-1 bg-background/90 p-1 rounded hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer"><Trash2 className="size-3" /></button>
+                  <button type="button" onClick={() => handleDeleteImage(i)} className="absolute top-1 right-1 bg-background/90 p-1 rounded hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer"><Trash2 className="size-3" /></button>
                 </div>
                 {img.originalSize && img.compressedSize && (
                   <div className="p-1.5 text-[10px] text-muted-foreground font-mono bg-background/50 border-t border-border flex flex-col items-center justify-center">
