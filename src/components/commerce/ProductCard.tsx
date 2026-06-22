@@ -49,8 +49,12 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
           )}
         </Link>
         {p.authenticity_badge && (
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 bg-background/95 px-2.5 py-1 eyebrow text-[10px]">
-            <span className="size-1.5 bg-primary" /> {BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
+          <span
+            title={BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
+            className="absolute top-3 left-3 max-w-[calc(100%-4rem)] inline-flex items-center gap-1.5 bg-background/95 px-2.5 py-1 eyebrow text-[10px] select-none"
+          >
+            <span className="size-1.5 shrink-0 bg-primary" />
+            <span className="truncate">{BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}</span>
           </span>
         )}
         <button
