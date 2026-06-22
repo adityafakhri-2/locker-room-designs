@@ -25,7 +25,7 @@ function CollectionsPage() {
         {q.data?.length ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
             {q.data.map((c) => (
-              <Link key={c.id} to="/shop" className="group block">
+              <Link key={c.id} to="/shop" search={{ category: c.slug }} className="group block">
                 <div className="aspect-[4/5] bg-muted overflow-hidden">
                   {c.cover_url && <img src={c.cover_url} alt={c.title} className="size-full object-cover transition-transform duration-700 group-hover:scale-105" />}
                 </div>

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -14,24 +14,42 @@ export const Route = createFileRoute("/shop")({
     { title: "Shop — The Locker Room" },
     { name: "description", content: "Katalog jersey original, vintage, retro, dan limited edition di The Locker Room." },
   ] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    category: (search.category as string) || "all",
+    sort: (search.sort as string) || "newest",
+    q: (search.q as string) || "",
+  }),
   component: ShopPage,
 });
 
 function ShopPage() {
-  const [category, setCategory] = useState<string>("all");
-  const [sort, setSort] = useState("newest");
-  const [q, setQ] = useState("");
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  const category = search.category || "all";
+  const sort = search.sort || "newest";
+  const q = search.q || "";
+
+  const setCategory = (val: string) => navigate({ search: (prev) => ({ ...prev, category: val }) });
+  const setSort = (val: string) => navigate({ search: (prev) => ({ ...prev, sort: val }) });
+  const setQ = (val: string) => navigate({ search: (prev) => ({ ...prev, q: val }) });
 
   const cats = useQuery({
     queryKey: ["categories"],
     queryFn: async () => (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
   });
 
+  const activeCategoryObject = useMemo(() => {
+    return cats.data?.find((c) => c.slug === category || c.id === category);
+  }, [category, cats.data]);
+
+  const activeCategoryId = activeCategoryObject?.id || "all";
+
   const products = useQuery({
-    queryKey: ["products", category, sort, q],
+    queryKey: ["products", activeCategoryId, sort, q],
     queryFn: async () => {
       let qy = supabase.from("products").select("*").eq("is_active", true);
-      if (category !== "all") qy = qy.contains("category_ids", [category]);
+      if (activeCategoryId !== "all") qy = qy.contains("category_ids", [activeCategoryId]);
       if (q) qy = qy.ilike("name", `%${q}%`);
       if (sort === "price_low") qy = qy.order("price", { ascending: true });
       else if (sort === "price_high") qy = qy.order("price", { ascending: false });
@@ -44,7 +62,7 @@ function ShopPage() {
 
   const list = products.data ?? [];
   const empty = !products.isLoading && list.length === 0;
-  const heading = useMemo(() => cats.data?.find((c) => c.id === category)?.name ?? "Semua Jersey", [category, cats.data]);
+  const heading = useMemo(() => activeCategoryObject?.name ?? "Semua Jersey", [activeCategoryObject]);
 
   return (
     <>
@@ -76,7 +94,7 @@ function ShopPage() {
               <div className="eyebrow text-muted-foreground mb-3">Kategori</div>
               <button onClick={() => setCategory("all")} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 cursor-pointer ${category === "all" ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>Semua</button>
               {cats.data?.map((c) => (
-                <button key={c.id} onClick={() => setCategory(c.id)} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 cursor-pointer ${category === c.id ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>{c.name}</button>
+                <button key={c.id} onClick={() => setCategory(c.slug)} className={`block w-full text-left text-sm py-2 border-l-2 pl-3 cursor-pointer ${category === c.slug ? "border-primary font-semibold" : "border-transparent text-muted-foreground"}`}>{c.name}</button>
               ))}
             </aside>
 
