@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
+import { generateProductDescription, suggestProductPrice } from "@/lib/api/ai.functions";
 import { ADMIN_NAV } from "./admin.index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +126,10 @@ function ProductForm() {
   const [form, setForm] = useState<PFormState>(emptyForm);
   const [sizeStocks, setSizeStocks] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
+  const [priceSuggestion, setPriceSuggestion] = useState<{ suggestedPrice: number; analysis: string } | null>(null);
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [images, setImages] = useState<{ id?: string; url: string; storage_path?: string; originalSize?: number; compressedSize?: number }[]>([]);
 
   const [showBrandSuggestions, setShowBrandSuggestions] = useState(false);
@@ -336,6 +341,102 @@ function ProductForm() {
     c.toLowerCase().includes(form.country.toLowerCase()) && c.toLowerCase() !== form.country.toLowerCase()
   );
 
+  async function handleGenerateDescription() {
+    if (!form.name.trim()) {
+      toast.error("Nama produk tidak boleh kosong!");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const categoryNames = cats.data
+        ? cats.data
+            .filter((c) => form.category_ids.includes(c.id))
+            .map((c) => c.name)
+            .join(", ")
+        : "";
+
+      const badgeObj = BADGES.find((b) => b.value === form.authenticity_badge);
+      const badgeLabel = badgeObj ? badgeObj.label : form.authenticity_badge;
+
+      const result = await generateProductDescription({
+        data: {
+          name: form.name,
+          categories: categoryNames,
+          price: form.price,
+          brand: form.brand,
+          team: form.team,
+          league: form.league,
+          country: form.country,
+          release_year: form.release_year,
+          condition: form.condition || "",
+          authenticity_badge: badgeLabel,
+        },
+      });
+
+      if (result?.description) {
+        set("description", result.description);
+        toast.success("Deskripsi berhasil digenerasi oleh AI!");
+      } else {
+        toast.error("Gagal mendapatkan deskripsi dari AI.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Terjadi kesalahan saat menggenerasi deskripsi: " + (err.message || err));
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  }
+
+  async function handleAIPriceSuggest() {
+    if (!form.name.trim()) {
+      toast.error("Nama produk tidak boleh kosong!");
+      return;
+    }
+
+    setIsSuggestingPrice(true);
+    try {
+      const categoryNames = cats.data
+        ? cats.data
+            .filter((c) => form.category_ids.includes(c.id))
+            .map((c) => c.name)
+            .join(", ")
+        : "";
+
+      const badgeObj = BADGES.find((b) => b.value === form.authenticity_badge);
+      const badgeLabel = badgeObj ? badgeObj.label : form.authenticity_badge;
+
+      const result = await suggestProductPrice({
+        data: {
+          name: form.name,
+          categories: categoryNames,
+          brand: form.brand,
+          team: form.team,
+          league: form.league,
+          country: form.country,
+          release_year: form.release_year,
+          condition: form.condition || "",
+          authenticity_badge: badgeLabel,
+        },
+      });
+
+      if (result) {
+        setPriceSuggestion({
+          suggestedPrice: result.suggestedPrice,
+          analysis: result.analysis,
+        });
+        setIsPriceDialogOpen(true);
+      } else {
+        toast.error("Gagal mendapatkan saran harga dari AI.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.toast ? toast.error("Gagal menganalisis harga pasaran: " + (err.message || err)) : toast.error("Gagal menganalisis harga pasaran: " + (err.message || err));
+    } finally {
+      setIsSuggestingPrice(false);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -447,7 +548,38 @@ function ProductForm() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div><Label>Harga (Rp)</Label><Input type="text" required value={form.price} onChange={(e) => set("price", formatThousand(e.target.value))} placeholder="Contoh: 500.000" /></div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label>Harga (Rp)</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAIPriceSuggest}
+                  disabled={isSuggestingPrice}
+                  className="h-5 text-xs text-primary hover:text-primary hover:bg-primary/5 gap-1 px-1.5 font-semibold transition-all duration-200"
+                >
+                  {isSuggestingPrice ? (
+                    <>
+                      <Loader2 className="size-3 animate-spin" />
+                      <span>Menganalisis...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="size-3" />
+                      <span>Saran Harga AI</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <Input
+                type="text"
+                required
+                value={form.price}
+                onChange={(e) => set("price", formatThousand(e.target.value))}
+                placeholder="Contoh: 500.000"
+              />
+            </div>
             <div>
               <Label>Stok Total (Otomatis dari ukuran)</Label>
               <Input type="number" disabled value={totalStockCalculated} className="bg-muted cursor-not-allowed" placeholder="Total stok otomatis" />
@@ -769,7 +901,37 @@ function ProductForm() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="sm:col-span-2"><Label>Deskripsi</Label><Textarea rows={4} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Tuliskan spesifikasi jersey, tahun, detail sponsor, patch, dll." /></div>
+            <div className="sm:col-span-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Deskripsi</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={isGeneratingAI}
+                  className="gap-1.5 h-8 text-xs border-primary/20 text-primary hover:bg-primary/5 hover:text-primary transition-all duration-200"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Membuat Deskripsi...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="size-3.5" />
+                      <span>Buat Deskripsi dengan AI</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <Textarea
+                rows={6}
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder="Tuliskan spesifikasi jersey, tahun, detail sponsor, patch, dll."
+              />
+            </div>
             <div className="sm:col-span-2">
               <Label>Story di Balik Jersey (Opsional)</Label>
               <Textarea
@@ -845,6 +1007,52 @@ function ProductForm() {
           <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/produk" })}>Batal</Button>
         </div>
       </form>
+
+      <Dialog open={isPriceDialogOpen} onOpenChange={setIsPriceDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="size-5 text-primary" />
+              <span>Saran Harga Jual AI</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="bg-muted/50 p-4 rounded-lg text-center border border-border">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Harga Disarankan</p>
+              <p className="text-3xl font-extrabold text-primary mt-1">
+                {priceSuggestion ? `Rp ${formatThousand(priceSuggestion.suggestedPrice)}` : "Rp 0"}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-sm font-bold">Analisis Harga Pasar:</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                {priceSuggestion?.analysis}
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsPriceDialogOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (priceSuggestion) {
+                    set("price", formatThousand(priceSuggestion.suggestedPrice));
+                    toast.success(`Harga berhasil diterapkan: Rp ${formatThousand(priceSuggestion.suggestedPrice)}`);
+                  }
+                  setIsPriceDialogOpen(false);
+                }}
+              >
+                Terapkan Harga Ini
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!conditionToDelete} onOpenChange={(open) => !open && setConditionToDelete(null)}>
         <AlertDialogContent className="bg-background border border-border">
