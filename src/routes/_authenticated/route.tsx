@@ -7,6 +7,19 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
+
+    // Verifikasi apakah profil pengguna sudah lengkap
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("no_hp, alamat")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (!profile || !profile.no_hp || !profile.alamat) {
+      // Jika belum lengkap, paksa kembali ke /auth untuk melengkapi profil
+      throw redirect({ to: "/auth" });
+    }
+
     return { userId: data.user.id };
   },
   component: () => (

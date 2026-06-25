@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+import { IndonesiaRegionSelector, parseAlamat } from "@/components/app/IndonesiaRegionSelector";
+
 export const Route = createFileRoute("/_authenticated/dashboard/profil")({
   component: ProfilePage,
 });
@@ -20,6 +22,9 @@ function ProfilePage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [form, setForm] = useState({ nama_lengkap: "", no_hp: "", alamat: "", kota: "", provinsi: "", kode_pos: "" });
+  const [alamatDetail, setAlamatDetail] = useState("");
+  const [kecamatan, setKecamatan] = useState("");
+  const [kelurahan, setKelurahan] = useState("");
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -40,22 +45,39 @@ function ProfilePage() {
 
   useEffect(() => {
     console.log("Profile query data fetched:", q.data);
-    if (q.data) setForm({
-      nama_lengkap: q.data.nama_lengkap ?? "", no_hp: q.data.no_hp ?? "",
-      alamat: q.data.alamat ?? "", kota: q.data.kota ?? "",
-      provinsi: q.data.provinsi ?? "", kode_pos: q.data.kode_pos ?? "",
-    });
+    if (q.data) {
+      const parsed = parseAlamat(q.data.alamat ?? "");
+      setForm({
+        nama_lengkap: q.data.nama_lengkap ?? "", no_hp: q.data.no_hp ?? "",
+        alamat: q.data.alamat ?? "", kota: q.data.kota ?? "",
+        provinsi: q.data.provinsi ?? "", kode_pos: q.data.kode_pos ?? "",
+      });
+      setAlamatDetail(parsed.street);
+      setKecamatan(parsed.kecamatan);
+      setKelurahan(parsed.kelurahan);
+    }
   }, [q.data]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    console.log("Attempting to update profile payload:", form);
+    
+    // Combine detail, district (kecamatan), and village (kelurahan)
+    const finalAlamat = alamatDetail + 
+      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+      (kelurahan ? `, Kel. ${kelurahan}` : "");
+
+    const updatedPayload = {
+      ...form,
+      alamat: finalAlamat,
+    };
+    
+    console.log("Attempting to update profile payload:", updatedPayload);
     
     // 1. Try updating first
     const { data, error } = await supabase
       .from("profiles")
-      .update(form)
+      .update(updatedPayload)
       .eq("id", user!.id)
       .select();
       
@@ -70,7 +92,7 @@ function ProfilePage() {
       console.log("No rows updated. Profile row might not exist. Attempting upsert fallback...");
       const { data: upsertData, error: upsertError } = await supabase
         .from("profiles")
-        .upsert({ id: user!.id, ...form }, { onConflict: "id" })
+        .upsert({ id: user!.id, ...updatedPayload }, { onConflict: "id" })
         .select();
         
       setSaving(false);
@@ -111,26 +133,29 @@ function ProfilePage() {
             <Label>Nama Lengkap</Label>
             <Input disabled={!isEditing} value={form.nama_lengkap} onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })} />
           </div>
-          <div>
-            <Label>Nomor HP</Label>
-            <Input disabled={!isEditing} value={form.no_hp} onChange={(e) => setForm({ ...form, no_hp: e.target.value })} />
+          <div className="sm:col-span-2 sm:grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Nomor HP</Label>
+              <Input disabled={!isEditing} value={form.no_hp} onChange={(e) => setForm({ ...form, no_hp: e.target.value })} />
+            </div>
           </div>
-          <div>
-            <Label>Kode Pos</Label>
-            <Input disabled={!isEditing} value={form.kode_pos} onChange={(e) => setForm({ ...form, kode_pos: e.target.value })} />
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Alamat</Label>
-            <Textarea disabled={!isEditing} value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} />
-          </div>
-          <div>
-            <Label>Kota</Label>
-            <Input disabled={!isEditing} value={form.kota} onChange={(e) => setForm({ ...form, kota: e.target.value })} />
-          </div>
-          <div>
-            <Label>Provinsi</Label>
-            <Input disabled={!isEditing} value={form.provinsi} onChange={(e) => setForm({ ...form, provinsi: e.target.value })} />
-          </div>
+          
+          <IndonesiaRegionSelector
+            disabled={!isEditing}
+            provinsi={form.provinsi}
+            setProvinsi={(val) => setForm((f) => ({ ...f, provinsi: val }))}
+            kota={form.kota}
+            setKota={(val) => setForm((f) => ({ ...f, kota: val }))}
+            kecamatan={kecamatan}
+            setKecamatan={setKecamatan}
+            kelurahan={kelurahan}
+            setKelurahan={setKelurahan}
+            kodePos={form.kode_pos}
+            setKodePos={(val) => setForm((f) => ({ ...f, kode_pos: val }))}
+            alamatDetail={alamatDetail}
+            setAlamatDetail={setAlamatDetail}
+            required={true}
+          />
           <div className="sm:col-span-2 mt-2">
             {!isEditing ? (
               <Button type="button" onClick={() => setIsEditing(true)} className="cursor-pointer">
@@ -146,13 +171,20 @@ function ProfilePage() {
                   variant="outline" 
                   onClick={() => {
                     if (q.data) {
+                      const parsed = parseAlamat(q.data.alamat ?? "");
                       setForm({
                         nama_lengkap: q.data.nama_lengkap ?? "", no_hp: q.data.no_hp ?? "",
                         alamat: q.data.alamat ?? "", kota: q.data.kota ?? "",
                         provinsi: q.data.provinsi ?? "", kode_pos: q.data.kode_pos ?? "",
                       });
+                      setAlamatDetail(parsed.street);
+                      setKecamatan(parsed.kecamatan);
+                      setKelurahan(parsed.kelurahan);
                     } else {
                       setForm({ nama_lengkap: "", no_hp: "", alamat: "", kota: "", provinsi: "", kode_pos: "" });
+                      setAlamatDetail("");
+                      setKecamatan("");
+                      setKelurahan("");
                     }
                     setIsEditing(false);
                   }}

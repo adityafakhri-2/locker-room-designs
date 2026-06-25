@@ -57,8 +57,19 @@ function CheckoutPage() {
   }
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      navigate({ to: "/auth" });
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
     if (user && profileQuery.data) {
       const p = profileQuery.data;
+      if (!p.no_hp || !p.alamat) {
+        toast.error("Silakan lengkapi profil Anda terlebih dahulu!");
+        navigate({ to: "/auth" });
+        return;
+      }
       const metadataName = user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
       setForm((f) => ({
         ...f,
@@ -70,11 +81,10 @@ function CheckoutPage() {
         recipient_kode_pos: f.recipient_kode_pos || p.kode_pos || "",
       }));
     }
-  }, [profileQuery.data, user]);
+  }, [profileQuery.data, user, navigate]);
 
-  if (authLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
+  if (authLoading || (user && profileQuery.isLoading)) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
   if (!user) {
-    navigate({ to: "/auth" });
     return null;
   }
 
