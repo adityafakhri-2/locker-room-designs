@@ -119,9 +119,38 @@ function OrderDetail() {
 
       const { data: order } = await supabase.from("orders").select("*, order_items(*), payments(*), shipments(*)").eq("order_number", orderNumber).maybeSingle();
       if (!order) return null;
+
+      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as any);
+
+      // Jika menggunakan Mayar dan masih menunggu pembayaran, cek langsung statusnya ke API Mayar
+      if (payment && payment.method === "mayar" && payment.status === "waiting_payment" && payment.reject_reason) {
+        try {
+          console.log("[Dashboard Pesanan] Memeriksa status pembayaran Mayar secara langsung untuk invoice:", payment.reject_reason);
+          const { checkMayarPaymentStatus } = await import("@/lib/api/payment.functions");
+          await checkMayarPaymentStatus({
+            data: {
+              paymentId: payment.id,
+              invoiceId: payment.reject_reason
+            }
+          });
+
+          // Ambil ulang data order yang terupdate setelah diperiksa
+          const { data: updatedOrder } = await supabase
+            .from("orders")
+            .select("*, order_items(*), payments(*), shipments(*)")
+            .eq("order_number", orderNumber)
+            .maybeSingle();
+          
+          if (updatedOrder) {
+            return { order: updatedOrder, proofUrl: "", proofUploadedAt: null };
+          }
+        } catch (checkErr) {
+          console.error("[Dashboard Pesanan] Gagal memeriksa status pembayaran Mayar:", checkErr);
+        }
+      }
+
       let proofUrl = "";
       let proofUploadedAt = null;
-      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as { id: string } | null);
       if (payment) {
         const { data: proofs } = await supabase.from("payment_proofs").select("*").eq("payment_id", payment.id).order("uploaded_at", { ascending: false }).limit(1);
         if (proofs && proofs[0]) {
@@ -134,8 +163,9 @@ function OrderDetail() {
   });
 
   const order = q.data?.order;
-  const payment = order ? ((Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; reject_reason: string | null; updated_at: string } | null) : null;
-  const bank = payment ? BANKS.find((b) => b.code === payment.bank) : null;
+  const payment = order ? ((Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; method: string; reject_reason: string | null; updated_at: string } | null) : null;
+  const isMayar = payment?.method === "mayar";
+  const bank = (!isMayar && payment) ? BANKS.find((b) => b.code === payment.bank) : null;
 
   const createdAt = order ? new Date(order.created_at) : null;
   const deadline = createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
@@ -457,7 +487,11 @@ function OrderDetail() {
             <Card className="space-y-5">
               <div>
                 <div className="eyebrow text-muted-foreground">Pembayaran</div>
-                <div className="text-lg font-extrabold mt-1">{payment ? statusLabel(payment.status) : "—"}</div>
+                <div className="text-lg font-extrabold mt-1">
+                  {order.status === "cancelled" 
+                    ? (order.cancel_reason === "customer" ? "Dibatalkan Pelanggan" : "Dibatalkan")
+                    : (payment ? statusLabel(payment.status) : "—")}
+                </div>
               </div>
 
             {/* Timer countdown at the very top of Payment status if pending */}
@@ -487,272 +521,118 @@ function OrderDetail() {
               </div>
             )}
 
-            {bank && (
-              <div className="text-sm space-y-2 border border-border p-4 bg-muted/30 rounded relative group">
-                <div className="eyebrow text-xs text-muted-foreground">Transfer Ke</div>
-                <div className="font-bold text-sm">{bank.name}</div>
-                <div className="font-mono text-base font-bold tracking-wider">{bank.account}</div>
-                <div className="text-xs text-muted-foreground">a.n {bank.holder}</div>
-                <div className="text-sm font-extrabold mt-2 pt-2 border-t border-border/50">
-                  Nominal: {formatIDR(order.grand_total)}
-                </div>
-
-                <button
-                  onClick={() => copyToClipboard(bank.account, "Nomor rekening disalin")}
-                  className="absolute right-3 top-4 p-1.5 hover:bg-muted border border-transparent hover:border-border rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  title="Salin nomor rekening"
-                >
-                  <Copy className="size-3.5 text-muted-foreground" />
-                </button>
-              </div>
+            {order.status !== "cancelled" && (
+              <>
+                {isMayar ? (
+                  <div className="text-sm space-y-2 border border-primary/20 p-4 bg-primary/5 rounded relative group">
+                    <div className="eyebrow text-xs text-muted-foreground font-semibold">Metode Pembayaran</div>
+                    <div className="font-bold text-sm">Mayar.id (Otomatis)</div>
+                    <div className="text-sm font-extrabold mt-2 pt-2 border-t border-border/50">
+                      Nominal: {formatIDR(order.grand_total)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm border border-destructive/20 p-4 bg-destructive/5 rounded text-destructive">
+                    <p className="font-bold">Transfer Manual Dinonaktifkan</p>
+                    <p className="text-xs mt-1 text-muted-foreground leading-relaxed">
+                      Metode pembayaran transfer bank manual tidak lagi didukung. Silakan hubungi admin atau buat pesanan baru menggunakan Mayar.id.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Transfer Instructions */}
-            {payment && ["waiting_payment", "rejected"].includes(payment.status) && order.status === "pending" && (
+            {order.status !== "cancelled" && payment && ["waiting_payment", "rejected"].includes(payment.status) && order.status === "pending" && (
               <div className="text-xs space-y-1.5 text-muted-foreground border-t border-border pt-4">
-                <h4 className="font-bold text-foreground">Instruksi Transfer:</h4>
-                <ol className="list-decimal list-inside space-y-0.5">
-                  <li>Transfer tepat <strong className="text-foreground">{formatIDR(order.grand_total)}</strong>.</li>
-                  <li>Kirim ke rekening bank tujuan di atas.</li>
-                  <li>Simpan struk transaksi Anda.</li>
-                  <li>Unggah bukti tersebut di form di bawah ini.</li>
-                </ol>
+                <h4 className="font-bold text-foreground">Instruksi Pembayaran:</h4>
+                {isMayar ? (
+                  <ol className="list-decimal list-inside space-y-0.5">
+                    <li>Klik tombol <strong className="text-primary">Bayar Sekarang via Mayar</strong> di bawah.</li>
+                    <li>Selesaikan pembayaran Anda menggunakan opsi QRIS, VA, E-Wallet, dll.</li>
+                    <li>Setelah selesai, halaman ini akan otomatis memverifikasi status pembayaran Anda saat direfresh.</li>
+                  </ol>
+                ) : (
+                  <p className="text-destructive font-semibold">
+                    Metode pembayaran transfer manual telah dinonaktifkan. Silakan hubungi admin untuk bantuan pembayaran pesanan ini.
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Redesigned Highlighted Upload Box */}
+            {/* Redesigned Highlighted Upload Box / Mayar Payment Box */}
             <div className="border-t border-border pt-4 space-y-4">
-              <div className="text-xs font-bold text-foreground">Bukti Transfer</div>
-
-              {payment && payment.status === "waiting_payment" && order.status === "pending" && (
-                <div className="space-y-3">
-                  {(!q.data?.proofUrl || forceShowUpload) ? (
-                    <>
-                      {!selectedFile ? (
-                        <div className="border-2 border-dashed border-border p-5 text-center space-y-2 rounded bg-muted/10 hover:bg-muted/20 transition-colors">
-                          <Upload className="size-6 mx-auto text-muted-foreground animate-pulse" />
-                          <div className="text-[11px] text-muted-foreground">
-                            Pilih gambar struk transfer (JPG/PNG, maks 5MB)
-                          </div>
-                          <label className="inline-block">
-                            <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-[11px] font-semibold px-3 py-1.5 cursor-pointer shadow-sm">
-                              Pilih File
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileSelect}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                      ) : (
-                        <div className="border border-border p-3 space-y-3 bg-muted/20 rounded">
-                          <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-                            <span className="truncate flex items-center gap-1.5 max-w-[180px]">
-                              <Image className="size-3.5 flex-shrink-0" /> {selectedFile.name}
-                            </span>
-                            <button
-                              onClick={handleCancelSelection}
-                              className="text-destructive hover:underline cursor-pointer"
-                              disabled={uploading}
-                            >
-                              Batal
-                            </button>
-                          </div>
-
-                          {localPreview && (
-                            <div className="aspect-[4/3] w-full bg-black/5 overflow-hidden border border-border">
-                              <img src={localPreview} alt="Pratinjau Struk" className="size-full object-contain" />
-                            </div>
-                          )}
-
-                          <Button
-                            onClick={handleUpload}
-                            disabled={uploading}
-                            className="w-full text-xs h-9 cursor-pointer"
-                          >
-                            {uploading ? "Mengunggah..." : "Unggah Bukti Pembayaran"}
-                          </Button>
-                        </div>
-                      )}
-                      {q.data?.proofUrl && (
+              {order.status !== "cancelled" ? (
+                isMayar ? (
+                  <>
+                    {payment && payment.status === "waiting_payment" && order.status === "pending" && (
+                      <div className="bg-primary/5 border border-primary/20 p-4 text-center rounded space-y-3">
+                        <Clock className="size-6 text-primary mx-auto animate-pulse" />
+                        <h4 className="font-bold text-xs">Menunggu Pembayaran</h4>
+                        <p className="text-[11px] text-muted-foreground">Silakan selesaikan pembayaran tagihan Anda via Mayar.id dengan tombol di bawah.</p>
                         <Button
-                          variant="ghost"
-                          onClick={() => {
-                            setForceShowUpload(false);
-                            handleCancelSelection();
-                          }}
-                          className="w-full text-[11px] h-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                          asChild
+                          className="w-full text-xs h-9 cursor-pointer bg-primary hover:bg-primary/95 text-primary-foreground font-semibold flex items-center justify-center gap-1.5"
                         >
-                          Batal Unggah Ulang
+                          <a href={payment.bank || "#"} target="_blank" rel="noopener noreferrer">
+                            Bayar Sekarang via Mayar
+                          </a>
                         </Button>
-                      )}
-                    </>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={() => setForceShowUpload(true)}
-                      className="w-full text-xs h-9 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
-                    >
-                      Unggah Ulang Bukti Pembayaran
-                    </Button>
-                  )}
-                </div>
-              )}
+                      </div>
+                    )}
 
-              {payment && payment.status === "waiting_verification" && (
-                <div className="bg-primary/5 border border-primary/20 p-4 space-y-2 text-center rounded">
-                  <CheckCircle2 className="size-6 text-primary mx-auto" />
-                  <h4 className="font-bold text-xs">Menunggu Verifikasi</h4>
-                  <p className="text-[11px] text-muted-foreground">Bukti transfer sedang diproses verifikasi oleh admin.</p>
-                  {q.data?.proofUrl && (
-                    <div className="pt-2">
-                      {forceShowUpload ? (
-                        <>
-                          {!selectedFile ? (
-                            <div className="border border-dashed border-border p-3 text-center space-y-1 rounded bg-muted/10 mt-2">
-                              <Upload className="size-4 mx-auto text-muted-foreground" />
-                              <label className="inline-block">
-                                <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-[10px] font-semibold px-2 py-1 cursor-pointer">
-                                  Pilih File Baru
-                                </span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleFileSelect}
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                          ) : (
-                            <div className="border border-border p-2 space-y-2 bg-muted/20 rounded text-left mt-2">
-                              <div className="flex items-center justify-between text-[10px]">
-                                <span className="truncate max-w-[120px] font-medium">{selectedFile.name}</span>
-                                <button onClick={handleCancelSelection} className="text-destructive hover:underline cursor-pointer">Batal</button>
-                              </div>
-                              {localPreview && (
-                                <div className="aspect-[4/3] w-full overflow-hidden border border-border">
-                                  <img src={localPreview} alt="Pratinjau Baru" className="size-full object-contain" />
-                                </div>
-                              )}
-                              <Button onClick={handleUpload} disabled={uploading} className="w-full text-[10px] h-7 cursor-pointer">
-                                {uploading ? "Mengunggah..." : "Kirim Unggah Ulang"}
-                              </Button>
-                            </div>
-                          )}
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              setForceShowUpload(false);
-                              handleCancelSelection();
-                            }}
-                            className="w-full text-[10px] h-6 text-muted-foreground cursor-pointer mt-1"
-                          >
-                            Batal
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          onClick={() => setForceShowUpload(true)}
-                          className="w-full text-[10px] h-7 border-primary/20 text-primary hover:bg-primary/5 cursor-pointer"
-                        >
-                          Unggah Ulang Bukti Pembayaran
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                    {payment && (payment.status === "approved" || payment.status === "paid") && (
+                      <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
+                        <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
+                        <h4 className="font-bold text-xs text-emerald-600 font-extrabold">Pembayaran Berhasil</h4>
+                        <p className="text-[11px] text-muted-foreground">Pembayaran Anda terverifikasi otomatis. Pesanan segera diproses.</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {payment && payment.status === "waiting_verification" && (
+                      <div className="bg-primary/5 border border-primary/20 p-4 space-y-2 text-center rounded">
+                        <CheckCircle2 className="size-6 text-primary mx-auto" />
+                        <h4 className="font-bold text-xs">Menunggu Verifikasi</h4>
+                        <p className="text-[11px] text-muted-foreground">Bukti transfer sedang diproses verifikasi oleh admin.</p>
+                      </div>
+                    )}
 
-              {payment && payment.status === "rejected" && (
-                <div className="space-y-3">
-                  <div className="bg-destructive/5 border border-destructive/20 p-3 space-y-1.5 rounded">
-                    <AlertCircle className="size-6 text-destructive mx-auto" />
-                    <h4 className="font-bold text-xs text-destructive">Pembayaran Ditolak</h4>
-                    {payment.reject_reason && <p className="text-[11px] text-muted-foreground">Alasan: {payment.reject_reason}</p>}
+                    {payment && payment.status === "rejected" && (
+                      <div className="bg-destructive/5 border border-destructive/20 p-3 space-y-1.5 rounded text-center">
+                        <AlertCircle className="size-6 text-destructive mx-auto" />
+                        <h4 className="font-bold text-xs text-destructive">Pembayaran Ditolak</h4>
+                        {payment.reject_reason && <p className="text-[11px] text-muted-foreground">Alasan: {payment.reject_reason}</p>}
+                      </div>
+                    )}
+
+                    {payment && (payment.status === "approved" || payment.status === "paid") && (
+                      <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
+                        <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
+                        <h4 className="font-bold text-xs text-emerald-600 font-extrabold">Pembayaran Berhasil</h4>
+                        <p className="text-[11px] text-muted-foreground">Pembayaran terverifikasi. Pesanan segera dikirim.</p>
+                      </div>
+                    )}
+
+                    {q.data?.proofUrl && (
+                      <div className="space-y-1.5 mt-3">
+                        <div className="text-[11px] font-bold text-muted-foreground">Bukti Terunggah:</div>
+                        <img src={q.data.proofUrl} alt="Bukti transfer" className="w-full border border-border rounded" />
+                      </div>
+                    )}
+                  </>
+                )
+              ) : (
+                q.data?.proofUrl && (
+                  <div className="space-y-1.5 mt-3">
+                    <div className="text-[11px] font-bold text-muted-foreground">Bukti Terunggah:</div>
+                    <img src={q.data.proofUrl} alt="Bukti transfer" className="w-full border border-border rounded" />
                   </div>
-
-                  {order.status === "pending" && (
-                    <div className="space-y-3">
-                      {(!q.data?.proofUrl || forceShowUpload) ? (
-                        <>
-                          {!selectedFile ? (
-                            <div className="border-2 border-dashed border-border p-5 text-center space-y-2 rounded bg-muted/10">
-                              <Upload className="size-6 mx-auto text-muted-foreground animate-bounce" />
-                              <label className="inline-block">
-                                <span className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-[11px] font-semibold px-3 py-1.5 cursor-pointer shadow-sm">
-                                  Pilih Bukti Baru
-                                </span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleFileSelect}
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                          ) : (
-                            <div className="border border-border p-3 space-y-3 bg-muted/20 rounded">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="truncate flex items-center gap-1.5 max-w-[180px]">
-                                  <Image className="size-3.5 flex-shrink-0" /> {selectedFile.name}
-                                </span>
-                                <button onClick={handleCancelSelection} className="text-destructive hover:underline cursor-pointer" disabled={uploading}>Batal</button>
-                              </div>
-                              {localPreview && (
-                                <div className="aspect-[4/3] w-full overflow-hidden border border-border">
-                                  <img src={localPreview} alt="Pratinjau Baru" className="size-full object-contain" />
-                                </div>
-                              )}
-                              <Button onClick={handleUpload} disabled={uploading} className="w-full text-xs h-9 cursor-pointer">
-                                {uploading ? "Mengunggah..." : "Unggah Bukti Pembayaran"}
-                              </Button>
-                            </div>
-                          )}
-                          {q.data?.proofUrl && (
-                            <Button
-                              variant="ghost"
-                              onClick={() => {
-                                setForceShowUpload(false);
-                                handleCancelSelection();
-                              }}
-                              className="w-full text-[11px] h-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                            >
-                              Batal Unggah Ulang
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          onClick={() => setForceShowUpload(true)}
-                          className="w-full text-xs h-9 border-destructive/30 text-destructive hover:bg-destructive/5 cursor-pointer"
-                        >
-                          Unggah Ulang Bukti Pembayaran
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )
               )}
 
-              {payment && (payment.status === "approved" || payment.status === "paid") && (
-                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
-                  <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
-                  <h4 className="font-bold text-xs text-emerald-600">Pembayaran Berhasil</h4>
-                  <p className="text-[11px] text-muted-foreground">Pembayaran terverifikasi. Pesanan segera dikirim.</p>
-                </div>
-              )}
-
-              {q.data?.proofUrl && (
-                <div className="space-y-1.5 mt-3">
-                  <div className="text-[11px] font-bold text-muted-foreground">Bukti Terunggah:</div>
-                  <img src={q.data.proofUrl} alt="Bukti transfer" className="w-full border border-border rounded" />
-                </div>
-              )}
-
+              {/* Batalkan Pesanan Button */}
               {order.status === "pending" && (
                 <div className="pt-4 border-t border-border mt-4">
                   <AlertDialog>
@@ -778,8 +658,6 @@ function OrderDetail() {
                   </AlertDialog>
                 </div>
               )}
-
-
             </div>
           </Card>
           )}

@@ -311,61 +311,32 @@ function PaymentPage() {
                 </button>
               </div>
 
-              {isMayar ? (
-                <div className="space-y-4">
-                  <div className="text-sm">
-                    <strong>Metode Pembayaran:</strong> Mayar.id (Otomatis)
+              {order.status !== "cancelled" && (
+                isMayar ? (
+                  <>
+                    <div className="space-y-4">
+                      <div className="text-sm">
+                        <strong>Metode Pembayaran:</strong> Mayar.id (Otomatis)
+                      </div>
+                    </div>
+                    <div className="text-xs space-y-2 border-t border-border pt-4 text-muted-foreground">
+                      <h4 className="font-bold text-foreground">Instruksi Pembayaran Mayar:</h4>
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Klik tombol <strong className="text-primary">Bayar Sekarang</strong> di sebelah kanan.</li>
+                        <li>Pilih metode pembayaran (QRIS, VA, E-Wallet, Kartu Kredit).</li>
+                        <li>Selesaikan pembayaran Anda di halaman Mayar.</li>
+                        <li>Setelah selesai, halaman ini akan otomatis mendeteksi status pembayaran Anda.</li>
+                      </ol>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm border border-destructive/20 p-4 bg-destructive/5 rounded text-destructive">
+                    <p className="font-bold">Transfer Manual Dinonaktifkan</p>
+                    <p className="text-xs mt-1 text-muted-foreground leading-relaxed">
+                      Metode pembayaran transfer bank manual tidak lagi didukung. Silakan hubungi admin atau buat pesanan baru menggunakan Mayar.id.
+                    </p>
                   </div>
-                  <div className="p-4 border border-primary/20 bg-primary/5 space-y-2 rounded">
-                    <p className="text-xs text-muted-foreground">Tautan Pembayaran:</p>
-                    <p className="font-mono text-xs break-all text-primary font-bold">{payment?.bank}</p>
-                  </div>
-                </div>
-              ) : bank ? (
-                <div className="space-y-4">
-                  <div className="text-sm">
-                    <strong>Metode Pembayaran:</strong> Transfer Bank Manual
-                  </div>
-                  <div className="p-4 border border-border space-y-3 relative group">
-                    <div className="text-xs eyebrow text-muted-foreground">Rekening Tujuan</div>
-                    <div className="font-extrabold text-sm">{bank.name}</div>
-                    <div className="font-mono text-xl font-bold tracking-wider tabular-nums">{bank.account}</div>
-                    <div className="text-xs text-muted-foreground">a.n {bank.holder}</div>
-                    <button 
-                      onClick={() => copyToClipboard(bank.account, "Nomor rekening disalin")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-muted border border-transparent hover:border-border rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                      title="Salin nomor rekening"
-                    >
-                      <Copy className="size-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-destructive">Detail bank tidak ditemukan.</p>
-              )}
-
-              {!isMayar && (
-                <div className="text-xs space-y-2 border-t border-border pt-4 text-muted-foreground">
-                  <h4 className="font-bold text-foreground">Instruksi Transfer:</h4>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Gunakan ATM, Mobile Banking, atau Internet Banking.</li>
-                    <li>Masukkan nomor rekening tujuan di atas.</li>
-                    <li>Masukkan nominal transfer tepat sebesar <strong className="text-foreground">{formatIDR(order.grand_total)}</strong>.</li>
-                    <li>Simpan struk / bukti transfer sebagai gambar.</li>
-                    <li>Unggah bukti transfer di kolom sebelah kanan.</li>
-                  </ol>
-                </div>
-              )}
-              {isMayar && (
-                <div className="text-xs space-y-2 border-t border-border pt-4 text-muted-foreground">
-                  <h4 className="font-bold text-foreground">Instruksi Pembayaran Mayar:</h4>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Klik tombol <strong className="text-primary">Bayar Sekarang</strong> di sebelah kanan.</li>
-                    <li>Pilih metode pembayaran (QRIS, VA, E-Wallet, Kartu Kredit).</li>
-                    <li>Selesaikan pembayaran Anda di halaman Mayar.</li>
-                    <li>Setelah selesai, halaman ini akan otomatis mendeteksi status pembayaran Anda.</li>
-                  </ol>
-                </div>
+                )
               )}
             </div>
 
@@ -374,12 +345,14 @@ function PaymentPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-extrabold text-base mb-1">
-                    {isMayar ? "Proses Pembayaran" : "Bukti Transfer"}
+                    {order.status === "cancelled" ? "Status Pembayaran" : (isMayar ? "Proses Pembayaran" : "Bukti Transfer")}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {isMayar 
-                      ? "Pembayaran instan diproses otomatis. Silakan lakukan pembayaran menggunakan tombol di bawah." 
-                      : "Unggah foto atau screenshot bukti transfer agar admin dapat langsung memverifikasi pembayaran."}
+                    {order.status === "cancelled" 
+                      ? "Pesanan dibatalkan. Tidak dapat melakukan pembayaran."
+                      : (isMayar 
+                        ? "Pembayaran instan diproses otomatis. Silakan lakukan pembayaran menggunakan tombol di bawah." 
+                        : "Metode transfer manual dinonaktifkan.")}
                   </p>
                 </div>
 
@@ -402,136 +375,19 @@ function PaymentPage() {
                   </div>
                 )}
 
-                {!isMayar && payment && payment.status === "waiting_payment" && order.status === "pending" && (
-                  <div className="space-y-3">
-                    {(!q.data?.proofUrl || forceShowUpload) ? (
-                      <div className="border-2 border-dashed border-border p-6 text-center space-y-3 rounded">
-                        <Upload className="size-8 mx-auto text-muted-foreground animate-pulse" />
-                        <div className="text-xs text-muted-foreground">
-                          Format file: JPG, JPEG, PNG. Maks. 5MB.
-                        </div>
-                        <label className="inline-block">
-                          <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
-                            Pilih File Bukti
-                          </span>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleUpload} 
-                            disabled={uploading} 
-                            className="hidden" 
-                          />
-                        </label>
-                        {uploading && <div className="text-xs text-primary font-semibold animate-pulse mt-2">Mengunggah...</div>}
-                        {q.data?.proofUrl && (
-                          <Button 
-                            variant="ghost" 
-                            onClick={() => setForceShowUpload(false)} 
-                            className="w-full text-xs h-8 text-muted-foreground hover:text-foreground cursor-pointer mt-2"
-                          >
-                            Batal Unggah Ulang
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setForceShowUpload(true)} 
-                        className="w-full text-xs h-9 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
-                      >
-                        Unggah Ulang Bukti Pembayaran
-                      </Button>
-                    )}
-                  </div>
-                )}
-
                 {payment && payment.status === "waiting_verification" && (
                   <div className="bg-primary/5 border border-primary/20 p-4 space-y-2 text-center rounded">
                     <CheckCircle2 className="size-8 text-primary mx-auto" />
                     <h4 className="font-bold text-sm">Menunggu Verifikasi</h4>
                     <p className="text-xs text-muted-foreground">Bukti pembayaran telah berhasil diunggah. Kami sedang memproses verifikasi transaksi Anda.</p>
-                    {!isMayar && q.data?.proofUrl && (
-                      <div className="pt-2 border-t border-primary/10 mt-2">
-                        {forceShowUpload ? (
-                          <div className="space-y-2">
-                            <label className="block text-center mt-2">
-                              <span className="bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
-                                Pilih File Baru
-                              </span>
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                onChange={handleUpload} 
-                                disabled={uploading} 
-                                className="hidden" 
-                              />
-                            </label>
-                            {uploading && <div className="text-xs text-primary font-semibold animate-pulse mt-2">Mengunggah...</div>}
-                            <Button 
-                              variant="ghost" 
-                              onClick={() => setForceShowUpload(false)} 
-                              className="w-full text-[11px] h-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                            >
-                              Batal
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setForceShowUpload(true)} 
-                            className="w-full text-xs h-9 border-primary/20 text-primary hover:bg-primary/5 cursor-pointer mt-1"
-                          >
-                            Unggah Ulang Bukti Pembayaran
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {payment && payment.status === "rejected" && (
-                  <div className="bg-destructive/5 border border-destructive/20 p-4 space-y-3 rounded">
+                  <div className="bg-destructive/5 border border-destructive/20 p-4 space-y-3 rounded text-center">
                     <AlertCircle className="size-8 text-destructive mx-auto" />
                     <h4 className="font-bold text-sm text-destructive">Pembayaran Ditolak</h4>
                     {payment.reject_reason && <p className="text-xs text-muted-foreground">Alasan: {payment.reject_reason}</p>}
-                    {order.status === "pending" && !isMayar && (
-                      <div className="border-t border-destructive/15 pt-3">
-                        {(!q.data?.proofUrl || forceShowUpload) ? (
-                          <div className="space-y-2">
-                            <label className="block text-center">
-                              <span className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-semibold px-4 py-2 cursor-pointer transition-all shadow-sm">
-                                Pilih File Bukti Baru
-                              </span>
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                onChange={handleUpload} 
-                                disabled={uploading} 
-                                className="hidden" 
-                              />
-                            </label>
-                            {uploading && <div className="text-xs text-destructive font-semibold animate-pulse mt-2">Mengunggah...</div>}
-                            {q.data?.proofUrl && (
-                              <Button 
-                                variant="ghost" 
-                                onClick={() => setForceShowUpload(false)} 
-                                className="w-full text-xs h-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                              >
-                                Batal Unggah Ulang
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setForceShowUpload(true)} 
-                            className="w-full text-xs h-9 border-destructive/30 text-destructive hover:bg-destructive/5 cursor-pointer"
-                          >
-                            Unggah Ulang Bukti Pembayaran
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -542,7 +398,7 @@ function PaymentPage() {
                     <p className="text-xs text-muted-foreground">
                       {isMayar 
                         ? "Pembayaran Anda telah diverifikasi otomatis oleh sistem. Pesanan Anda segera kami proses." 
-                        : "Pembayaran Anda telah diverifikasi oleh admin. Pesanan Anda segera kami proses."}
+                        : "Pembayaran Anda telah diverifikasi. Pesanan Anda segera kami proses."}
                     </p>
                   </div>
                 )}

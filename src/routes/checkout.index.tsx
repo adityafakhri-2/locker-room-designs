@@ -123,7 +123,14 @@ function CheckoutPage() {
     }
   }, [profileQuery.data, user, navigate]);
 
-  if (authLoading || (user && profileQuery.isLoading)) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
+  useEffect(() => {
+    if (!cart.isLoading && cart.data && cart.data.length === 0) {
+      toast.error("Keranjang belanja Anda kosong. Silakan tambahkan produk terlebih dahulu.");
+      navigate({ to: "/cart" });
+    }
+  }, [cart.data, cart.isLoading, navigate]);
+
+  if (authLoading || (user && profileQuery.isLoading) || cart.isLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
   if (!user) {
     return null;
   }
@@ -177,9 +184,46 @@ function CheckoutPage() {
     e.preventDefault();
     if (items.length === 0) return toast.error("Keranjang kosong");
     setLoading(true);
+
+    // Validasi kuota voucher terbaru dari database sebelum pesanan dibuat
+    if (selectedVoucher) {
+      try {
+        const { data: vData, error: vErr } = await supabase
+          .from("vouchers")
+          .select("*")
+          .eq("id", selectedVoucher.id)
+          .single();
+
+        if (vErr || !vData) {
+          setLoading(false);
+          return toast.error("Voucher tidak ditemukan.");
+        }
+
+        if (vData.status !== "active") {
+          setLoading(false);
+          return toast.error("Voucher sudah tidak aktif.");
+        }
+
+        if (vData.end_date && new Date(vData.end_date) < new Date()) {
+          setLoading(false);
+          return toast.error("Voucher sudah kadaluarsa.");
+        }
+
+        if (vData.usage_limit && vData.usage_count >= vData.usage_limit) {
+          setLoading(false);
+          return toast.error("Kuota penggunaan voucher sudah habis.");
+        }
+      } catch (err) {
+        setLoading(false);
+        return toast.error("Gagal memvalidasi kuota voucher.");
+      }
+    }
+
     const finalAlamat = alamatDetail + 
       (kecamatan ? `, Kec. ${kecamatan}` : "") + 
       (kelurahan ? `, Kel. ${kelurahan}` : "");
+
+    let createdOrderId: string | null = null;
 
     try {
       // 1. Buat pesanan di Supabase
@@ -204,8 +248,9 @@ function CheckoutPage() {
         .select("*")
         .single();
       if (oerr) throw oerr;
+      createdOrderId = order.id;
 
-      // 2. Masukkan item pesanan
+      // 2. Masukkan item pesanan (Ini memicu trigger public.decrease_stock_on_order_item)
       const orderItems = items.map((i) => ({
         order_id: order.id,
         product_id: i.product_id,
@@ -258,6 +303,44 @@ function CheckoutPage() {
       window.location.href = mayarResult.link;
     } catch (e) {
       toast.error((e as Error).message);
+
+      // ROLLBACK / COMPENSATING TRANSACTION JIKA INTEGRASI MAYAR GAGAL
+      if (createdOrderId) {
+        console.log("[Checkout Cleanup] Pembayaran Mayar gagal dibuat, melakukan rollback pesanan:", createdOrderId);
+        try {
+          // 1. Batalkan pesanan agar stok dikembalikan oleh trigger database trg_restore_stock_on_order_cancel
+          await supabase
+            .from("orders")
+            .update({ 
+              status: "cancelled",
+              cancel_reason: "Gagal membuat tagihan pembayaran Mayar.id"
+            })
+            .eq("id", createdOrderId);
+
+          // 2. Kembalikan kuota penggunaan voucher ke semula
+          if (selectedVoucher) {
+            const { data: vData } = await supabase
+              .from("vouchers")
+              .select("usage_count")
+              .eq("id", selectedVoucher.id)
+              .single();
+            
+            if (vData) {
+              const newCount = Math.max(vData.usage_count - 1, 0);
+              await supabase
+                .from("vouchers")
+                .update({ 
+                  usage_count: newCount,
+                  status: "active" // Kembalikan status ke active jika sebelumnya sempat berubah inactive
+                })
+                .eq("id", selectedVoucher.id);
+            }
+          }
+          console.log("[Checkout Cleanup] Rollback pesanan dan voucher selesai.");
+        } catch (cleanupErr) {
+          console.error("[Checkout Cleanup] Gagal melakukan rollback pesanan:", cleanupErr);
+        }
+      }
     } finally {
       setLoading(false);
     }
