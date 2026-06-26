@@ -22,6 +22,7 @@ function AdminStoreSettings() {
   const [alamatDetail, setAlamatDetail] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const q = useQuery({
@@ -100,6 +101,7 @@ function AdminStoreSettings() {
     }
 
     setSaving(false);
+    setIsEditing(false);
     toast.success("Pengaturan toko berhasil diperbarui!");
     qc.invalidateQueries({ queryKey: ["store-profile"] });
   }
@@ -117,6 +119,7 @@ function AdminStoreSettings() {
               <Label>Nama Toko / Pemilik</Label>
               <Input 
                 required 
+                disabled={!isEditing}
                 value={form.nama_lengkap} 
                 onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })} 
                 placeholder="Contoh: The Locker Room"
@@ -126,6 +129,7 @@ function AdminStoreSettings() {
               <Label>Nomor WhatsApp / HP Toko</Label>
               <Input 
                 required 
+                disabled={!isEditing}
                 value={form.no_hp} 
                 onChange={(e) => setForm({ ...form, no_hp: e.target.value })} 
                 placeholder="Contoh: 081234567890"
@@ -137,6 +141,7 @@ function AdminStoreSettings() {
             </div>
 
             <IndonesiaRegionSelector
+              disabled={!isEditing}
               provinsi={form.provinsi}
               setProvinsi={(val) => setForm((f) => ({ ...f, provinsi: val }))}
               kota={form.kota}
@@ -153,9 +158,41 @@ function AdminStoreSettings() {
             />
 
             <div className="sm:col-span-2 mt-6">
-              <Button type="submit" disabled={saving} className="w-full sm:w-auto cursor-pointer">
-                {saving ? "Menyimpan..." : "Simpan Pengaturan"}
-              </Button>
+              {!isEditing ? (
+                <Button type="button" onClick={() => setIsEditing(true)} className="w-full sm:w-auto cursor-pointer">
+                  Edit Toko
+                </Button>
+              ) : (
+                <div className="flex gap-3">
+                  <Button type="submit" disabled={saving} className="w-full sm:w-auto cursor-pointer">
+                    {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      if (q.data) {
+                        const parsed = parseAlamat(q.data.alamat ?? "");
+                        setForm({
+                          nama_lengkap: q.data.nama_lengkap ?? "",
+                          no_hp: q.data.no_hp ?? "",
+                          alamat: q.data.alamat ?? "",
+                          kota: q.data.kota ?? "",
+                          provinsi: q.data.provinsi ?? "",
+                          kode_pos: q.data.kode_pos ?? "",
+                        });
+                        setAlamatDetail(parsed.street);
+                        setKecamatan(parsed.kecamatan);
+                        setKelurahan(parsed.kelurahan);
+                      }
+                      setIsEditing(false);
+                    }}
+                    className="w-full sm:w-auto cursor-pointer"
+                  >
+                    Batal
+                  </Button>
+                </div>
+              )}
             </div>
           </form>
         </div>
