@@ -30,13 +30,36 @@ export const Route = createFileRoute("/shop")({
     category?: string;
     sort?: string;
     q?: string;
+    page?: number;
   } => ({
     category: (search.category as string) || "all",
     sort: (search.sort as string) || "newest",
     q: (search.q as string) || "",
+    page: Number(search.page) || 1,
   }),
   component: ShopPage,
 });
+
+const ITEMS_PER_PAGE = 12;
+
+function ProductCardSkeleton() {
+  return (
+    <div className="flex flex-col animate-pulse">
+      <div className="relative aspect-[4/5] bg-muted w-full" />
+      <div className="pt-3 flex flex-col gap-1.5">
+        <div className="flex justify-between items-center gap-2">
+          <div className="h-4 bg-muted w-24 rounded" />
+          <div className="size-8 rounded-full bg-muted" />
+        </div>
+        <div className="grid grid-cols-[1fr_80px] gap-3">
+          <div className="h-5 bg-muted rounded w-3/4" />
+          <div className="h-5 bg-muted rounded" />
+        </div>
+        <div className="h-4 bg-muted rounded w-1/2" />
+      </div>
+    </div>
+  );
+}
 
 function ShopPage() {
   const search = Route.useSearch();
@@ -45,15 +68,18 @@ function ShopPage() {
   const category = search.category || "all";
   const sort = search.sort || "newest";
   const q = search.q || "";
+  const page = search.page || 1;
 
-  const setCategory = (val: string) => navigate({ search: (prev) => ({ ...prev, category: val }) });
-  const setSort = (val: string) => navigate({ search: (prev) => ({ ...prev, sort: val }) });
-  const setQ = (val: string) => navigate({ search: (prev) => ({ ...prev, q: val }) });
+  const setCategory = (val: string) => navigate({ search: (prev) => ({ ...prev, category: val, page: 1 }) });
+  const setSort = (val: string) => navigate({ search: (prev) => ({ ...prev, sort: val, page: 1 }) });
+  const setQ = (val: string) => navigate({ search: (prev) => ({ ...prev, q: val, page: 1 }) });
+  const setPage = (val: number) => navigate({ search: (prev) => ({ ...prev, page: val }) });
 
   const cats = useQuery({
     queryKey: ["categories"],
     queryFn: async () =>
       (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
+    staleTime: 1000 * 15,
   });
 
   const activeCategoryObject = useMemo(() => {
@@ -63,21 +89,43 @@ function ShopPage() {
   const activeCategoryId = activeCategoryObject?.id || "all";
 
   const products = useQuery({
-    queryKey: ["products", activeCategoryId, sort, q],
+    queryKey: ["products", activeCategoryId, sort, q, page],
     queryFn: async () => {
-      let qy = supabase.from("products").select("*").eq("is_active", true);
+      let qy = supabase
+        .from("products")
+        .select(
+          "id, slug, name, price, cover_image_url, team, release_year, authenticity_badge, sold_count",
+          { count: "exact" },
+        )
+        .eq("is_active", true);
+
       if (activeCategoryId !== "all") qy = qy.contains("category_ids", [activeCategoryId]);
       if (q) qy = qy.ilike("name", `%${q}%`);
+      
       if (sort === "price_low") qy = qy.order("price", { ascending: true });
       else if (sort === "price_high") qy = qy.order("price", { ascending: false });
       else if (sort === "best") qy = qy.order("sold_count", { ascending: false });
       else qy = qy.order("created_at", { ascending: false });
-      const { data } = await qy;
-      return data ?? [];
+
+      // Range for pagination
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      qy = qy.range(from, to);
+
+      const { data, count, error } = await qy;
+      if (error) throw error;
+
+      return {
+        items: data ?? [],
+        total: count ?? 0,
+      };
     },
+    staleTime: 1000 * 10,
   });
 
-  const list = products.data ?? [];
+  const list = products.data?.items ?? [];
+  const total = products.data?.total ?? 0;
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
   const empty = !products.isLoading && list.length === 0;
   const heading = useMemo(
     () => activeCategoryObject?.name ?? "Semua Jersey",
@@ -152,7 +200,13 @@ function ShopPage() {
             </aside>
 
             <div>
-              {empty ? (
+              {products.isLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <ProductCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : empty ? (
                 <div className="border border-dashed border-border p-16 text-center">
                   <h3 className="display-md">Belum ada produk</h3>
                   <p className="text-muted-foreground mt-3">
@@ -163,11 +217,35 @@ function ShopPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
-                  {list.map((p) => (
-                    <ProductCard key={p.id} p={p} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
+                    {list.map((p) => (
+                      <ProductCard key={p.id} p={p} />
+                    ))}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <nav className="mt-12 flex justify-center items-center gap-4" aria-label="Navigasi Halaman">
+                      <button
+                        disabled={page <= 1}
+                        onClick={() => setPage(page - 1)}
+                        className="px-4 py-2 border text-sm font-medium hover:border-foreground disabled:opacity-30 disabled:hover:border-border transition-all cursor-pointer"
+                      >
+                        Sebelumnya
+                      </button>
+                      <span className="text-sm font-semibold mx-2">
+                        Halaman {page} dari {totalPages}
+                      </span>
+                      <button
+                        disabled={page >= totalPages}
+                        onClick={() => setPage(page + 1)}
+                        className="px-4 py-2 border text-sm font-medium hover:border-foreground disabled:opacity-30 disabled:hover:border-border transition-all cursor-pointer"
+                      >
+                        Berikutnya
+                      </button>
+                    </nav>
+                  )}
+                </>
               )}
             </div>
           </div>

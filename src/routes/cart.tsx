@@ -42,7 +42,38 @@ function CartPage() {
     return (
       <>
         <Navbar />
-        <div className="pt-32 container-swiss min-h-screen">Memuat...</div>
+        <main className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen animate-pulse">
+          <div className="h-9 bg-muted w-48 rounded mb-10" />
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-16">
+            {/* Items List Skeleton */}
+            <div className="lg:col-span-8 space-y-6">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex gap-4 items-center">
+                  <div className="size-20 md:size-24 bg-muted rounded shrink-0 animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 bg-muted w-2/3 rounded animate-pulse" />
+                    <div className="h-4 bg-muted w-1/3 rounded animate-pulse" />
+                  </div>
+                  <div className="h-8 bg-muted w-16 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+
+            {/* Summary Box Skeleton */}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="border border-border p-6 space-y-4">
+                <div className="h-5 bg-muted w-24 rounded animate-pulse" />
+                <hr className="border-border" />
+                <div className="flex justify-between">
+                  <div className="h-4 bg-muted w-16 rounded animate-pulse" />
+                  <div className="h-4 bg-muted w-16 rounded animate-pulse" />
+                </div>
+                <hr className="border-border" />
+                <div className="h-12 bg-muted rounded w-full animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </main>
       </>
     );
   if (!user) {

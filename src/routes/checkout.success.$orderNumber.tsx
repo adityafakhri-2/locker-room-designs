@@ -226,28 +226,51 @@ function PaymentPage() {
     }
   }
 
-  if (authLoading)
+  if (authLoading || q.isLoading) {
     return (
       <>
         <Navbar />
-        <div className="pt-32 container-swiss">Memuat...</div>
-      </>
-    );
-  if (!user) {
-    navigate({ to: "/auth" });
-    return null;
-  }
-
-  if (q.isLoading) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen pt-32 pb-20 container-swiss text-center">
-          <p className="text-muted-foreground animate-pulse">Memuat halaman pembayaran...</p>
-        </div>
+        <main className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen animate-pulse max-w-3xl">
+          <div className="flex flex-col items-center text-center mb-12 space-y-4">
+            <div className="size-16 bg-muted rounded-full animate-pulse" />
+            <div className="h-8 bg-muted w-64 rounded animate-pulse" />
+            <div className="h-4 bg-muted w-48 rounded animate-pulse" />
+          </div>
+          
+          <div className="border border-border p-6 md:p-8 space-y-6">
+            <div className="h-6 bg-muted w-36 rounded animate-pulse" />
+            <hr className="border-border" />
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 bg-muted w-20 rounded animate-pulse" />
+                  <div className="h-5 bg-muted w-24 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+            
+            <hr className="border-border" />
+            <div className="space-y-4">
+              <div className="h-5 bg-muted w-32 rounded animate-pulse" />
+              <div className="flex gap-4">
+                <div className="size-16 bg-muted rounded animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted w-2/3 rounded animate-pulse" />
+                  <div className="h-4 bg-muted w-1/4 rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
         <Footer />
       </>
     );
+  }
+
+  if (!authLoading && !user) {
+    navigate({ to: "/auth" });
+    return null;
   }
 
   if (!order) {

@@ -33,7 +33,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () =>
-      (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
+      (await supabase.from("profiles").select("nama_lengkap").eq("id", user!.id).maybeSingle()).data,
   });
   const displayName =
     profileQuery.data?.nama_lengkap ||

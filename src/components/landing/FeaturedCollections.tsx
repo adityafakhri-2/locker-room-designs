@@ -57,9 +57,6 @@ export function FeaturedCollections() {
         .order("sort_order");
       if (errCols) throw errCols;
 
-      const { data: cats, error: errCats } = await supabase.from("categories").select("id, slug");
-      if (errCats) throw errCats;
-
       const targetCols =
         cols && cols.length > 0
           ? cols
@@ -90,29 +87,9 @@ export function FeaturedCollections() {
               },
             ];
 
-      const colsWithCovers = await Promise.all(
-        targetCols.map(async (col) => {
-          const category = cats?.find((cat) => cat.slug === col.slug);
-          if (!category) return { ...col, latest_product_cover_url: null as string | null };
-
-          const { data: latestProd } = await supabase
-            .from("products")
-            .select("cover_image_url")
-            .eq("is_active", true)
-            .contains("category_ids", [category.id])
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          return {
-            ...col,
-            latest_product_cover_url: latestProd?.cover_image_url || null,
-          };
-        }),
-      );
-
-      return colsWithCovers;
+      return targetCols;
     },
+    staleTime: 1000 * 15,
   });
 
   const list = q.data && q.data.length > 0 ? q.data : FALLBACK_COLLECTIONS;

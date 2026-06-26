@@ -92,7 +92,7 @@ function CheckoutPage() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () =>
-      (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
+      (await supabase.from("profiles").select("nama_lengkap, no_hp, alamat, kota, provinsi, kode_pos").eq("id", user!.id).maybeSingle()).data,
     refetchOnMount: "always",
     staleTime: 0,
   });
@@ -210,7 +210,70 @@ function CheckoutPage() {
     return (
       <>
         <Navbar />
-        <div className="pt-32 container-swiss">Memuat...</div>
+        <main className="pt-28 md:pt-36 pb-20 container-swiss animate-pulse">
+          <div className="h-9 bg-muted w-48 rounded mb-10" />
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-16">
+            {/* Form Skeleton */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="h-6 bg-muted w-36 rounded" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted w-16 rounded" />
+                    <div className="h-10 bg-muted rounded w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted w-16 rounded" />
+                    <div className="h-10 bg-muted rounded w-full" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-muted w-24 rounded" />
+                  <div className="h-20 bg-muted rounded w-full" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted w-16 rounded" />
+                    <div className="h-10 bg-muted rounded w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted w-16 rounded" />
+                    <div className="h-10 bg-muted rounded w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Summary Skeleton */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="h-6 bg-muted w-32 rounded" />
+              <div className="border border-border p-6 space-y-4">
+                <div className="flex gap-4">
+                  <div className="size-16 bg-muted rounded animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted w-3/4 rounded" />
+                    <div className="h-4 bg-muted w-1/4 rounded" />
+                  </div>
+                </div>
+                <hr className="border-border" />
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-muted w-16 rounded" />
+                    <div className="h-4 bg-muted w-12 rounded" />
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="h-4 bg-muted w-16 rounded" />
+                    <div className="h-4 bg-muted w-12 rounded" />
+                  </div>
+                  <hr className="border-border" />
+                  <div className="flex justify-between">
+                    <div className="h-5 bg-muted w-20 rounded" />
+                    <div className="h-5 bg-muted w-16 rounded" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
       </>
     );
   if (!user) {

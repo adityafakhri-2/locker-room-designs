@@ -79,6 +79,7 @@ function ProductDetail() {
       if (!data) throw notFound();
       return data;
     },
+    staleTime: 1000 * 10,
   });
 
   const reviewsQ = useQuery({
@@ -94,6 +95,7 @@ function ProductDetail() {
           .eq("hidden", false)
           .order("created_at", { ascending: false })
       ).data ?? [],
+    staleTime: 1000 * 10,
   });
 
   const related = useQuery({
@@ -109,6 +111,7 @@ function ProductDetail() {
           .eq("is_active", true)
           .limit(4)
       ).data ?? [],
+    staleTime: 1000 * 10,
   });
 
   const addToCart = useAddToCart();
@@ -120,7 +123,39 @@ function ProductDetail() {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen pt-32 container-swiss">Memuat...</div>
+        <main className="pt-24 md:pt-28 pb-20 container-swiss animate-pulse">
+          <div className="h-4 bg-muted w-32 rounded mb-6" />
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
+            {/* Image Box Skeleton */}
+            <div className="relative aspect-[4/5] bg-muted w-full" />
+            
+            {/* Info Column Skeleton */}
+            <div className="space-y-6">
+              <div className="h-4 bg-muted w-28 rounded animate-pulse" />
+              <div className="h-10 bg-muted w-3/4 rounded animate-pulse" />
+              <div className="h-4 bg-muted w-48 rounded animate-pulse" />
+              
+              <div className="flex gap-4 items-baseline mt-6">
+                <div className="h-8 bg-muted w-36 rounded animate-pulse" />
+                <div className="h-4 bg-muted w-20 rounded animate-pulse" />
+              </div>
+              
+              <div className="space-y-3 mt-8">
+                <div className="h-4 bg-muted w-16 rounded animate-pulse" />
+                <div className="flex gap-2">
+                  <div className="h-11 bg-muted w-14 rounded animate-pulse" />
+                  <div className="h-11 bg-muted w-14 rounded animate-pulse" />
+                  <div className="h-11 bg-muted w-14 rounded animate-pulse" />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <div className="h-12 bg-muted rounded flex-1 animate-pulse" />
+                <div className="h-12 bg-muted w-12 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </main>
       </>
     );
   }

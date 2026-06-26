@@ -58,6 +58,7 @@ export function VintageSpotlight() {
 
       return spotlightProduct;
     },
+    staleTime: 1000 * 15,
   });
 
   const p = q.data;
