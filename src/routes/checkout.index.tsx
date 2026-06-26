@@ -494,9 +494,11 @@ function CheckoutPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-foreground">{r.name}</span>
-                        <span className="text-[10px] text-primary font-mono bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
-                          JNE
-                        </span>
+                        <img 
+                          src="https://upload.wikimedia.org/wikipedia/commons/9/92/New_Logo_JNE.png" 
+                          alt="JNE" 
+                          className="h-4 object-contain" 
+                        />
                       </div>
                       <div className="text-sm font-extrabold text-foreground mt-1.5">{formatIDR(r.cost)}</div>
                       <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
