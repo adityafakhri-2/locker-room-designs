@@ -41,7 +41,7 @@ export function NewArrivals() {
         </p>
       </div>
       {q.data && q.data.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
           {q.data.map((p) => (
             <ProductCard key={p.id} p={p} />
           ))}
@@ -78,7 +78,7 @@ export function BestSellers() {
           Stok terbatas dan terus berkurang. Klik dua kali untuk amankan sebelum kehabisan.
         </p>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
         {q.data!.map((p) => (
           <ProductCard
             key={p.id}

@@ -46,7 +46,7 @@ function SearchPage() {
           {!val ? (
             <p className="text-muted-foreground">Ketik kata kunci untuk mencari jersey.</p>
           ) : query.data?.length ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6">
               {query.data.map((p) => (
                 <ProductCard key={p.id} p={p} />
               ))}

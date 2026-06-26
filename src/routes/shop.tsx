@@ -120,9 +120,9 @@ function ShopPage() {
           </div>
 
           <div className="grid lg:grid-cols-[200px_minmax(0,1fr)] gap-10">
-            <aside className="lg:space-y-2">
+            <aside className="min-w-0 w-full lg:space-y-2">
               <div className="eyebrow text-muted-foreground mb-3 hidden lg:block">Kategori</div>
-              <nav className="flex lg:flex-col gap-1.5 overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0 scrollbar-none pb-3 lg:pb-0">
+              <nav className="flex lg:flex-col gap-1.5 overflow-x-auto w-full -mx-5 px-5 lg:mx-0 lg:px-0 scrollbar-none pb-3 lg:pb-0">
                 <button
                   onClick={() => setCategory("all")}
                   className={cn(
@@ -163,7 +163,7 @@ function ShopPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
                   {list.map((p) => (
                     <ProductCard key={p.id} p={p} />
                   ))}

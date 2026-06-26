@@ -33,7 +33,7 @@ function CollectionsPage() {
         </p>
 
         {q.data?.length ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-6 mt-12">
             {q.data.map((c) => (
               <Link key={c.id} to="/shop" search={{ category: c.slug }} className="group block">
                 <div className="aspect-[4/5] bg-muted overflow-hidden">

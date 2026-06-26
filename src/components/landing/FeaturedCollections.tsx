@@ -129,7 +129,7 @@ export function FeaturedCollections() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
         {list.map((c, idx) => {
           const cover = c.cover_url || STATIC_IMAGE_MAPPING[c.slug] || newSeason;
           const tag = String(idx + 1).padStart(2, "0");
