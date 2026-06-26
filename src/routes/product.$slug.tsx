@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useParams, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 import { toast } from "sonner";
 import {
   Heart,
@@ -16,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/commerce/ProductCard";
 import {
   Accordion,
   AccordionItem,
@@ -44,14 +46,24 @@ function ProductDetail() {
   const { user } = useAuth();
   const [size, setSize] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
-  const [fade, setFade] = useState(true);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => {
+      setActiveImg(emblaApi.selectedScrollSnap());
+    };
+    emblaApi.on("select", onSelect);
+    onSelect();
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
 
   const changeImage = (index: number) => {
-    setFade(false);
-    setTimeout(() => {
-      setActiveImg(index);
-      setFade(true);
-    }, 150);
+    if (emblaApi) {
+      emblaApi.scrollTo(index);
+    }
   };
 
   const q = useQuery({
@@ -167,36 +179,36 @@ function ProductDetail() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
           <div>
             <div className="relative group aspect-[4/5] bg-muted overflow-hidden">
-              {allImages[activeImg] ? (
-                <img
-                  src={allImages[activeImg]}
-                  alt={p.name}
-                  className={cn(
-                    "size-full object-cover transition-opacity duration-150 ease-in-out",
-                    fade ? "opacity-100" : "opacity-0",
+              <div className="size-full overflow-hidden" ref={emblaRef}>
+                <div className="flex size-full">
+                  {allImages.map((src, i) => (
+                    <div key={i} className="flex-[0_0_100%] min-w-0 size-full relative">
+                      <img
+                        src={src}
+                        alt={p.name}
+                        className="size-full object-cover"
+                      />
+                    </div>
+                  ))}
+                  {allImages.length === 0 && (
+                    <div className="size-full grid place-items-center text-muted-foreground">
+                      No image
+                    </div>
                   )}
-                />
-              ) : (
-                <div className="size-full grid place-items-center text-muted-foreground">
-                  No image
                 </div>
-              )}
+              </div>
               {allImages.length > 1 && (
                 <>
                   <button
-                    onClick={() =>
-                      changeImage(activeImg === 0 ? allImages.length - 1 : activeImg - 1)
-                    }
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
+                    onClick={() => emblaApi?.scrollPrev()}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in z-10"
                     aria-label="Gambar sebelumnya"
                   >
                     <ChevronLeft className="size-6" />
                   </button>
                   <button
-                    onClick={() =>
-                      changeImage(activeImg === allImages.length - 1 ? 0 : activeImg + 1)
-                    }
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
+                    onClick={() => emblaApi?.scrollNext()}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in z-10"
                     aria-label="Gambar selanjutnya"
                   >
                     <ChevronRight className="size-6" />
@@ -418,21 +430,9 @@ function ProductDetail() {
         {related.data && related.data.length > 0 && (
           <section className="mt-20 border-t border-border pt-12">
             <h2 className="display-md mb-8">Produk Terkait</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6">
               {related.data.map((rp) => (
-                <Link key={rp.id} to="/product/$slug" params={{ slug: rp.slug }} className="group">
-                  <div className="aspect-[4/5] bg-muted overflow-hidden">
-                    {rp.cover_image_url && (
-                      <img
-                        src={rp.cover_image_url}
-                        alt={rp.name}
-                        className="size-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    )}
-                  </div>
-                  <div className="pt-3 text-sm font-semibold truncate">{rp.name}</div>
-                  <div className="text-sm text-muted-foreground">{formatIDR(rp.price)}</div>
-                </Link>
+                <ProductCard key={rp.id} p={rp} />
               ))}
             </div>
           </section>
