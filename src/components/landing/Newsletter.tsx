@@ -32,7 +32,9 @@ export function Newsletter() {
         </div>
 
         <form onSubmit={onSubmit} className="lg:col-span-5 flex border border-foreground">
-          <Label htmlFor="newsletter-email" className="sr-only">Alamat Email</Label>
+          <Label htmlFor="newsletter-email" className="sr-only">
+            Alamat Email
+          </Label>
           <input
             id="newsletter-email"
             type="email"

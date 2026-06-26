@@ -92,7 +92,13 @@ function CheckoutPage() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () =>
-      (await supabase.from("profiles").select("nama_lengkap, no_hp, alamat, kota, provinsi, kode_pos").eq("id", user!.id).maybeSingle()).data,
+      (
+        await supabase
+          .from("profiles")
+          .select("nama_lengkap, no_hp, alamat, kota, provinsi, kode_pos")
+          .eq("id", user!.id)
+          .maybeSingle()
+      ).data,
     refetchOnMount: "always",
     staleTime: 0,
   });
@@ -696,7 +702,10 @@ function CheckoutPage() {
             </div>
             {/* Voucher Section */}
             <div className="border-t border-border mt-4 pt-4">
-              <Label htmlFor="voucher-code" className="font-bold text-xs uppercase text-muted-foreground flex items-center gap-1">
+              <Label
+                htmlFor="voucher-code"
+                className="font-bold text-xs uppercase text-muted-foreground flex items-center gap-1"
+              >
                 <Ticket className="size-3.5" /> Voucher Belanja
               </Label>
               <div className="flex gap-2 mt-1.5">

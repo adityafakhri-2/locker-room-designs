@@ -236,11 +236,11 @@ function PaymentPage() {
             <div className="h-8 bg-muted w-64 rounded animate-pulse" />
             <div className="h-4 bg-muted w-48 rounded animate-pulse" />
           </div>
-          
+
           <div className="border border-border p-6 md:p-8 space-y-6">
             <div className="h-6 bg-muted w-36 rounded animate-pulse" />
             <hr className="border-border" />
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="space-y-2">
@@ -249,7 +249,7 @@ function PaymentPage() {
                 </div>
               ))}
             </div>
-            
+
             <hr className="border-border" />
             <div className="space-y-4">
               <div className="h-5 bg-muted w-32 rounded animate-pulse" />

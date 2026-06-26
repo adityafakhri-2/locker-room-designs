@@ -15,7 +15,10 @@ export const Route = createFileRoute("/about")({
   component: () => (
     <>
       <Navbar />
-      <main id="main-content" className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen max-w-3xl">
+      <main
+        id="main-content"
+        className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen max-w-3xl"
+      >
         <span className="eyebrow text-muted-foreground">N° 09 — About</span>
         <h1 className="display-lg mt-3">
           Where Football <em className="italic font-light">Memories Live.</em>

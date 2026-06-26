@@ -33,7 +33,8 @@ export function Navbar({ overHero = false }: NavbarProps) {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () =>
-      (await supabase.from("profiles").select("nama_lengkap").eq("id", user!.id).maybeSingle()).data,
+      (await supabase.from("profiles").select("nama_lengkap").eq("id", user!.id).maybeSingle())
+        .data,
   });
   const displayName =
     profileQuery.data?.nama_lengkap ||
@@ -60,14 +61,20 @@ export function Navbar({ overHero = false }: NavbarProps) {
       )}
     >
       <div className="container-swiss grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4 h-16 md:h-20">
-        <Link to="/" className="flex items-center gap-2 min-w-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm">
+        <Link
+          to="/"
+          className="flex items-center gap-2 min-w-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm"
+        >
           <span className="inline-block size-2.5 bg-primary" aria-hidden="true" />
           <span className="font-display font-extrabold tracking-tight text-base md:text-lg uppercase whitespace-nowrap">
             The Locker Room
           </span>
         </Link>
 
-        <nav aria-label="Navigasi Utama" className="hidden sm:flex items-center justify-center gap-8 lg:gap-10">
+        <nav
+          aria-label="Navigasi Utama"
+          className="hidden sm:flex items-center justify-center gap-8 lg:gap-10"
+        >
           {NAV.map((n) => (
             <Link
               key={n.label}
@@ -136,7 +143,10 @@ export function Navbar({ overHero = false }: NavbarProps) {
       </div>
 
       {open && (
-        <div id="mobile-menu" className="sm:hidden border-t border-border bg-background text-foreground">
+        <div
+          id="mobile-menu"
+          className="sm:hidden border-t border-border bg-background text-foreground"
+        >
           <nav aria-label="Navigasi Mobile" className="container-swiss py-6 flex flex-col gap-1">
             {NAV.map((n) => (
               <Link

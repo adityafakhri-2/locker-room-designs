@@ -128,18 +128,18 @@ function ProductDetail() {
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
             {/* Image Box Skeleton */}
             <div className="relative aspect-[4/5] bg-muted w-full" />
-            
+
             {/* Info Column Skeleton */}
             <div className="space-y-6">
               <div className="h-4 bg-muted w-28 rounded animate-pulse" />
               <div className="h-10 bg-muted w-3/4 rounded animate-pulse" />
               <div className="h-4 bg-muted w-48 rounded animate-pulse" />
-              
+
               <div className="flex gap-4 items-baseline mt-6">
                 <div className="h-8 bg-muted w-36 rounded animate-pulse" />
                 <div className="h-4 bg-muted w-20 rounded animate-pulse" />
               </div>
-              
+
               <div className="space-y-3 mt-8">
                 <div className="h-4 bg-muted w-16 rounded animate-pulse" />
                 <div className="flex gap-2">
@@ -218,11 +218,7 @@ function ProductDetail() {
                 <div className="flex size-full">
                   {allImages.map((src, i) => (
                     <div key={i} className="flex-[0_0_100%] min-w-0 size-full relative">
-                      <img
-                        src={src}
-                        alt={p.name}
-                        className="size-full object-cover"
-                      />
+                      <img src={src} alt={p.name} className="size-full object-cover" />
                     </div>
                   ))}
                   {allImages.length === 0 && (
@@ -293,10 +289,17 @@ function ProductDetail() {
             </div>
 
             {reviewsQ.data && reviewsQ.data.length > 0 && (
-              <div className="mt-3 flex items-center gap-2 text-sm" aria-label={`Rating ${avgRating.toFixed(1)} dari 5 bintang dari ${reviewsQ.data.length} ulasan`}>
+              <div
+                className="mt-3 flex items-center gap-2 text-sm"
+                aria-label={`Rating ${avgRating.toFixed(1)} dari 5 bintang dari ${reviewsQ.data.length} ulasan`}
+              >
                 <Star className="size-4 fill-primary text-primary" aria-hidden="true" />
-                <span className="font-semibold" aria-hidden="true">{avgRating.toFixed(1)}</span>
-                <span className="text-muted-foreground" aria-hidden="true">({reviewsQ.data.length} ulasan)</span>
+                <span className="font-semibold" aria-hidden="true">
+                  {avgRating.toFixed(1)}
+                </span>
+                <span className="text-muted-foreground" aria-hidden="true">
+                  ({reviewsQ.data.length} ulasan)
+                </span>
               </div>
             )}
 
@@ -376,7 +379,10 @@ function ProductDetail() {
                   toggleWl.mutate(p.id);
                 }}
               >
-                <Heart className={cn("size-4", liked && "fill-primary text-primary")} aria-hidden="true" />
+                <Heart
+                  className={cn("size-4", liked && "fill-primary text-primary")}
+                  aria-hidden="true"
+                />
               </Button>
             </div>
 
@@ -410,7 +416,15 @@ function ProductDetail() {
                       ["Negara", p.country],
                       ["Tahun", p.release_year],
                       ["Kondisi", p.condition],
-                      ["Collector Score", <span key="collector-score" aria-label={`${p.collector_score} dari 5 bintang skor kolektor`}>{"★".repeat(p.collector_score)}</span>],
+                      [
+                        "Collector Score",
+                        <span
+                          key="collector-score"
+                          aria-label={`${p.collector_score} dari 5 bintang skor kolektor`}
+                        >
+                          {"★".repeat(p.collector_score)}
+                        </span>,
+                      ],
                     ].map(([k, v]) => (
                       <div key={k as string} className="contents">
                         <dt className="text-muted-foreground">{k}</dt>

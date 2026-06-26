@@ -51,7 +51,7 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
           )}
         </Link>
       </div>
-      
+
       {/* Detail info & interaksi di bawah gambar */}
       <div className="pt-3 flex flex-col gap-1.5">
         {/* Baris 1: Label Keaslian & Tombol Wishlist (Hati) */}

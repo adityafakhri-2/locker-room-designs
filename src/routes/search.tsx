@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 
 export const Route = createFileRoute("/search")({
-  validateSearch: (s: Record<string, unknown>): { q?: string } => ({ q: typeof s.q === "string" ? s.q : "" }),
+  validateSearch: (s: Record<string, unknown>): { q?: string } => ({
+    q: typeof s.q === "string" ? s.q : "",
+  }),
   component: SearchPage,
 });
 
@@ -34,7 +36,9 @@ function SearchPage() {
       <main id="main-content" className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen">
         <h1 className="display-lg">Pencarian</h1>
         <div className="mt-6 max-w-xl">
-          <Label htmlFor="search-input" className="sr-only">Cari jersey</Label>
+          <Label htmlFor="search-input" className="sr-only">
+            Cari jersey
+          </Label>
           <Input
             id="search-input"
             value={val}
