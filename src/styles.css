@@ -189,3 +189,10 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Gaya Fokus Aksesibilitas Global */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+

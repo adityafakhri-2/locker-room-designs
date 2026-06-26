@@ -154,20 +154,22 @@ function ProfilePage() {
       <Card>
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-4 max-w-2xl">
           <div className="sm:col-span-2">
-            <Label>Nama Lengkap</Label>
+            <Label htmlFor="profile-name">Nama Lengkap</Label>
             <Input
+              id="profile-name"
               disabled={!isEditing}
               value={form.nama_lengkap}
               onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
             />
           </div>
           <div>
-            <Label>Email</Label>
-            <Input value={user?.email ?? ""} disabled />
+            <Label htmlFor="profile-email">Email</Label>
+            <Input id="profile-email" value={user?.email ?? ""} disabled />
           </div>
           <div>
-            <Label>Nomor HP</Label>
+            <Label htmlFor="profile-phone">Nomor HP</Label>
             <Input
+              id="profile-phone"
               disabled={!isEditing}
               value={form.no_hp}
               onChange={(e) => setForm({ ...form, no_hp: e.target.value })}

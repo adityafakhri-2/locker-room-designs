@@ -361,7 +361,7 @@ function AuthPage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12">
+      <main id="main-content" className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12">
         <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
           <Link to="/" className="eyebrow text-muted-foreground">
             ← Kembali ke beranda
@@ -402,8 +402,9 @@ function AuthPage() {
                     />
                     <button
                       type="button"
+                      aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary outline-none rounded"
                     >
                       {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
@@ -456,14 +457,11 @@ function AuthPage() {
                         />
                         <button
                           type="button"
+                          aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary outline-none rounded"
                         >
-                          {showPassword ? (
-                            <EyeOff className="size-4" />
-                          ) : (
-                            <Eye className="size-4" />
-                          )}
+                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                       </div>
                     </div>
@@ -614,7 +612,7 @@ function AuthPage() {
             Google
           </Button>
         </div>
-      </div>
+      </main>
     </>
   );
 }

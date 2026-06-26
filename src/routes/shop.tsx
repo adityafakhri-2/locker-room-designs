@@ -26,7 +26,11 @@ export const Route = createFileRoute("/shop")({
       },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): {
+    category?: string;
+    sort?: string;
+    q?: string;
+  } => ({
     category: (search.category as string) || "all",
     sort: (search.sort as string) || "newest",
     q: (search.q as string) || "",
@@ -83,7 +87,8 @@ function ShopPage() {
   return (
     <>
       <Navbar />
-      <Section bare className="pt-28 md:pt-36 pb-20 md:pb-28">
+      <main id="main-content">
+        <Section bare className="pt-28 md:pt-36 pb-20 md:pb-28">
         <div className="container-swiss">
           <div className="grid lg:grid-cols-12 gap-10 mb-12">
             <div className="lg:col-span-7">
@@ -167,7 +172,8 @@ function ShopPage() {
             </div>
           </div>
         </div>
-      </Section>
+        </Section>
+      </main>
       <Footer />
     </>
   );

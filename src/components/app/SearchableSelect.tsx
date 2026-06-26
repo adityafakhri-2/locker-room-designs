@@ -26,6 +26,7 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   disabled?: boolean;
   className?: string;
+  id?: string;
 }
 
 export function SearchableSelect({
@@ -37,6 +38,7 @@ export function SearchableSelect({
   emptyMessage = "Data tidak ditemukan.",
   disabled = false,
   className,
+  id,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -46,6 +48,7 @@ export function SearchableSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}

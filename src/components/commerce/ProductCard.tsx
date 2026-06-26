@@ -62,7 +62,7 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
           </span>
         )}
         <button
-          aria-label="Wishlist"
+          aria-label={liked ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
           onClick={(e) => {
             e.preventDefault();
             if (!user) {
@@ -72,7 +72,7 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
             }
             toggle.mutate(p.id);
           }}
-          className="absolute top-3 right-3 grid place-items-center size-10 bg-background/95 hover:bg-background rounded-full shadow-sm"
+          className="absolute top-3 right-3 grid place-items-center size-11 bg-background/95 hover:bg-background rounded-full shadow-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
         >
           <Heart className={cn("size-4", liked && "fill-primary text-primary")} strokeWidth={1.5} />
         </button>

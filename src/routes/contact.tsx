@@ -8,7 +8,7 @@ export const Route = createFileRoute("/contact")({
   component: () => (
     <>
       <Navbar />
-      <div className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen">
+      <main id="main-content" className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen">
         <span className="eyebrow text-muted-foreground">N° 10 — Contact</span>
         <h1 className="display-lg mt-3">Hubungi Kami</h1>
         <div className="grid sm:grid-cols-3 gap-6 mt-12">
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/contact")({
             <p className="text-muted-foreground mt-2">Jakarta, Indonesia</p>
           </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </>
   ),

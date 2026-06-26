@@ -24,7 +24,7 @@ function CollectionsPage() {
   return (
     <>
       <Navbar />
-      <div className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen">
+      <main id="main-content" className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen">
         <span className="eyebrow text-muted-foreground">N° 03 — Collections</span>
         <h1 className="display-lg mt-3">Featured Collections</h1>
         <p className="text-muted-foreground mt-4 max-w-xl">
@@ -57,7 +57,7 @@ function CollectionsPage() {
             </p>
           </div>
         )}
-      </div>
+      </main>
       <Footer />
     </>
   );

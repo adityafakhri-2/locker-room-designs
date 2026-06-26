@@ -335,6 +335,7 @@ export function IndonesiaRegionSelector({
             )}
           </Label>
           <SearchableSelect
+            id="indonesia-province"
             options={provinces.map((p) => ({ value: p.id, label: toTitleCase(p.name) }))}
             value={provId}
             onChange={onProvinceSelect}
@@ -353,6 +354,7 @@ export function IndonesiaRegionSelector({
             )}
           </Label>
           <SearchableSelect
+            id="indonesia-regency"
             options={regencies.map((r) => ({ value: r.id, label: toTitleCase(r.name) }))}
             value={regId}
             onChange={onRegencySelect}
@@ -374,6 +376,7 @@ export function IndonesiaRegionSelector({
             )}
           </Label>
           <SearchableSelect
+            id="indonesia-district"
             options={districts.map((d) => ({ value: d.id, label: toTitleCase(d.name) }))}
             value={distId}
             onChange={onDistrictSelect}
@@ -394,6 +397,7 @@ export function IndonesiaRegionSelector({
                 )}
               </Label>
               <SearchableSelect
+                id="indonesia-village"
                 options={villages.map((v, idx) => ({
                   value: `${v.village}|${v.code}`,
                   label: toTitleCase(v.village),

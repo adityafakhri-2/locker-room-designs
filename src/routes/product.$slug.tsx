@@ -147,7 +147,7 @@ function ProductDetail() {
   return (
     <>
       <Navbar />
-      <div className="pt-24 md:pt-28 pb-20 container-swiss">
+      <main id="main-content" className="pt-24 md:pt-28 pb-20 container-swiss">
         <div className="text-xs text-muted-foreground mb-6 flex gap-2">
           <Link to="/" className="hover:underline">
             Home
@@ -187,7 +187,7 @@ function ProductDetail() {
                     onClick={() =>
                       changeImage(activeImg === 0 ? allImages.length - 1 : activeImg - 1)
                     }
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
                     aria-label="Gambar sebelumnya"
                   >
                     <ChevronLeft className="size-6" />
@@ -196,7 +196,7 @@ function ProductDetail() {
                     onClick={() =>
                       changeImage(activeImg === allImages.length - 1 ? 0 : activeImg + 1)
                     }
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none transition-opacity duration-300 cursor-pointer flex items-center justify-center animate-fade-in"
                     aria-label="Gambar selanjutnya"
                   >
                     <ChevronRight className="size-6" />
@@ -210,8 +210,9 @@ function ProductDetail() {
                   <button
                     key={i}
                     onClick={() => changeImage(i)}
+                    aria-label={`Lihat gambar detail ke-${i + 1}`}
                     className={cn(
-                      "aspect-square overflow-hidden bg-muted border",
+                      "aspect-square overflow-hidden bg-muted border focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 outline-none",
                       i === activeImg ? "border-primary" : "border-transparent",
                     )}
                   >
@@ -245,10 +246,10 @@ function ProductDetail() {
             </div>
 
             {reviewsQ.data && reviewsQ.data.length > 0 && (
-              <div className="mt-3 flex items-center gap-2 text-sm">
-                <Star className="size-4 fill-primary text-primary" />
-                <span className="font-semibold">{avgRating.toFixed(1)}</span>
-                <span className="text-muted-foreground">({reviewsQ.data.length} ulasan)</span>
+              <div className="mt-3 flex items-center gap-2 text-sm" aria-label={`Rating ${avgRating.toFixed(1)} dari 5 bintang dari ${reviewsQ.data.length} ulasan`}>
+                <Star className="size-4 fill-primary text-primary" aria-hidden="true" />
+                <span className="font-semibold" aria-hidden="true">{avgRating.toFixed(1)}</span>
+                <span className="text-muted-foreground" aria-hidden="true">({reviewsQ.data.length} ulasan)</span>
               </div>
             )}
 
@@ -263,8 +264,9 @@ function ProductDetail() {
                         key={s}
                         disabled={outOfStock}
                         onClick={() => setSize(s)}
+                        aria-pressed={size === s}
                         className={cn(
-                          "min-w-14 h-11 px-4 border text-sm font-medium transition-all",
+                          "min-w-14 h-11 px-4 border text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none",
                           outOfStock
                             ? "border-border text-muted-foreground/40 line-through cursor-not-allowed bg-muted/20"
                             : size === s
@@ -316,7 +318,8 @@ function ProductDetail() {
               </Button>
               <Button
                 variant="outline"
-                className="h-12"
+                className="h-12 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
+                aria-label={liked ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
                 onClick={() => {
                   if (!user) {
                     toast.error("Silakan masuk terlebih dahulu");
@@ -326,7 +329,7 @@ function ProductDetail() {
                   toggleWl.mutate(p.id);
                 }}
               >
-                <Heart className={cn("size-4", liked && "fill-primary text-primary")} />
+                <Heart className={cn("size-4", liked && "fill-primary text-primary")} aria-hidden="true" />
               </Button>
             </div>
 
@@ -360,7 +363,7 @@ function ProductDetail() {
                       ["Negara", p.country],
                       ["Tahun", p.release_year],
                       ["Kondisi", p.condition],
-                      ["Collector Score", "★".repeat(p.collector_score)],
+                      ["Collector Score", <span key="collector-score" aria-label={`${p.collector_score} dari 5 bintang skor kolektor`}>{"★".repeat(p.collector_score)}</span>],
                     ].map(([k, v]) => (
                       <div key={k as string} className="contents">
                         <dt className="text-muted-foreground">{k}</dt>
@@ -383,7 +386,7 @@ function ProductDetail() {
                     {cert.proof_image_url && (
                       <img
                         src={cert.proof_image_url}
-                        alt="Certificate"
+                        alt={`Sertifikat Keaslian untuk ${p.name}`}
                         className="mt-3 max-w-xs border border-border"
                       />
                     )}
@@ -434,7 +437,7 @@ function ProductDetail() {
             </div>
           </section>
         )}
-      </div>
+      </main>
       <Footer />
     </>
   );

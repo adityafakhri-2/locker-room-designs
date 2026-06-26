@@ -454,8 +454,9 @@ function OrderDetail() {
                       onClick={() =>
                         copyToClipboard(order.tracking_number || "", "Nomor resi disalin")
                       }
-                      className="p-1 hover:bg-muted border border-transparent hover:border-border rounded cursor-pointer transition-colors"
+                      className="p-1 hover:bg-muted border border-transparent hover:border-border rounded cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 outline-none"
                       title="Salin nomor resi"
+                      aria-label="Salin nomor resi"
                     >
                       <Copy className="size-3 text-muted-foreground" />
                     </button>
@@ -533,8 +534,9 @@ function OrderDetail() {
                         onClick={() =>
                           copyToClipboard(order.tracking_number || "", "Nomor resi disalin")
                         }
-                        className="p-1 hover:bg-muted border border-transparent hover:border-border rounded cursor-pointer transition-colors"
+                        className="p-1 hover:bg-muted border border-transparent hover:border-border rounded cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 outline-none"
                         title="Salin nomor resi"
+                        aria-label="Salin nomor resi"
                       >
                         <Copy className="size-3 text-muted-foreground" />
                       </button>

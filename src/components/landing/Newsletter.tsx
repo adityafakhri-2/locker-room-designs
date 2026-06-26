@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { Section } from "./Section";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 export function Newsletter() {
   const [email, setEmail] = useState("");
@@ -31,13 +32,15 @@ export function Newsletter() {
         </div>
 
         <form onSubmit={onSubmit} className="lg:col-span-5 flex border border-foreground">
+          <Label htmlFor="newsletter-email" className="sr-only">Alamat Email</Label>
           <input
+            id="newsletter-email"
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="email@kamu.com"
-            className="flex-1 min-w-0 px-5 py-4 bg-background text-foreground text-sm outline-none placeholder:text-muted-foreground"
+            className="flex-1 min-w-0 px-5 py-4 bg-background text-foreground text-sm focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 outline-none placeholder:text-muted-foreground"
           />
           <button
             type="submit"

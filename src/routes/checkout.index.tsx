@@ -440,7 +440,7 @@ function CheckoutPage() {
   return (
     <>
       <Navbar />
-      <div className="pt-24 md:pt-28 pb-20 container-swiss min-h-screen">
+      <main id="main-content" className="pt-24 md:pt-28 pb-20 container-swiss min-h-screen">
         <div className="mb-10 border-b border-border pb-6">
           <span className="eyebrow text-muted-foreground">Checkout</span>
           <h1 className="display-lg mt-2">Selesaikan Pesanan</h1>
@@ -468,16 +468,18 @@ function CheckoutPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                 <div className="sm:col-span-2">
-                  <Label>Nama Penerima</Label>
+                  <Label htmlFor="recipient_name">Nama Penerima</Label>
                   <Input
+                    id="recipient_name"
                     required
                     value={form.recipient_name}
                     onChange={(e) => set("recipient_name", e.target.value)}
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Nomor HP</Label>
+                  <Label htmlFor="recipient_no_hp">Nomor HP</Label>
                   <Input
+                    id="recipient_no_hp"
                     required
                     value={form.recipient_no_hp}
                     onChange={(e) => set("recipient_no_hp", e.target.value)}
@@ -501,8 +503,9 @@ function CheckoutPage() {
                 />
 
                 <div className="sm:col-span-2">
-                  <Label>Catatan Pesanan</Label>
+                  <Label htmlFor="note">Catatan Pesanan</Label>
                   <Textarea
+                    id="note"
                     placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..."
                     value={form.note}
                     onChange={(e) => set("note", e.target.value)}
@@ -630,11 +633,12 @@ function CheckoutPage() {
             </div>
             {/* Voucher Section */}
             <div className="border-t border-border mt-4 pt-4">
-              <Label className="font-bold text-xs uppercase text-muted-foreground flex items-center gap-1">
+              <Label htmlFor="voucher-code" className="font-bold text-xs uppercase text-muted-foreground flex items-center gap-1">
                 <Ticket className="size-3.5" /> Voucher Belanja
               </Label>
               <div className="flex gap-2 mt-1.5">
                 <Input
+                  id="voucher-code"
                   placeholder="Kode voucher"
                   value={voucherCodeInput}
                   onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
@@ -703,7 +707,7 @@ function CheckoutPage() {
             </Button>
           </aside>
         </form>
-      </div>
+      </main>
 
       {/* Dialog Voucher Selection */}
       <Dialog open={showVoucherDrawer} onOpenChange={setShowVoucherDrawer}>

@@ -60,19 +60,19 @@ export function Navbar({ overHero = false }: NavbarProps) {
       )}
     >
       <div className="container-swiss grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4 h-16 md:h-20">
-        <Link to="/" className="flex items-center gap-2 min-w-0 cursor-pointer">
-          <span className="inline-block size-2.5 bg-primary" aria-hidden />
+        <Link to="/" className="flex items-center gap-2 min-w-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm">
+          <span className="inline-block size-2.5 bg-primary" aria-hidden="true" />
           <span className="font-display font-extrabold tracking-tight text-base md:text-lg uppercase whitespace-nowrap">
             The Locker Room
           </span>
         </Link>
 
-        <nav className="hidden sm:flex items-center justify-center gap-8 lg:gap-10">
+        <nav aria-label="Navigasi Utama" className="hidden sm:flex items-center justify-center gap-8 lg:gap-10">
           {NAV.map((n) => (
             <Link
               key={n.label}
               to={n.to}
-              className="text-sm font-medium tracking-wide hover:opacity-60 transition-opacity cursor-pointer"
+              className="text-sm font-medium tracking-wide hover:opacity-60 transition-opacity cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm"
             >
               {n.label}
             </Link>
@@ -83,15 +83,15 @@ export function Navbar({ overHero = false }: NavbarProps) {
           <Link
             to="/search"
             search={{ q: "" }}
-            aria-label="Search"
-            className="hover:opacity-60 transition-opacity cursor-pointer"
+            aria-label="Cari Produk"
+            className="hover:opacity-60 transition-opacity cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm p-1"
           >
             <Search className="size-4" strokeWidth={1.5} />
           </Link>
           <Link
             to={user ? "/dashboard/wishlist" : "/auth"}
-            aria-label="Wishlist"
-            className="hover:opacity-60 transition-opacity relative cursor-pointer"
+            aria-label={`Wishlist, ${wlCount} item`}
+            className="hover:opacity-60 transition-opacity relative cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm p-1"
           >
             <Heart className="size-4" strokeWidth={1.5} />
             {wlCount > 0 && (
@@ -102,8 +102,8 @@ export function Navbar({ overHero = false }: NavbarProps) {
           </Link>
           <Link
             to="/cart"
-            aria-label="Cart"
-            className="hover:opacity-60 transition-opacity relative cursor-pointer"
+            aria-label={`Keranjang Belanja, ${cartCount} item`}
+            className="hover:opacity-60 transition-opacity relative cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm p-1"
           >
             <ShoppingBag className="size-4" strokeWidth={1.5} />
             {cartCount > 0 && (
@@ -114,8 +114,8 @@ export function Navbar({ overHero = false }: NavbarProps) {
           </Link>
           <Link
             to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
-            aria-label="Account"
-            className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer"
+            aria-label={user ? `Akun saya (${displayName})` : "Masuk ke akun"}
+            className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm p-1"
           >
             {user && (
               <span className="text-xs font-semibold max-w-[120px] truncate">{displayName}</span>
@@ -125,8 +125,10 @@ export function Navbar({ overHero = false }: NavbarProps) {
         </div>
 
         <button
-          aria-label="Menu"
-          className="sm:hidden justify-self-end cursor-pointer size-11 flex items-center justify-center -mr-2"
+          aria-label={open ? "Tutup menu" : "Buka menu"}
+          aria-expanded={open}
+          aria-controls="mobile-menu"
+          className="sm:hidden justify-self-end cursor-pointer size-11 flex items-center justify-center -mr-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-md"
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -134,14 +136,14 @@ export function Navbar({ overHero = false }: NavbarProps) {
       </div>
 
       {open && (
-        <div className="sm:hidden border-t border-border bg-background text-foreground">
-          <nav className="container-swiss py-6 flex flex-col gap-1">
+        <div id="mobile-menu" className="sm:hidden border-t border-border bg-background text-foreground">
+          <nav aria-label="Navigasi Mobile" className="container-swiss py-6 flex flex-col gap-1">
             {NAV.map((n) => (
               <Link
                 key={n.label}
                 to={n.to}
                 onClick={() => setOpen(false)}
-                className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block"
+                className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm px-2"
               >
                 {n.label}
               </Link>
@@ -149,14 +151,14 @@ export function Navbar({ overHero = false }: NavbarProps) {
             <Link
               to="/cart"
               onClick={() => setOpen(false)}
-              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block"
+              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm px-2"
             >
               Keranjang ({cartCount})
             </Link>
             <Link
               to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
               onClick={() => setOpen(false)}
-              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block"
+              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm px-2"
             >
               {user
                 ? isAdmin

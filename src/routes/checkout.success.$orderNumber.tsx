@@ -254,7 +254,7 @@ function PaymentPage() {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen pt-32 pb-20 container-swiss text-center">
+        <main id="main-content" className="min-h-screen pt-32 pb-20 container-swiss text-center">
           <AlertCircle className="size-16 text-destructive mx-auto" />
           <h1 className="display-lg mt-6">Pesanan Tidak Ditemukan</h1>
           <p className="mt-4 text-muted-foreground">
@@ -267,7 +267,7 @@ function PaymentPage() {
               </Link>
             </Button>
           </div>
-        </div>
+        </main>
         <Footer />
       </>
     );
@@ -276,7 +276,7 @@ function PaymentPage() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen pt-24 md:pt-28 pb-20 container-swiss">
+      <main id="main-content" className="min-h-screen pt-24 md:pt-28 pb-20 container-swiss">
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-3">
@@ -540,7 +540,7 @@ function PaymentPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </>
   );

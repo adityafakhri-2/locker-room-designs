@@ -66,7 +66,7 @@ function CartPage() {
   return (
     <>
       <Navbar />
-      <div className="pt-24 md:pt-28 pb-20 container-swiss min-h-screen">
+      <main id="main-content" className="pt-24 md:pt-28 pb-20 container-swiss min-h-screen">
         <div className="mb-10 border-b border-border pb-6">
           <span className="eyebrow text-muted-foreground">Cart</span>
           <h1 className="display-lg mt-2">Keranjang Belanja</h1>
@@ -115,8 +115,8 @@ function CartPage() {
                       <button
                         onClick={() => update.mutate({ id: i.id, quantity: i.quantity - 1 })}
                         disabled={i.quantity <= 1 || update.isPending}
-                        className="size-11 border border-border grid place-items-center cursor-pointer hover:border-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        aria-label="Kurangi kuantitas"
+                        className="size-11 border border-border grid place-items-center cursor-pointer hover:border-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 outline-none"
+                        aria-label={`Kurangi kuantitas ${i.products?.name}`}
                       >
                         <Minus className="size-3.5" />
                       </button>
@@ -126,8 +126,8 @@ function CartPage() {
                       <button
                         onClick={() => update.mutate({ id: i.id, quantity: i.quantity + 1 })}
                         disabled={update.isPending}
-                        className="size-11 border border-border grid place-items-center cursor-pointer hover:border-foreground disabled:opacity-50 transition-colors"
-                        aria-label="Tambah kuantitas"
+                        className="size-11 border border-border grid place-items-center cursor-pointer hover:border-foreground disabled:opacity-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 outline-none"
+                        aria-label={`Tambah kuantitas ${i.products?.name}`}
                       >
                         <Plus className="size-3.5" />
                       </button>
@@ -135,8 +135,8 @@ function CartPage() {
                   </div>
                   <button
                     onClick={() => handleDeleteClick(i.id)}
-                    className="absolute top-6 right-0 sm:static text-muted-foreground hover:text-destructive self-start cursor-pointer transition-colors p-1"
-                    aria-label="Hapus barang"
+                    className="absolute top-6 right-0 sm:static text-muted-foreground hover:text-destructive self-start cursor-pointer transition-colors p-1 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 outline-none rounded-md"
+                    aria-label={`Hapus ${i.products?.name} dari keranjang`}
                   >
                     <Trash2 className="size-4" />
                   </button>
@@ -169,7 +169,7 @@ function CartPage() {
             </aside>
           </div>
         )}
-      </div>
+      </main>
       <Footer />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
