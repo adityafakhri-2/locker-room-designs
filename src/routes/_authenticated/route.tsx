@@ -4,7 +4,7 @@ import { Navbar } from "@/components/landing/Navbar";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
 
@@ -18,6 +18,19 @@ export const Route = createFileRoute("/_authenticated")({
     if (!profile || !profile.no_hp || !profile.alamat) {
       // Jika belum lengkap, paksa kembali ke /auth untuk melengkapi profil
       throw redirect({ to: "/auth" });
+    }
+
+    // Jika user adalah admin dan mencoba mengakses rute pelanggan (/dashboard/*), redirect ke /admin
+    if (location.pathname.startsWith("/dashboard")) {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (roleData) {
+        throw redirect({ to: "/admin" });
+      }
     }
 
     return { userId: data.user.id };

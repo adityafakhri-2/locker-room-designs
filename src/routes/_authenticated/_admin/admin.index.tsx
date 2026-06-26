@@ -14,6 +14,7 @@ export const ADMIN_NAV = [
   { label: "Pelanggan", to: "/admin/pelanggan" },
   { label: "Ulasan", to: "/admin/ulasan" },
   { label: "Laporan", to: "/admin/laporan" },
+  { label: "Pengaturan Toko", to: "/admin/pengaturan" },
 ];
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/")({

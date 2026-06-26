@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, useIsAdmin } from "@/hooks/use-auth";
 import { useCart, useWishlist } from "@/hooks/use-commerce";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +23,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(!overHero);
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const { data: cart } = useCart();
   const { data: wishlist } = useWishlist();
   const cartCount = cart?.reduce((s, i) => s + i.quantity, 0) ?? 0;
@@ -88,7 +89,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
               <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{cartCount}</span>
             )}
           </Link>
-          <Link to={user ? "/dashboard" : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer">
+          <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer">
             {user && (
               <span className="text-xs font-semibold max-w-[120px] truncate">
                 {displayName}
@@ -112,8 +113,8 @@ export function Navbar({ overHero = false }: NavbarProps) {
               </Link>
             ))}
             <Link to="/cart" onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">Keranjang ({cartCount})</Link>
-            <Link to={user ? "/dashboard" : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">
-              {user ? `Dashboard (${displayName})` : "Login / Daftar"}
+            <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">
+              {user ? (isAdmin ? `Admin Panel (${displayName})` : `Dashboard (${displayName})`) : "Login / Daftar"}
             </Link>
           </nav>
         </div>
