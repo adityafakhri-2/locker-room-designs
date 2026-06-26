@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatIDR, BANKS, statusLabel } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
 import { CheckCircle2, Clock, AlertCircle, Copy, ArrowRight, Upload } from "lucide-react";
+import { checkMayarPaymentStatus } from "@/lib/api/payment.functions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,8 +53,35 @@ function PaymentPage() {
       if (error) throw error;
       if (!order) return null;
 
+      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as any);
+      
+      // Jika pembayaran menggunakan Mayar, statusnya masih menunggu, dan ada ID invoice, cek ke Mayar API
+      if (payment && payment.method === "mayar" && payment.status === "waiting_payment" && payment.reject_reason) {
+        try {
+          console.log("[Checkout Success] Memeriksa status pembayaran Mayar secara langsung untuk invoice:", payment.reject_reason);
+          await checkMayarPaymentStatus({
+            data: {
+              paymentId: payment.id,
+              invoiceId: payment.reject_reason
+            }
+          });
+
+          // Ambil ulang data order yang terupdate setelah diperiksa
+          const { data: updatedOrder } = await supabase
+            .from("orders")
+            .select("*, order_items(*), payments(*)")
+            .eq("order_number", orderNumber)
+            .maybeSingle();
+          
+          if (updatedOrder) {
+            return { order: updatedOrder, proofUrl: "" };
+          }
+        } catch (checkErr) {
+          console.error("[Checkout Success] Gagal memeriksa status pembayaran Mayar:", checkErr);
+        }
+      }
+
       let proofUrl = "";
-      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as { id: string } | null);
       if (payment) {
         const { data: proofs } = await supabase
           .from("payment_proofs")
@@ -70,8 +98,9 @@ function PaymentPage() {
   });
 
   const order = q.data?.order;
-  const payment = order ? ((Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; reject_reason: string | null } | null) : null;
-  const bank = payment ? BANKS.find((b) => b.code === payment.bank) : null;
+  const payment = order ? ((Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; method: string; reject_reason: string | null } | null) : null;
+  const isMayar = payment?.method === "mayar";
+  const bank = (!isMayar && payment) ? BANKS.find((b) => b.code === payment.bank) : null;
 
   const createdAt = order ? new Date(order.created_at) : null;
   const deadline = createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
@@ -95,6 +124,34 @@ function PaymentPage() {
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [order, payment, deadline, orderNumber, qc]);
+
+  // Auto-approve mock payments for development
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isMockPaid = urlParams.get("mock_paid") === "true";
+
+    if (isMockPaid && order && payment && payment.status === "waiting_payment") {
+      const autoApprove = async () => {
+        try {
+          const { error } = await supabase
+            .from("payments")
+            .update({ 
+              status: "approved",
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", payment.id);
+
+          if (error) throw error;
+          
+          toast.success("[Mock] Pembayaran sukses disimulasikan!");
+          qc.invalidateQueries({ queryKey: ["order-success", orderNumber] });
+        } catch (err) {
+          toast.error("Gagal mensimulasikan pembayaran: " + (err as Error).message);
+        }
+      };
+      autoApprove();
+    }
+  }, [order, payment, orderNumber, qc]);
 
   const formatTimeLeft = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -233,7 +290,11 @@ function PaymentPage() {
             <div className="border border-border bg-background p-6 space-y-6">
               <div>
                 <h3 className="font-extrabold text-base mb-1">Rincian Pembayaran</h3>
-                <p className="text-xs text-muted-foreground">Silakan transfer nominal berikut tepat hingga rupiah terakhir.</p>
+                <p className="text-xs text-muted-foreground">
+                  {isMayar 
+                    ? "Pembayaran diproses secara instan & otomatis." 
+                    : "Silakan transfer nominal berikut tepat hingga rupiah terakhir."}
+                </p>
               </div>
 
               <div className="bg-muted/40 p-4 border border-border relative group">
@@ -250,7 +311,17 @@ function PaymentPage() {
                 </button>
               </div>
 
-              {bank ? (
+              {isMayar ? (
+                <div className="space-y-4">
+                  <div className="text-sm">
+                    <strong>Metode Pembayaran:</strong> Mayar.id (Otomatis)
+                  </div>
+                  <div className="p-4 border border-primary/20 bg-primary/5 space-y-2 rounded">
+                    <p className="text-xs text-muted-foreground">Tautan Pembayaran:</p>
+                    <p className="font-mono text-xs break-all text-primary font-bold">{payment?.bank}</p>
+                  </div>
+                </div>
+              ) : bank ? (
                 <div className="space-y-4">
                   <div className="text-sm">
                     <strong>Metode Pembayaran:</strong> Transfer Bank Manual
@@ -273,27 +344,65 @@ function PaymentPage() {
                 <p className="text-sm text-destructive">Detail bank tidak ditemukan.</p>
               )}
 
-              <div className="text-xs space-y-2 border-t border-border pt-4 text-muted-foreground">
-                <h4 className="font-bold text-foreground">Instruksi Transfer:</h4>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Gunakan ATM, Mobile Banking, atau Internet Banking.</li>
-                  <li>Masukkan nomor rekening tujuan di atas.</li>
-                  <li>Masukkan nominal transfer tepat sebesar <strong className="text-foreground">{formatIDR(order.grand_total)}</strong>.</li>
-                  <li>Simpan struk / bukti transfer sebagai gambar.</li>
-                  <li>Unggah bukti transfer di kolom sebelah kanan.</li>
-                </ol>
-              </div>
+              {!isMayar && (
+                <div className="text-xs space-y-2 border-t border-border pt-4 text-muted-foreground">
+                  <h4 className="font-bold text-foreground">Instruksi Transfer:</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Gunakan ATM, Mobile Banking, atau Internet Banking.</li>
+                    <li>Masukkan nomor rekening tujuan di atas.</li>
+                    <li>Masukkan nominal transfer tepat sebesar <strong className="text-foreground">{formatIDR(order.grand_total)}</strong>.</li>
+                    <li>Simpan struk / bukti transfer sebagai gambar.</li>
+                    <li>Unggah bukti transfer di kolom sebelah kanan.</li>
+                  </ol>
+                </div>
+              )}
+              {isMayar && (
+                <div className="text-xs space-y-2 border-t border-border pt-4 text-muted-foreground">
+                  <h4 className="font-bold text-foreground">Instruksi Pembayaran Mayar:</h4>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Klik tombol <strong className="text-primary">Bayar Sekarang</strong> di sebelah kanan.</li>
+                    <li>Pilih metode pembayaran (QRIS, VA, E-Wallet, Kartu Kredit).</li>
+                    <li>Selesaikan pembayaran Anda di halaman Mayar.</li>
+                    <li>Setelah selesai, halaman ini akan otomatis mendeteksi status pembayaran Anda.</li>
+                  </ol>
+                </div>
+              )}
             </div>
 
-            {/* Right Card: Upload Form */}
+            {/* Right Card: Upload Form or Mayar Pay Button */}
             <div className="border border-border bg-background p-6 flex flex-col justify-between space-y-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-extrabold text-base mb-1">Bukti Transfer</h3>
-                  <p className="text-xs text-muted-foreground">Unggah foto atau screenshot bukti transfer agar admin dapat langsung memverifikasi pembayaran.</p>
+                  <h3 className="font-extrabold text-base mb-1">
+                    {isMayar ? "Proses Pembayaran" : "Bukti Transfer"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {isMayar 
+                      ? "Pembayaran instan diproses otomatis. Silakan lakukan pembayaran menggunakan tombol di bawah." 
+                      : "Unggah foto atau screenshot bukti transfer agar admin dapat langsung memverifikasi pembayaran."}
+                  </p>
                 </div>
 
-                {payment && payment.status === "waiting_payment" && order.status === "pending" && (
+                {isMayar && payment && payment.status === "waiting_payment" && order.status === "pending" && (
+                  <div className="space-y-4">
+                    <div className="bg-primary/5 border border-primary/20 p-5 text-center rounded space-y-3">
+                      <Clock className="size-8 text-primary mx-auto animate-pulse" />
+                      <h4 className="font-bold text-sm">Menunggu Pembayaran Mayar</h4>
+                      <p className="text-xs text-muted-foreground mb-4">Silakan klik tombol di bawah untuk membayar tagihan Anda.</p>
+                      
+                      <Button 
+                        asChild 
+                        className="w-full h-12 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/95 text-sm font-bold flex items-center justify-center gap-2"
+                      >
+                        <a href={payment.bank || "#"} target="_self" rel="noopener noreferrer">
+                          Bayar Sekarang via Mayar
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {!isMayar && payment && payment.status === "waiting_payment" && order.status === "pending" && (
                   <div className="space-y-3">
                     {(!q.data?.proofUrl || forceShowUpload) ? (
                       <div className="border-2 border-dashed border-border p-6 text-center space-y-3 rounded">
@@ -341,7 +450,7 @@ function PaymentPage() {
                     <CheckCircle2 className="size-8 text-primary mx-auto" />
                     <h4 className="font-bold text-sm">Menunggu Verifikasi</h4>
                     <p className="text-xs text-muted-foreground">Bukti pembayaran telah berhasil diunggah. Kami sedang memproses verifikasi transaksi Anda.</p>
-                    {q.data?.proofUrl && (
+                    {!isMayar && q.data?.proofUrl && (
                       <div className="pt-2 border-t border-primary/10 mt-2">
                         {forceShowUpload ? (
                           <div className="space-y-2">
@@ -385,7 +494,7 @@ function PaymentPage() {
                     <AlertCircle className="size-8 text-destructive mx-auto" />
                     <h4 className="font-bold text-sm text-destructive">Pembayaran Ditolak</h4>
                     {payment.reject_reason && <p className="text-xs text-muted-foreground">Alasan: {payment.reject_reason}</p>}
-                    {order.status === "pending" && (
+                    {order.status === "pending" && !isMayar && (
                       <div className="border-t border-destructive/15 pt-3">
                         {(!q.data?.proofUrl || forceShowUpload) ? (
                           <div className="space-y-2">
@@ -429,12 +538,16 @@ function PaymentPage() {
                 {payment && (payment.status === "approved" || payment.status === "paid") && (
                   <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
                     <CheckCircle2 className="size-8 text-emerald-500 mx-auto" />
-                    <h4 className="font-bold text-sm text-emerald-600">Pembayaran Berhasil</h4>
-                    <p className="text-xs text-muted-foreground">Pembayaran Anda telah diverifikasi oleh admin. Pesanan Anda segera kami proses.</p>
+                    <h4 className="font-bold text-sm text-emerald-600 font-extrabold">Pembayaran Berhasil</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {isMayar 
+                        ? "Pembayaran Anda telah diverifikasi otomatis oleh sistem. Pesanan Anda segera kami proses." 
+                        : "Pembayaran Anda telah diverifikasi oleh admin. Pesanan Anda segera kami proses."}
+                    </p>
                   </div>
                 )}
 
-                {q.data?.proofUrl && (
+                {!isMayar && q.data?.proofUrl && (
                   <div className="space-y-1.5">
                     <div className="text-xs font-bold">Pratinjau Bukti:</div>
                     <div className="border border-border overflow-hidden bg-muted/30">

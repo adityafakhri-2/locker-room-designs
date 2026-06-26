@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navbar } from "@/components/landing/Navbar";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { IndonesiaRegionSelector, parseAlamat } from "@/components/app/IndonesiaRegionSelector";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -29,6 +30,9 @@ function AuthPage() {
   const [namaLengkap, setNamaLengkap] = useState("");
   const [noHp, setNoHp] = useState("");
   const [alamat, setAlamat] = useState("");
+  const [alamatDetail, setAlamatDetail] = useState("");
+  const [kecamatan, setKecamatan] = useState("");
+  const [kelurahan, setKelurahan] = useState("");
   const [kota, setKota] = useState("");
   const [provinsi, setProvinsi] = useState("");
   const [kodePos, setKodePos] = useState("");
@@ -70,6 +74,17 @@ function AuthPage() {
               setNamaLengkap(data.nama_lengkap);
             } else if (user.user_metadata?.full_name) {
               setNamaLengkap(user.user_metadata.full_name);
+            }
+            if (data) {
+              const parsed = parseAlamat(data.alamat ?? "");
+              setNoHp(data.no_hp ?? "");
+              setAlamat(data.alamat ?? "");
+              setAlamatDetail(parsed.street);
+              setKecamatan(parsed.kecamatan);
+              setKelurahan(parsed.kelurahan);
+              setKota(data.kota ?? "");
+              setProvinsi(data.provinsi ?? "");
+              setKodePos(data.kode_pos ?? "");
             }
           } else {
             // Profil lengkap, arahkan ke dashboard atau admin
@@ -131,7 +146,12 @@ function AuthPage() {
     if (password !== confirmPassword) {
       return toast.error("Konfirmasi password tidak cocok dengan password!");
     }
-    if (!namaLengkap || !noHp || !alamat || !kota || !provinsi || !kodePos) {
+
+    const finalAlamat = alamatDetail + 
+      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+      (kelurahan ? `, Kel. ${kelurahan}` : "");
+
+    if (!namaLengkap || !noHp || !alamatDetail || !kota || !provinsi || !kodePos) {
       return toast.error("Semua field profil wajib diisi!");
     }
     setLoading(true);
@@ -143,7 +163,7 @@ function AuthPage() {
         data: {
           nama_lengkap: namaLengkap,
           no_hp: noHp,
-          alamat: alamat,
+          alamat: finalAlamat,
           kota: kota,
           provinsi: provinsi,
           kode_pos: kodePos
@@ -165,7 +185,7 @@ function AuthPage() {
       // Update profile with additional address details if session is active immediately
       await supabase.from("profiles").update({
         no_hp: noHp,
-        alamat: alamat,
+        alamat: finalAlamat,
         kota: kota,
         provinsi: provinsi,
         kode_pos: kodePos
@@ -208,7 +228,12 @@ function AuthPage() {
 
   async function completeProfile(e: React.FormEvent) {
     e.preventDefault();
-    if (!namaLengkap || !noHp || !alamat || !kota || !provinsi || !kodePos) {
+
+    const finalAlamat = alamatDetail + 
+      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+      (kelurahan ? `, Kel. ${kelurahan}` : "");
+
+    if (!namaLengkap || !noHp || !alamatDetail || !kota || !provinsi || !kodePos) {
       return toast.error("Semua field profil wajib diisi!");
     }
     setLoading(true);
@@ -218,7 +243,7 @@ function AuthPage() {
       .update({
         nama_lengkap: namaLengkap,
         no_hp: noHp,
-        alamat: alamat,
+        alamat: finalAlamat,
         kota: kota,
         provinsi: provinsi,
         kode_pos: kodePos,
@@ -293,48 +318,21 @@ function AuthPage() {
                     onChange={(e) => setNoHp(e.target.value)}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="radr">Alamat Lengkap</Label>
-                  <Input
-                    id="radr"
-                    placeholder="Nama jalan, RT/RW, No. Rumah"
-                    required
-                    value={alamat}
-                    onChange={(e) => setAlamat(e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="rcity">Kota/Kabupaten</Label>
-                    <Input
-                      id="rcity"
-                      placeholder="Kota"
-                      required
-                      value={kota}
-                      onChange={(e) => setKota(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="rprov">Provinsi</Label>
-                    <Input
-                      id="rprov"
-                      placeholder="Provinsi"
-                      required
-                      value={provinsi}
-                      onChange={(e) => setProvinsi(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="rzip">Kode Pos</Label>
-                  <Input
-                    id="rzip"
-                    placeholder="Kode Pos"
-                    required
-                    value={kodePos}
-                    onChange={(e) => setKodePos(e.target.value)}
-                  />
-                </div>
+                <IndonesiaRegionSelector
+                  provinsi={provinsi}
+                  setProvinsi={setProvinsi}
+                  kota={kota}
+                  setKota={setKota}
+                  kecamatan={kecamatan}
+                  setKecamatan={setKecamatan}
+                  kelurahan={kelurahan}
+                  setKelurahan={setKelurahan}
+                  kodePos={kodePos}
+                  setKodePos={setKodePos}
+                  alamatDetail={alamatDetail}
+                  setAlamatDetail={setAlamatDetail}
+                  required={true}
+                />
 
                 <div className="pt-2">
                   <Button type="submit" disabled={loading} className="w-full cursor-pointer">
@@ -486,24 +484,21 @@ function AuthPage() {
                       <Label htmlFor="rphone">Nomor HP</Label>
                       <Input id="rphone" placeholder="Contoh: 08123456789" required value={noHp} onChange={(e) => setNoHp(e.target.value)} />
                     </div>
-                    <div>
-                      <Label htmlFor="radr">Alamat Lengkap</Label>
-                      <Input id="radr" placeholder="Nama jalan, RT/RW, No. Rumah" required value={alamat} onChange={(e) => setAlamat(e.target.value)} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="rcity">Kota/Kabupaten</Label>
-                        <Input id="rcity" placeholder="Kota" required value={kota} onChange={(e) => setKota(e.target.value)} />
-                      </div>
-                      <div>
-                        <Label htmlFor="rprov">Provinsi</Label>
-                        <Input id="rprov" placeholder="Provinsi" required value={provinsi} onChange={(e) => setProvinsi(e.target.value)} />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="rzip">Kode Pos</Label>
-                      <Input id="rzip" placeholder="Kode Pos" required value={kodePos} onChange={(e) => setKodePos(e.target.value)} />
-                    </div>
+                    <IndonesiaRegionSelector
+                      provinsi={provinsi}
+                      setProvinsi={setProvinsi}
+                      kota={kota}
+                      setKota={setKota}
+                      kecamatan={kecamatan}
+                      setKecamatan={setKecamatan}
+                      kelurahan={kelurahan}
+                      setKelurahan={setKelurahan}
+                      kodePos={kodePos}
+                      setKodePos={setKodePos}
+                      alamatDetail={alamatDetail}
+                      setAlamatDetail={setAlamatDetail}
+                      required={true}
+                    />
 
                     <div className="flex gap-3 pt-2">
                       <Button

@@ -17,7 +17,7 @@ export function formatDateTime(iso: string | Date | null | undefined): string {
 }
 
 export const SHIPPING_RATES: Record<string, number> = {
-  JNE: 25000,
+  JNE: 0,
   "J&T": 22000,
   SiCepat: 20000,
   AnterAja: 23000,

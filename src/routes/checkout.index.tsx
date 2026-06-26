@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatIDR, SHIPPING_RATES, BANKS } from "@/lib/format";
+import { formatIDR, SHIPPING_RATES } from "@/lib/format";
+import { createMayarPayment } from "@/lib/api/payment.functions";
 import { useCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { IndonesiaRegionSelector, parseAlamat } from "@/components/app/IndonesiaRegionSelector";
+import { Ticket } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/checkout/")({
   head: () => ({ meta: [{ title: "Checkout — The Locker Room" }] }),
@@ -25,9 +29,37 @@ function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     recipient_name: "", recipient_no_hp: "", recipient_alamat: "", recipient_kota: "",
-    recipient_provinsi: "", recipient_kode_pos: "", note: "", courier: "JNE", bank: "BCA",
+    recipient_provinsi: "", recipient_kode_pos: "", note: "", courier: "JNE",
   });
+  const [alamatDetail, setAlamatDetail] = useState("");
+  const [kecamatan, setKecamatan] = useState("");
+  const [kelurahan, setKelurahan] = useState("");
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Voucher states
+  const [voucherCodeInput, setVoucherCodeInput] = useState("");
+  const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const [showVoucherDrawer, setShowVoucherDrawer] = useState(false);
+
+  // Fetch active vouchers
+  const vouchersQuery = useQuery({
+    queryKey: ["active-vouchers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vouchers")
+        .select("*")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      
+      // Filter out expired vouchers or those whose usage limit is reached
+      return (data ?? []).filter(v => {
+        const isExpired = v.end_date ? new Date(v.end_date) < new Date() : false;
+        const isLimitReached = v.usage_limit ? v.usage_count >= v.usage_limit : false;
+        return !isExpired && !isLimitReached;
+      });
+    }
+  });
 
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
@@ -44,6 +76,7 @@ function CheckoutPage() {
     }
     const p = profileQuery.data;
     const metadataName = user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || "";
+    const parsed = parseAlamat(p.alamat || "");
     setForm((f) => ({
       ...f,
       recipient_name: p.nama_lengkap || metadataName || f.recipient_name,
@@ -53,6 +86,9 @@ function CheckoutPage() {
       recipient_provinsi: p.provinsi || "",
       recipient_kode_pos: p.kode_pos || "",
     }));
+    setAlamatDetail(parsed.street);
+    setKecamatan(parsed.kecamatan);
+    setKelurahan(parsed.kelurahan);
     toast.success("Data alamat disalin dari profil Anda");
   }
 
@@ -71,6 +107,7 @@ function CheckoutPage() {
         return;
       }
       const metadataName = user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
+      const parsed = parseAlamat(p.alamat || "");
       setForm((f) => ({
         ...f,
         recipient_name: f.recipient_name || p.nama_lengkap || metadataName,
@@ -80,6 +117,9 @@ function CheckoutPage() {
         recipient_provinsi: f.recipient_provinsi || p.provinsi || "",
         recipient_kode_pos: f.recipient_kode_pos || p.kode_pos || "",
       }));
+      setAlamatDetail(parsed.street);
+      setKecamatan(parsed.kecamatan);
+      setKelurahan(parsed.kelurahan);
     }
   }, [profileQuery.data, user, navigate]);
 
@@ -91,13 +131,58 @@ function CheckoutPage() {
   const items = cart.data ?? [];
   const subtotal = items.reduce((s, i) => s + Number(i.products?.price ?? 0) * i.quantity, 0);
   const shipping = SHIPPING_RATES[form.courier] ?? 0;
-  const total = subtotal + shipping;
+
+  // Dynamic discount calculation
+  let discountAmount = 0;
+  if (selectedVoucher) {
+    if (selectedVoucher.discount_type === "percentage") {
+      discountAmount = subtotal * (Number(selectedVoucher.discount_value) / 100);
+      if (selectedVoucher.max_discount && discountAmount > Number(selectedVoucher.max_discount)) {
+        discountAmount = Number(selectedVoucher.max_discount);
+      }
+    } else {
+      discountAmount = Number(selectedVoucher.discount_value);
+    }
+    if (discountAmount > subtotal) {
+      discountAmount = subtotal;
+    }
+  }
+
+  const total = subtotal + shipping - discountAmount;
+
+  function applyVoucherCode(codeStr: string) {
+    const codeClean = codeStr.trim().toUpperCase();
+    if (!codeClean) {
+      toast.error("Silakan masukkan kode voucher");
+      return;
+    }
+    
+    const found = vouchersQuery.data?.find(v => v.code === codeClean);
+    if (!found) {
+      toast.error("Voucher tidak valid, kadaluarsa, atau kuota habis.");
+      return;
+    }
+    
+    if (subtotal < Number(found.min_purchase)) {
+      toast.error(`Minimum belanja untuk menggunakan voucher ini adalah ${formatIDR(found.min_purchase)}`);
+      return;
+    }
+    
+    setSelectedVoucher(found);
+    setVoucherCodeInput(found.code);
+    toast.success(`Voucher ${found.code} berhasil diterapkan!`);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) return toast.error("Keranjang kosong");
     setLoading(true);
+    const finalAlamat = alamatDetail + 
+      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+      (kelurahan ? `, Kel. ${kelurahan}` : "");
+
     try {
+      // 1. Buat pesanan di Supabase
       const { data: order, error: oerr } = await supabase
         .from("orders")
         .insert({
@@ -107,16 +192,20 @@ function CheckoutPage() {
           courier: form.courier,
           recipient_name: form.recipient_name,
           recipient_no_hp: form.recipient_no_hp,
-          recipient_alamat: form.recipient_alamat,
+          recipient_alamat: finalAlamat,
           recipient_kota: form.recipient_kota,
           recipient_provinsi: form.recipient_provinsi,
           recipient_kode_pos: form.recipient_kode_pos,
           note: form.note,
+          voucher_id: selectedVoucher ? selectedVoucher.id : null,
+          voucher_code: selectedVoucher ? selectedVoucher.code : null,
+          discount_amount: discountAmount,
         })
         .select("*")
         .single();
       if (oerr) throw oerr;
 
+      // 2. Masukkan item pesanan
       const orderItems = items.map((i) => ({
         order_id: order.id,
         product_id: i.product_id,
@@ -131,16 +220,42 @@ function CheckoutPage() {
       const { error: ierr } = await supabase.from("order_items").insert(orderItems);
       if (ierr) throw ierr;
 
+      // 3. Buat Invoice Mayar.id melalui Server Function
+      const redirectUrl = `${window.location.origin}/checkout/success/${order.order_number}`;
+      const mayarResult = await createMayarPayment({
+        data: {
+          orderId: order.id,
+          orderNumber: order.order_number,
+          amount: total,
+          customerName: form.recipient_name,
+          customerEmail: user!.email || "",
+          customerMobile: form.recipient_no_hp,
+          redirectUrl: redirectUrl,
+        }
+      });
+
+      if (!mayarResult || !mayarResult.link) {
+        throw new Error("Gagal membuat tautan pembayaran Mayar.id");
+      }
+
+      // 4. Catat transaksi pembayaran dengan tautan Mayar di kolom 'bank' dan ID invoice di 'reject_reason'
       const { error: perr } = await supabase.from("payments").insert({
-        order_id: order.id, amount: total, bank: form.bank, status: "waiting_payment",
+        order_id: order.id,
+        amount: total,
+        method: "mayar",
+        bank: mayarResult.link, // Simpan link Mayar di kolom bank
+        reject_reason: mayarResult.invoiceId, // Simpan ID invoice di reject_reason
+        status: "waiting_payment",
       });
       if (perr) throw perr;
 
-      // Clear cart
+      // 5. Bersihkan keranjang belanja
       await supabase.from("cart_items").delete().eq("user_id", user!.id);
 
-      toast.success("Pesanan dibuat");
-      navigate({ to: "/checkout/success/$orderNumber", params: { orderNumber: order.order_number } });
+      toast.success("Pesanan dibuat. Mengalihkan ke pembayaran...");
+      
+      // Alihkan pengguna langsung ke halaman pembayaran Mayar.id
+      window.location.href = mayarResult.link;
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -176,11 +291,24 @@ function CheckoutPage() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2"><Label>Nama Penerima</Label><Input required value={form.recipient_name} onChange={(e) => set("recipient_name", e.target.value)} /></div>
-                <div><Label>Nomor HP</Label><Input required value={form.recipient_no_hp} onChange={(e) => set("recipient_no_hp", e.target.value)} /></div>
-                <div><Label>Kode Pos</Label><Input required value={form.recipient_kode_pos} onChange={(e) => set("recipient_kode_pos", e.target.value)} /></div>
-                <div className="sm:col-span-2"><Label>Alamat Lengkap</Label><Textarea required value={form.recipient_alamat} onChange={(e) => set("recipient_alamat", e.target.value)} /></div>
-                <div><Label>Kota</Label><Input required value={form.recipient_kota} onChange={(e) => set("recipient_kota", e.target.value)} /></div>
-                <div><Label>Provinsi</Label><Input required value={form.recipient_provinsi} onChange={(e) => set("recipient_provinsi", e.target.value)} /></div>
+                <div className="sm:col-span-2"><Label>Nomor HP</Label><Input required value={form.recipient_no_hp} onChange={(e) => set("recipient_no_hp", e.target.value)} /></div>
+                
+                <IndonesiaRegionSelector
+                  provinsi={form.recipient_provinsi}
+                  setProvinsi={(val) => set("recipient_provinsi", val)}
+                  kota={form.recipient_kota}
+                  setKota={(val) => set("recipient_kota", val)}
+                  kecamatan={kecamatan}
+                  setKecamatan={setKecamatan}
+                  kelurahan={kelurahan}
+                  setKelurahan={setKelurahan}
+                  kodePos={form.recipient_kode_pos}
+                  setKodePos={(val) => set("recipient_kode_pos", val)}
+                  alamatDetail={alamatDetail}
+                  setAlamatDetail={setAlamatDetail}
+                  required={true}
+                />
+
                 <div className="sm:col-span-2"><Label>Catatan Pesanan</Label><Textarea value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
               </div>
             </section>
@@ -198,16 +326,18 @@ function CheckoutPage() {
               </div>
             </section>
 
-            <section>
-              <h2 className="display-md mb-6">Metode Pembayaran</h2>
-              <p className="text-sm text-muted-foreground mb-4">Transfer Bank Manual. Pilih bank tujuan transfer:</p>
-              <div className="grid grid-cols-3 gap-3">
-                {BANKS.map((b) => (
-                  <button type="button" key={b.code} onClick={() => set("bank", b.code)}
-                    className={`border p-4 text-center cursor-pointer transition-all ${form.bank === b.code ? "border-primary bg-accent" : "border-border"}`}>
-                    <div className="font-semibold">{b.name}</div>
-                  </button>
-                ))}
+            <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg">
+              <h2 className="display-md mb-4 flex items-center gap-2">
+                Metode Pembayaran
+              </h2>
+              <div className="flex items-center gap-4">
+                <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0">
+                  <span className="font-black text-primary text-lg tracking-wider">mayar<span className="text-amber-500">.id</span></span>
+                </div>
+                <div className="text-sm">
+                  <p className="font-bold text-foreground">Pembayaran Instan & Otomatis via Mayar</p>
+                  <p className="text-muted-foreground mt-0.5">Mendukung QRIS, E-Wallet (GoPay, OVO, ShopeePay), Virtual Account (BCA, Mandiri, BNI), dan Kartu Kredit.</p>
+                </div>
               </div>
             </section>
           </div>
@@ -228,9 +358,58 @@ function CheckoutPage() {
                 </div>
               ))}
             </div>
+            {/* Voucher Section */}
+            <div className="border-t border-border mt-4 pt-4">
+              <Label className="font-bold text-xs uppercase text-muted-foreground flex items-center gap-1">
+                <Ticket className="size-3.5" /> Voucher Belanja
+              </Label>
+              <div className="flex gap-2 mt-1.5">
+                <Input 
+                  placeholder="Kode voucher" 
+                  value={voucherCodeInput} 
+                  onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
+                  className="h-10 text-sm bg-background"
+                />
+                {selectedVoucher ? (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => { setSelectedVoucher(null); setVoucherCodeInput(""); }}
+                    className="h-10 text-xs px-3 text-destructive border-destructive hover:bg-destructive/10 cursor-pointer flex-shrink-0"
+                  >
+                    Batal
+                  </Button>
+                ) : (
+                  <Button 
+                    type="button" 
+                    onClick={() => applyVoucherCode(voucherCodeInput)}
+                    className="h-10 text-xs px-4 cursor-pointer flex-shrink-0"
+                  >
+                    Pakai
+                  </Button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowVoucherDrawer(true)}
+                className="mt-2 text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer w-full text-left"
+              >
+                Lihat daftar voucher tersedia
+              </button>
+            </div>
+
             <dl className="mt-6 text-sm space-y-2 border-t border-border pt-4">
               <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatIDR(subtotal)}</dd></div>
               <div className="flex justify-between"><dt>Ongkos kirim</dt><dd>{formatIDR(shipping)}</dd></div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <dt className="flex items-center gap-1">
+                    <Ticket className="size-3.5" />
+                    Diskon ({selectedVoucher?.code})
+                  </dt>
+                  <dd>-{formatIDR(discountAmount)}</dd>
+                </div>
+              )}
             </dl>
             <div className="border-t border-border mt-4 pt-4 flex justify-between text-base font-extrabold">
               <span>Total</span><span>{formatIDR(total)}</span>
@@ -241,6 +420,103 @@ function CheckoutPage() {
           </aside>
         </form>
       </div>
+
+      {/* Dialog Voucher Selection */}
+      <Dialog open={showVoucherDrawer} onOpenChange={setShowVoucherDrawer}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ticket className="size-5 text-primary" /> Voucher Tersedia
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {vouchersQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Memuat voucher...</p>
+            ) : vouchersQuery.data && vouchersQuery.data.length > 0 ? (
+              vouchersQuery.data.map((v) => {
+                const isApplicable = subtotal >= Number(v.min_purchase);
+                const isSelected = selectedVoucher?.id === v.id;
+                
+                return (
+                  <div 
+                    key={v.id} 
+                    className={`relative border-2 border-dashed rounded-lg p-4 flex items-center justify-between transition-all overflow-hidden bg-background
+                      ${isSelected ? "border-primary bg-primary/5" : "border-border"}
+                      ${!isApplicable ? "opacity-60" : "hover:border-primary/50"}
+                      before:absolute before:left-[-10px] before:top-[calc(50%-10px)] before:w-5 before:h-5 before:bg-muted before:rounded-full before:border-r before:border-dashed before:border-border
+                      after:absolute after:right-[-10px] after:top-[calc(50%-10px)] after:w-5 after:h-5 after:bg-muted after:rounded-full after:border-l after:border-dashed after:border-border`}
+                  >
+                    <div className="flex-1 pr-4 pl-2 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono font-bold text-sm bg-accent px-2 py-0.5 rounded border border-border">
+                          {v.code}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[10px] bg-primary text-primary-foreground font-bold px-1.5 py-0.5 rounded">
+                            Terpasang
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-extrabold text-base">
+                        {v.discount_type === "percentage" 
+                          ? `Diskon ${v.discount_value}%` 
+                          : `Diskon ${formatIDR(v.discount_value)}`
+                        }
+                      </div>
+                      {v.discount_type === "percentage" && v.max_discount && (
+                        <div className="text-xs text-muted-foreground">
+                          Maksimal potongan: {formatIDR(v.max_discount)}
+                        </div>
+                      )}
+                      <div className="text-[11px] text-muted-foreground mt-1.5 space-y-0.5">
+                        <p>Min. Belanja: <span className="font-medium">{formatIDR(v.min_purchase)}</span></p>
+                        {v.end_date && (
+                          <p>Berlaku s/d: {new Date(v.end_date).toLocaleDateString("id-ID", { dateStyle: "medium" })}</p>
+                        )}
+                      </div>
+                      {!isApplicable && (
+                        <p className="text-[10px] text-destructive font-bold mt-2">
+                          * Belum memenuhi minimum belanja {formatIDR(v.min_purchase)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 z-10">
+                      {isSelected ? (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => { setSelectedVoucher(null); setVoucherCodeInput(""); setShowVoucherDrawer(false); }}
+                          className="cursor-pointer text-xs"
+                        >
+                          Batal
+                        </Button>
+                      ) : (
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={!isApplicable}
+                          onClick={() => {
+                            setSelectedVoucher(v);
+                            setVoucherCodeInput(v.code);
+                            setShowVoucherDrawer(false);
+                            toast.success(`Voucher ${v.code} diterapkan!`);
+                          }}
+                          className="cursor-pointer text-xs"
+                        >
+                          Gunakan
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Tidak ada voucher tersedia saat ini.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       <Footer />
     </>
   );

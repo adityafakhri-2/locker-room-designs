@@ -20,6 +20,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout.index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as ApiWebhookRouteImport } from './routes/api.webhook'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/_admin/route'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as CheckoutSuccessOrderNumberRouteImport } from './routes/checkout.success.$orderNumber'
@@ -28,6 +29,7 @@ import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardPesananIndexRouteImport } from './routes/_authenticated/dashboard.pesanan.index'
 import { Route as AuthenticatedAdminAdminIndexRouteImport } from './routes/_authenticated/_admin/admin.index'
 import { Route as AuthenticatedDashboardPesananOrderNumberRouteImport } from './routes/_authenticated/dashboard.pesanan.$orderNumber'
+import { Route as AuthenticatedAdminAdminVoucherRouteImport } from './routes/_authenticated/_admin/admin.voucher'
 import { Route as AuthenticatedAdminAdminUlasanRouteImport } from './routes/_authenticated/_admin/admin.ulasan'
 import { Route as AuthenticatedAdminAdminPelangganRouteImport } from './routes/_authenticated/_admin/admin.pelanggan'
 import { Route as AuthenticatedAdminAdminLaporanRouteImport } from './routes/_authenticated/_admin/admin.laporan'
@@ -92,6 +94,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhookRoute = ApiWebhookRouteImport.update({
+  id: '/api/webhook',
+  path: '/api/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
   id: '/_admin',
   getParentRoute: () => AuthenticatedRouteRoute,
@@ -137,6 +144,12 @@ const AuthenticatedDashboardPesananOrderNumberRoute =
     id: '/dashboard/pesanan/$orderNumber',
     path: '/dashboard/pesanan/$orderNumber',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminAdminVoucherRoute =
+  AuthenticatedAdminAdminVoucherRouteImport.update({
+    id: '/admin/voucher',
+    path: '/admin/voucher',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminAdminUlasanRoute =
   AuthenticatedAdminAdminUlasanRouteImport.update({
@@ -202,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
+  '/api/webhook': typeof ApiWebhookRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
@@ -213,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/admin/laporan': typeof AuthenticatedAdminAdminLaporanRoute
   '/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
   '/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
+  '/admin/voucher': typeof AuthenticatedAdminAdminVoucherRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin/': typeof AuthenticatedAdminAdminIndexRoute
   '/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
@@ -230,6 +245,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
+  '/api/webhook': typeof ApiWebhookRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout': typeof CheckoutIndexRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
@@ -241,6 +257,7 @@ export interface FileRoutesByTo {
   '/admin/laporan': typeof AuthenticatedAdminAdminLaporanRoute
   '/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
   '/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
+  '/admin/voucher': typeof AuthenticatedAdminAdminVoucherRoute
   '/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/admin': typeof AuthenticatedAdminAdminIndexRoute
   '/dashboard/pesanan': typeof AuthenticatedDashboardPesananIndexRoute
@@ -261,6 +278,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/shop': typeof ShopRoute
   '/_authenticated/_admin': typeof AuthenticatedAdminRouteRouteWithChildren
+  '/api/webhook': typeof ApiWebhookRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
@@ -272,6 +290,7 @@ export interface FileRoutesById {
   '/_authenticated/_admin/admin/laporan': typeof AuthenticatedAdminAdminLaporanRoute
   '/_authenticated/_admin/admin/pelanggan': typeof AuthenticatedAdminAdminPelangganRoute
   '/_authenticated/_admin/admin/ulasan': typeof AuthenticatedAdminAdminUlasanRoute
+  '/_authenticated/_admin/admin/voucher': typeof AuthenticatedAdminAdminVoucherRoute
   '/_authenticated/dashboard/pesanan/$orderNumber': typeof AuthenticatedDashboardPesananOrderNumberRoute
   '/_authenticated/_admin/admin/': typeof AuthenticatedAdminAdminIndexRoute
   '/_authenticated/dashboard/pesanan/': typeof AuthenticatedDashboardPesananIndexRoute
@@ -291,6 +310,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/search'
     | '/shop'
+    | '/api/webhook'
     | '/product/$slug'
     | '/checkout/'
     | '/dashboard/profil'
@@ -302,6 +322,7 @@ export interface FileRouteTypes {
     | '/admin/laporan'
     | '/admin/pelanggan'
     | '/admin/ulasan'
+    | '/admin/voucher'
     | '/dashboard/pesanan/$orderNumber'
     | '/admin/'
     | '/dashboard/pesanan/'
@@ -319,6 +340,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/search'
     | '/shop'
+    | '/api/webhook'
     | '/product/$slug'
     | '/checkout'
     | '/dashboard/profil'
@@ -330,6 +352,7 @@ export interface FileRouteTypes {
     | '/admin/laporan'
     | '/admin/pelanggan'
     | '/admin/ulasan'
+    | '/admin/voucher'
     | '/dashboard/pesanan/$orderNumber'
     | '/admin'
     | '/dashboard/pesanan'
@@ -349,6 +372,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/shop'
     | '/_authenticated/_admin'
+    | '/api/webhook'
     | '/product/$slug'
     | '/checkout/'
     | '/_authenticated/dashboard/profil'
@@ -360,6 +384,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_admin/admin/laporan'
     | '/_authenticated/_admin/admin/pelanggan'
     | '/_authenticated/_admin/admin/ulasan'
+    | '/_authenticated/_admin/admin/voucher'
     | '/_authenticated/dashboard/pesanan/$orderNumber'
     | '/_authenticated/_admin/admin/'
     | '/_authenticated/dashboard/pesanan/'
@@ -379,6 +404,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   SearchRoute: typeof SearchRoute
   ShopRoute: typeof ShopRoute
+  ApiWebhookRoute: typeof ApiWebhookRoute
   ProductSlugRoute: typeof ProductSlugRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
   CheckoutSuccessOrderNumberRoute: typeof CheckoutSuccessOrderNumberRoute
@@ -463,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhook': {
+      id: '/api/webhook'
+      path: '/api/webhook'
+      fullPath: '/api/webhook'
+      preLoaderRoute: typeof ApiWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/_admin': {
       id: '/_authenticated/_admin'
       path: ''
@@ -518,6 +551,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/pesanan/$orderNumber'
       preLoaderRoute: typeof AuthenticatedDashboardPesananOrderNumberRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_admin/admin/voucher': {
+      id: '/_authenticated/_admin/admin/voucher'
+      path: '/admin/voucher'
+      fullPath: '/admin/voucher'
+      preLoaderRoute: typeof AuthenticatedAdminAdminVoucherRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/_admin/admin/ulasan': {
       id: '/_authenticated/_admin/admin/ulasan'
@@ -591,6 +631,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminAdminLaporanRoute: typeof AuthenticatedAdminAdminLaporanRoute
   AuthenticatedAdminAdminPelangganRoute: typeof AuthenticatedAdminAdminPelangganRoute
   AuthenticatedAdminAdminUlasanRoute: typeof AuthenticatedAdminAdminUlasanRoute
+  AuthenticatedAdminAdminVoucherRoute: typeof AuthenticatedAdminAdminVoucherRoute
   AuthenticatedAdminAdminIndexRoute: typeof AuthenticatedAdminAdminIndexRoute
   AuthenticatedAdminAdminPesananOrderNumberRoute: typeof AuthenticatedAdminAdminPesananOrderNumberRoute
   AuthenticatedAdminAdminProdukIdRoute: typeof AuthenticatedAdminAdminProdukIdRoute
@@ -606,6 +647,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminAdminPelangganRoute:
       AuthenticatedAdminAdminPelangganRoute,
     AuthenticatedAdminAdminUlasanRoute: AuthenticatedAdminAdminUlasanRoute,
+    AuthenticatedAdminAdminVoucherRoute: AuthenticatedAdminAdminVoucherRoute,
     AuthenticatedAdminAdminIndexRoute: AuthenticatedAdminAdminIndexRoute,
     AuthenticatedAdminAdminPesananOrderNumberRoute:
       AuthenticatedAdminAdminPesananOrderNumberRoute,
@@ -654,6 +696,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   SearchRoute: SearchRoute,
   ShopRoute: ShopRoute,
+  ApiWebhookRoute: ApiWebhookRoute,
   ProductSlugRoute: ProductSlugRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,
   CheckoutSuccessOrderNumberRoute: CheckoutSuccessOrderNumberRoute,

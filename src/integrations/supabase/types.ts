@@ -319,6 +319,9 @@ export type Database = {
           tracking_number: string | null
           updated_at: string
           user_id: string
+          voucher_id: string | null
+          voucher_code: string | null
+          discount_amount: number
         }
         Insert: {
           cancel_reason?: string | null
@@ -341,6 +344,9 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           user_id: string
+          voucher_id?: string | null
+          voucher_code?: string | null
+          discount_amount?: number
         }
         Update: {
           cancel_reason?: string | null
@@ -363,6 +369,9 @@ export type Database = {
           tracking_number?: string | null
           updated_at?: string
           user_id?: string
+          voucher_id?: string | null
+          voucher_code?: string | null
+          discount_amount?: number
         }
         Relationships: []
       }
@@ -856,6 +865,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vouchers: {
+        Row: {
+          id: string
+          code: string
+          discount_type: string
+          discount_value: number
+          min_purchase: number
+          max_discount: number | null
+          start_date: string
+          end_date: string | null
+          usage_limit: number | null
+          usage_count: number
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          discount_type: string
+          discount_value: number
+          min_purchase?: number
+          max_discount?: number | null
+          start_date?: string
+          end_date?: string | null
+          usage_limit?: number | null
+          usage_count?: number
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          discount_type?: string
+          discount_value?: number
+          min_purchase?: number
+          max_discount?: number | null
+          start_date?: string
+          end_date?: string | null
+          usage_limit?: number | null
+          usage_count?: number
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

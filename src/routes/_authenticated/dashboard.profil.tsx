@@ -128,16 +128,17 @@ function ProfilePage() {
       <PageHeader eyebrow="Profil" title="Data Pribadi" action={<Button variant="outline" onClick={logout} className="cursor-pointer">Logout</Button>} />
       <Card>
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-4 max-w-2xl">
-          <div className="sm:col-span-2"><Label>Email</Label><Input value={user?.email ?? ""} disabled /></div>
           <div className="sm:col-span-2">
             <Label>Nama Lengkap</Label>
             <Input disabled={!isEditing} value={form.nama_lengkap} onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })} />
           </div>
-          <div className="sm:col-span-2 sm:grid sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Nomor HP</Label>
-              <Input disabled={!isEditing} value={form.no_hp} onChange={(e) => setForm({ ...form, no_hp: e.target.value })} />
-            </div>
+          <div>
+            <Label>Email</Label>
+            <Input value={user?.email ?? ""} disabled />
+          </div>
+          <div>
+            <Label>Nomor HP</Label>
+            <Input disabled={!isEditing} value={form.no_hp} onChange={(e) => setForm({ ...form, no_hp: e.target.value })} />
           </div>
           
           <IndonesiaRegionSelector
