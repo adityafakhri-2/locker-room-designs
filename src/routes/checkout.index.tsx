@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatIDR, SHIPPING_RATES } from "@/lib/format";
+import { formatIDR } from "@/lib/format";
 import { createMayarPayment } from "@/lib/api/payment.functions";
+import { calculateShippingRates } from "@/lib/api/shipping.functions";
 import { useCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -29,11 +30,13 @@ function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     recipient_name: "", recipient_no_hp: "", recipient_alamat: "", recipient_kota: "",
-    recipient_provinsi: "", recipient_kode_pos: "", note: "", courier: "JNE",
+    recipient_provinsi: "", recipient_kode_pos: "", note: "", courier: "JNE REG",
   });
   const [alamatDetail, setAlamatDetail] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
+  const [rates, setRates] = useState<any[]>([]);
+  const [ratesLoading, setRatesLoading] = useState(false);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // Voucher states
@@ -130,6 +133,45 @@ function CheckoutPage() {
     }
   }, [cart.data, cart.isLoading, navigate]);
 
+  // Perbarui tarif ongkir JNE ketika lokasi pengiriman atau isi keranjang berubah
+  useEffect(() => {
+    async function updateRates() {
+      const currentCart = cart.data ?? [];
+      const currentQty = currentCart.reduce((s, i) => s + i.quantity, 0);
+
+      if (!form.recipient_provinsi || !form.recipient_kota || currentCart.length === 0) {
+        setRates([]);
+        return;
+      }
+      setRatesLoading(true);
+      try {
+        const result = await calculateShippingRates({
+          data: {
+            destinationProvinsi: form.recipient_provinsi,
+            destinationKota: form.recipient_kota,
+            totalQuantity: currentQty
+          }
+        });
+
+        if (result.success && result.rates) {
+          setRates(result.rates);
+          
+          const hasReg = result.rates.find(r => r.service === "REG");
+          const defaultService = hasReg ? "JNE REG" : (result.rates[0]?.name || "JNE REG");
+
+          if (!result.rates.some(r => r.name === form.courier)) {
+            setForm(f => ({ ...f, courier: defaultService }));
+          }
+        }
+      } catch (err) {
+        console.error("[Checkout UI] Gagal memperbarui ongkos kirim:", err);
+      } finally {
+        setRatesLoading(false);
+      }
+    }
+    updateRates();
+  }, [form.recipient_provinsi, form.recipient_kota, cart.data]);
+
   if (authLoading || (user && profileQuery.isLoading) || cart.isLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
   if (!user) {
     return null;
@@ -137,7 +179,8 @@ function CheckoutPage() {
 
   const items = cart.data ?? [];
   const subtotal = items.reduce((s, i) => s + Number(i.products?.price ?? 0) * i.quantity, 0);
-  const shipping = SHIPPING_RATES[form.courier] ?? 0;
+  const selectedRate = rates.find((r) => r.name === form.courier);
+  const shipping = selectedRate ? selectedRate.cost : 0;
 
   // Dynamic discount calculation
   let discountAmount = 0;
@@ -392,21 +435,55 @@ function CheckoutPage() {
                   required={true}
                 />
 
-                <div className="sm:col-span-2"><Label>Catatan Pesanan</Label><Textarea value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
+                <div className="sm:col-span-2"><Label>Catatan Pesanan</Label><Textarea placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..." value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
               </div>
             </section>
 
             <section>
               <h2 className="display-md mb-6">Kurir</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {Object.entries(SHIPPING_RATES).map(([k, v]) => (
-                  <button type="button" key={k} onClick={() => set("courier", k)}
-                    className={`border p-4 text-left cursor-pointer transition-all ${form.courier === k ? "border-primary bg-accent" : "border-border"}`}>
-                    <div className="font-semibold">{k}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{formatIDR(v)}</div>
-                  </button>
-                ))}
-              </div>
+              {!form.recipient_provinsi || !form.recipient_kota ? (
+                <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground rounded-lg bg-muted/20">
+                  Silakan tentukan provinsi dan kota alamat pengiriman Anda terlebih dahulu untuk melihat pilihan layanan kurir JNE.
+                </div>
+              ) : ratesLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="border border-border p-4 rounded-lg animate-pulse bg-muted/40 h-20 flex flex-col justify-center">
+                      <div className="h-4 bg-muted-foreground/20 rounded w-2/3 mb-2"></div>
+                      <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : rates.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {rates.map((r) => (
+                    <button
+                      type="button"
+                      key={r.name}
+                      onClick={() => set("courier", r.name)}
+                      className={`border p-4 text-left cursor-pointer transition-all rounded-lg ${
+                        form.courier === r.name ? "border-primary bg-accent/40 shadow-sm" : "border-border hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-foreground">{r.name}</span>
+                        <span className="text-[10px] text-primary font-mono bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
+                          JNE
+                        </span>
+                      </div>
+                      <div className="text-sm font-extrabold text-foreground mt-1.5">{formatIDR(r.cost)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                        <span>Estimasi:</span>
+                        <span className="font-medium text-foreground">{r.etd}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-dashed border-destructive/20 p-6 text-center text-sm text-destructive rounded-lg bg-destructive/5">
+                  Gagal memuat tarif pengiriman untuk wilayah ini. Silakan hubungi admin atau coba lagi.
+                </div>
+              )}
             </section>
 
             <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg">
@@ -414,8 +491,8 @@ function CheckoutPage() {
                 Metode Pembayaran
               </h2>
               <div className="flex items-center gap-4">
-                <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0">
-                  <span className="font-black text-primary text-lg tracking-wider">mayar<span className="text-amber-500">.id</span></span>
+                <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
+                  <img src="https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png" alt="Mayar" className="h-7 object-contain" />
                 </div>
                 <div className="text-sm">
                   <p className="font-bold text-foreground">Pembayaran Instan & Otomatis via Mayar</p>

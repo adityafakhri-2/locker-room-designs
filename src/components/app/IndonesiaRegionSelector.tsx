@@ -215,7 +215,7 @@ export function IndonesiaRegionSelector({
     }
   }, [districts, kecamatan, distId]);
 
-  // Cascade 6: Fetch Villages and Postal codes from Vercel API based on district (Kecamatan) name
+  // Cascade 6: Fetch Villages and Postal codes from Vercel API based on district (Kecamatan) name + city name
   useEffect(() => {
     if (!kecamatan) {
       setVillages([]);
@@ -226,11 +226,15 @@ export function IndonesiaRegionSelector({
       setLoadingVillages(true);
       setFallbackMode(false);
       try {
-        const res = await fetch(`https://kodepos.vercel.app/search/?q=${encodeURIComponent(kecamatan)}`);
+        // Bersihkan prefiks kota/kabupaten agar pencarian lebih spesifik
+        const cleanKota = kota.replace(/^(KOTA|KABUPATEN|KAB)\.?\s+/i, "").trim();
+        const searchQuery = `${kecamatan} ${cleanKota}`;
+
+        const res = await fetch(`https://kodepos.vercel.app/search/?q=${encodeURIComponent(searchQuery)}`);
         if (!res.ok) throw new Error("Failed to fetch postal codes");
         const json = await res.json();
         if (json.statusCode === 200 && Array.isArray(json.data)) {
-          // Filter results matching the active city and province to avoid collisions (e.g. Kecamatan with same name in different regions)
+          // Filter results matching the active city and province to avoid collisions
           const filtered: PostalItem[] = json.data.filter((item: PostalItem) => {
             return (
               (!provinsi || stringsMatch(item.province, provinsi)) &&
@@ -238,7 +242,6 @@ export function IndonesiaRegionSelector({
             );
           });
           
-          // If filtering yields nothing, use all search results for that district
           const finalData = filtered.length > 0 ? filtered : json.data;
           setVillages(finalData);
 
@@ -379,7 +382,7 @@ export function IndonesiaRegionSelector({
               <SearchableSelect
                 options={villages.map((v, idx) => ({
                   value: `${v.village}|${v.code}`,
-                  label: `${toTitleCase(v.village)} (${v.code})`,
+                  label: toTitleCase(v.village),
                 }))}
                 value={kelurahan ? `${kelurahan}|${kodePos}` : ""}
                 onChange={onVillageSelect}
