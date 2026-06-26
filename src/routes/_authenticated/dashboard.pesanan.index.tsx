@@ -23,7 +23,15 @@ function OrdersPage() {
     enabled: !!user,
     queryFn: async () => {
       await supabase.rpc("check_and_cancel_expired_orders");
-      return (await supabase.from("orders").select("*, payments(status), order_items(*)").eq("user_id", user!.id).order("created_at", { ascending: false })).data ?? [];
+      return (
+        (
+          await supabase
+            .from("orders")
+            .select("*, payments(status), order_items(*)")
+            .eq("user_id", user!.id)
+            .order("created_at", { ascending: false })
+        ).data ?? []
+      );
     },
   });
 
@@ -39,9 +47,10 @@ function OrdersPage() {
 
     list.forEach((o) => {
       const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
-      const displayStatus = (o.status === "pending" && payment?.status === "waiting_verification")
-        ? "waiting_verification"
-        : o.status;
+      const displayStatus =
+        o.status === "pending" && payment?.status === "waiting_verification"
+          ? "waiting_verification"
+          : o.status;
 
       if (displayStatus === "pending") pending++;
       else if (displayStatus === "waiting_verification" || displayStatus === "paid") paid++;
@@ -60,9 +69,10 @@ function OrdersPage() {
     if (orderFilter !== "all") {
       list = list.filter((o) => {
         const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
-        const displayStatus = (o.status === "pending" && payment?.status === "waiting_verification")
-          ? "waiting_verification"
-          : o.status;
+        const displayStatus =
+          o.status === "pending" && payment?.status === "waiting_verification"
+            ? "waiting_verification"
+            : o.status;
 
         if (orderFilter === "pending") {
           return displayStatus === "pending";
@@ -101,16 +111,16 @@ function OrdersPage() {
                 "pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap focus:outline-none",
                 isActive
                   ? "border-primary text-primary font-bold"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               <span>{tab.label}</span>
-              <span className={cn(
-                "px-2 py-0.5 text-[10px] rounded-full font-bold transition-colors",
-                isActive 
-                  ? "bg-primary/10 text-primary" 
-                  : "bg-muted text-muted-foreground"
-              )}>
+              <span
+                className={cn(
+                  "px-2 py-0.5 text-[10px] rounded-full font-bold transition-colors",
+                  isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                )}
+              >
                 {tab.count}
               </span>
             </button>
@@ -122,10 +132,11 @@ function OrdersPage() {
         filteredOrders.length ? (
           <div className="space-y-4">
             {filteredOrders.map((o) => {
-              const payment = Array.isArray(o.payments) ? o.payments[0] : o.payments as any;
-              const displayStatus = (o.status === "pending" && payment?.status === "waiting_verification")
-                ? "waiting_verification"
-                : o.status;
+              const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+              const displayStatus =
+                o.status === "pending" && payment?.status === "waiting_verification"
+                  ? "waiting_verification"
+                  : o.status;
 
               const items = Array.isArray(o.order_items) ? o.order_items : [];
               const firstItem = items[0];
@@ -156,12 +167,23 @@ function OrdersPage() {
                   {/* Top Bar: Order ID, Date, and Status */}
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-muted-foreground">No. Pesanan:</span>
-                      <span className="font-mono text-xs font-bold text-foreground">{o.order_number}</span>
+                      <span className="font-mono text-xs font-bold text-muted-foreground">
+                        No. Pesanan:
+                      </span>
+                      <span className="font-mono text-xs font-bold text-foreground">
+                        {o.order_number}
+                      </span>
                       <span className="text-muted-foreground/30">•</span>
-                      <span className="text-xs text-muted-foreground">{formatDate(o.created_at)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(o.created_at)}
+                      </span>
                     </div>
-                    <span className={cn("text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full", getStatusBadgeClass(displayStatus))}>
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full",
+                        getStatusBadgeClass(displayStatus),
+                      )}
+                    >
                       {statusLabel(displayStatus)}
                     </span>
                   </div>
@@ -171,17 +193,28 @@ function OrdersPage() {
                     <div className="flex gap-4 py-1">
                       <div className="size-16 bg-muted border border-border rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
                         {firstItem.image_url ? (
-                          <img src={firstItem.image_url} alt="" className="size-full object-cover" />
+                          <img
+                            src={firstItem.image_url}
+                            alt=""
+                            className="size-full object-cover"
+                          />
                         ) : (
                           <Shirt className="size-6 text-muted-foreground/40" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-foreground truncate">{firstItem.product_name}</h4>
+                        <h4 className="font-bold text-sm text-foreground truncate">
+                          {firstItem.product_name}
+                        </h4>
                         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                          <span>Ukuran: <strong className="text-foreground">{firstItem.size}</strong></span>
+                          <span>
+                            Ukuran: <strong className="text-foreground">{firstItem.size}</strong>
+                          </span>
                           <span>•</span>
-                          <span>Jumlah: <strong className="text-foreground">x{firstItem.quantity}</strong></span>
+                          <span>
+                            Jumlah:{" "}
+                            <strong className="text-foreground">x{firstItem.quantity}</strong>
+                          </span>
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-right tabular-nums self-center">
@@ -201,11 +234,21 @@ function OrdersPage() {
                   <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border/50">
                     <div className="text-xs">
                       <span className="text-muted-foreground">Total Pesanan: </span>
-                      <strong className="text-base font-extrabold text-foreground tabular-nums">{formatIDR(o.grand_total)}</strong>
+                      <strong className="text-base font-extrabold text-foreground tabular-nums">
+                        {formatIDR(o.grand_total)}
+                      </strong>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="h-8 text-xs cursor-pointer" asChild>
-                        <Link to="/dashboard/pesanan/$orderNumber" params={{ orderNumber: o.order_number }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs cursor-pointer"
+                        asChild
+                      >
+                        <Link
+                          to="/dashboard/pesanan/$orderNumber"
+                          params={{ orderNumber: o.order_number }}
+                        >
                           Lihat Detail Pesanan
                         </Link>
                       </Button>
@@ -217,7 +260,9 @@ function OrdersPage() {
           </div>
         ) : (
           <Card>
-            <p className="text-sm text-muted-foreground text-center py-6">Tidak ada pesanan dengan status ini.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Tidak ada pesanan dengan status ini.
+            </p>
           </Card>
         )
       ) : (
@@ -228,4 +273,3 @@ function OrdersPage() {
     </DashboardShell>
   );
 }
-

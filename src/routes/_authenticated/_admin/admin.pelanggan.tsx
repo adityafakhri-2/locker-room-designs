@@ -17,11 +17,11 @@ function AdminCustomers() {
         .from("user_roles")
         .select("user_id")
         .eq("role", "customer");
-      
+
       if (rolesError) {
         throw new Error(rolesError.message);
       }
-      
+
       const customerIds = roles?.map((r) => r.user_id) ?? [];
       if (customerIds.length === 0) return [];
 
@@ -47,25 +47,42 @@ function AdminCustomers() {
         ) : q.isError ? (
           <div className="text-sm text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-md">
             <p className="font-semibold">Gagal memuat data pelanggan:</p>
-            <p className="mt-1 font-mono text-xs">{q.error instanceof Error ? q.error.message : String(q.error)}</p>
+            <p className="mt-1 font-mono text-xs">
+              {q.error instanceof Error ? q.error.message : String(q.error)}
+            </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Catatan: Pastikan Anda telah menjalankan baris SQL RLS kebijakan untuk admin di Supabase SQL Editor.
+              Catatan: Pastikan Anda telah menjalankan baris SQL RLS kebijakan untuk admin di
+              Supabase SQL Editor.
             </p>
           </div>
         ) : q.data?.length ? (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left eyebrow text-muted-foreground border-b border-border"><th className="py-2">Nama</th><th>Email</th><th>HP</th><th>Kota</th><th>Bergabung</th></tr></thead>
-            <tbody>
-              {q.data.map((p) => (
-                <tr key={p.id} className="border-b border-border/50">
-                  <td className="py-3 font-semibold">{p.nama_lengkap || "—"}</td>
-                  <td>{p.email}</td><td className="text-xs">{p.no_hp || "—"}</td><td className="text-xs">{p.kota || "—"}</td>
-                  <td className="text-xs">{formatDate(p.created_at)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+                  <th className="py-2">Nama</th>
+                  <th>Email</th>
+                  <th>HP</th>
+                  <th>Kota</th>
+                  <th>Bergabung</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : <p className="text-sm text-muted-foreground">Belum ada pelanggan.</p>}
+              </thead>
+              <tbody>
+                {q.data.map((p) => (
+                  <tr key={p.id} className="border-b border-border/50">
+                    <td className="py-3 font-semibold">{p.nama_lengkap || "—"}</td>
+                    <td>{p.email}</td>
+                    <td className="text-xs">{p.no_hp || "—"}</td>
+                    <td className="text-xs">{p.kota || "—"}</td>
+                    <td className="text-xs">{formatDate(p.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Belum ada pelanggan.</p>
+        )}
       </Card>
     </DashboardShell>
   );

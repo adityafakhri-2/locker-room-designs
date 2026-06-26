@@ -29,15 +29,23 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    recipient_name: "", recipient_no_hp: "", recipient_alamat: "", recipient_kota: "",
-    recipient_provinsi: "", recipient_kode_pos: "", note: "", courier: "JNE REG",
+    recipient_name: "",
+    recipient_no_hp: "",
+    recipient_alamat: "",
+    recipient_kota: "",
+    recipient_provinsi: "",
+    recipient_kode_pos: "",
+    note: "",
+    courier: "JNE REG",
   });
   const [alamatDetail, setAlamatDetail] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
   const [rates, setRates] = useState<any[]>([]);
   const [ratesLoading, setRatesLoading] = useState(false);
-  const [originLocation, setOriginLocation] = useState<{ city: string; province: string } | null>(null);
+  const [originLocation, setOriginLocation] = useState<{ city: string; province: string } | null>(
+    null,
+  );
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   // Load store origin location on mount
@@ -70,20 +78,21 @@ function CheckoutPage() {
         .eq("status", "active")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      
+
       // Filter out expired vouchers or those whose usage limit is reached
-      return (data ?? []).filter(v => {
+      return (data ?? []).filter((v) => {
         const isExpired = v.end_date ? new Date(v.end_date) < new Date() : false;
         const isLimitReached = v.usage_limit ? v.usage_count >= v.usage_limit : false;
         return !isExpired && !isLimitReached;
       });
-    }
+    },
   });
 
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
     enabled: !!user,
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
+    queryFn: async () =>
+      (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
     refetchOnMount: "always",
     staleTime: 0,
   });
@@ -155,7 +164,12 @@ function CheckoutPage() {
       const currentCart = cart.data ?? [];
       const currentQty = currentCart.reduce((s, i) => s + i.quantity, 0);
 
-      if (!form.recipient_provinsi || !form.recipient_kota || !kecamatan || currentCart.length === 0) {
+      if (
+        !form.recipient_provinsi ||
+        !form.recipient_kota ||
+        !kecamatan ||
+        currentCart.length === 0
+      ) {
         setRates([]);
         return;
       }
@@ -166,8 +180,8 @@ function CheckoutPage() {
             destinationProvinsi: form.recipient_provinsi,
             destinationKota: form.recipient_kota,
             destinationKecamatan: kecamatan,
-            totalQuantity: currentQty
-          }
+            totalQuantity: currentQty,
+          },
         });
 
         if (result.success && result.rates) {
@@ -175,12 +189,12 @@ function CheckoutPage() {
           if (result.originCity && result.originProvince) {
             setOriginLocation({ city: result.originCity, province: result.originProvince });
           }
-          
-          const hasReg = result.rates.find(r => r.service === "REG");
-          const defaultService = hasReg ? "JNE REG" : (result.rates[0]?.name || "JNE REG");
 
-          if (!result.rates.some(r => r.name === form.courier)) {
-            setForm(f => ({ ...f, courier: defaultService }));
+          const hasReg = result.rates.find((r) => r.service === "REG");
+          const defaultService = hasReg ? "JNE REG" : result.rates[0]?.name || "JNE REG";
+
+          if (!result.rates.some((r) => r.name === form.courier)) {
+            setForm((f) => ({ ...f, courier: defaultService }));
           }
         }
       } catch (err) {
@@ -192,7 +206,13 @@ function CheckoutPage() {
     updateRates();
   }, [form.recipient_provinsi, form.recipient_kota, kecamatan, cart.data]);
 
-  if (authLoading || (user && profileQuery.isLoading) || cart.isLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
+  if (authLoading || (user && profileQuery.isLoading) || cart.isLoading)
+    return (
+      <>
+        <Navbar />
+        <div className="pt-32 container-swiss">Memuat...</div>
+      </>
+    );
   if (!user) {
     return null;
   }
@@ -226,18 +246,20 @@ function CheckoutPage() {
       toast.error("Silakan masukkan kode voucher");
       return;
     }
-    
-    const found = vouchersQuery.data?.find(v => v.code === codeClean);
+
+    const found = vouchersQuery.data?.find((v) => v.code === codeClean);
     if (!found) {
       toast.error("Voucher tidak valid, kadaluarsa, atau kuota habis.");
       return;
     }
-    
+
     if (subtotal < Number(found.min_purchase)) {
-      toast.error(`Minimum belanja untuk menggunakan voucher ini adalah ${formatIDR(found.min_purchase)}`);
+      toast.error(
+        `Minimum belanja untuk menggunakan voucher ini adalah ${formatIDR(found.min_purchase)}`,
+      );
       return;
     }
-    
+
     setSelectedVoucher(found);
     setVoucherCodeInput(found.code);
     toast.success(`Voucher ${found.code} berhasil diterapkan!`);
@@ -282,8 +304,9 @@ function CheckoutPage() {
       }
     }
 
-    const finalAlamat = alamatDetail + 
-      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+    const finalAlamat =
+      alamatDetail +
+      (kecamatan ? `, Kec. ${kecamatan}` : "") +
       (kelurahan ? `, Kel. ${kelurahan}` : "");
 
     let createdOrderId: string | null = null;
@@ -295,7 +318,9 @@ function CheckoutPage() {
         .insert({
           user_id: user!.id,
           status: "pending",
-          subtotal, shipping_cost: shipping, grand_total: total,
+          subtotal,
+          shipping_cost: shipping,
+          grand_total: total,
           courier: form.courier,
           recipient_name: form.recipient_name,
           recipient_no_hp: form.recipient_no_hp,
@@ -339,7 +364,7 @@ function CheckoutPage() {
           customerEmail: user!.email || "",
           customerMobile: form.recipient_no_hp,
           redirectUrl: redirectUrl,
-        }
+        },
       });
 
       if (!mayarResult || !mayarResult.link) {
@@ -361,7 +386,7 @@ function CheckoutPage() {
       await supabase.from("cart_items").delete().eq("user_id", user!.id);
 
       toast.success("Pesanan dibuat. Mengalihkan ke pembayaran...");
-      
+
       // Alihkan pengguna langsung ke halaman pembayaran Mayar.id
       window.location.href = mayarResult.link;
     } catch (e) {
@@ -369,14 +394,17 @@ function CheckoutPage() {
 
       // ROLLBACK / COMPENSATING TRANSACTION JIKA INTEGRASI MAYAR GAGAL
       if (createdOrderId) {
-        console.log("[Checkout Cleanup] Pembayaran Mayar gagal dibuat, melakukan rollback pesanan:", createdOrderId);
+        console.log(
+          "[Checkout Cleanup] Pembayaran Mayar gagal dibuat, melakukan rollback pesanan:",
+          createdOrderId,
+        );
         try {
           // 1. Batalkan pesanan agar stok dikembalikan oleh trigger database trg_restore_stock_on_order_cancel
           await supabase
             .from("orders")
-            .update({ 
+            .update({
               status: "cancelled",
-              cancel_reason: "Gagal membuat tagihan pembayaran Mayar.id"
+              cancel_reason: "Gagal membuat tagihan pembayaran Mayar.id",
             })
             .eq("id", createdOrderId);
 
@@ -387,14 +415,14 @@ function CheckoutPage() {
               .select("usage_count")
               .eq("id", selectedVoucher.id)
               .single();
-            
+
             if (vData) {
               const newCount = Math.max(vData.usage_count - 1, 0);
               await supabase
                 .from("vouchers")
-                .update({ 
+                .update({
                   usage_count: newCount,
-                  status: "active" // Kembalikan status ke active jika sebelumnya sempat berubah inactive
+                  status: "active", // Kembalikan status ke active jika sebelumnya sempat berubah inactive
                 })
                 .eq("id", selectedVoucher.id);
             }
@@ -418,16 +446,19 @@ function CheckoutPage() {
           <h1 className="display-lg mt-2">Selesaikan Pesanan</h1>
         </div>
 
-        <form onSubmit={submit} className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-10">
-          <div className="space-y-8">
-            <section>
+        <form
+          onSubmit={submit}
+          className="w-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-10"
+        >
+          <div className="space-y-8 w-full max-w-full">
+            <section className="w-full">
               <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h2 className="display-md">Alamat Pengiriman</h2>
                 {profileQuery.data && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={fillFromProfile}
                     className="cursor-pointer text-xs h-8"
                   >
@@ -435,10 +466,24 @@ function CheckoutPage() {
                   </Button>
                 )}
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2"><Label>Nama Penerima</Label><Input required value={form.recipient_name} onChange={(e) => set("recipient_name", e.target.value)} /></div>
-                <div className="sm:col-span-2"><Label>Nomor HP</Label><Input required value={form.recipient_no_hp} onChange={(e) => set("recipient_no_hp", e.target.value)} /></div>
-                
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <div className="sm:col-span-2">
+                  <Label>Nama Penerima</Label>
+                  <Input
+                    required
+                    value={form.recipient_name}
+                    onChange={(e) => set("recipient_name", e.target.value)}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Nomor HP</Label>
+                  <Input
+                    required
+                    value={form.recipient_no_hp}
+                    onChange={(e) => set("recipient_no_hp", e.target.value)}
+                  />
+                </div>
+
                 <IndonesiaRegionSelector
                   provinsi={form.recipient_provinsi}
                   setProvinsi={(val) => set("recipient_provinsi", val)}
@@ -455,52 +500,70 @@ function CheckoutPage() {
                   required={true}
                 />
 
-                <div className="sm:col-span-2"><Label>Catatan Pesanan</Label><Textarea placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..." value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
+                <div className="sm:col-span-2">
+                  <Label>Catatan Pesanan</Label>
+                  <Textarea
+                    placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..."
+                    value={form.note}
+                    onChange={(e) => set("note", e.target.value)}
+                  />
+                </div>
               </div>
             </section>
 
-            <section>
+            <section className="w-full">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
                 <h2 className="display-md font-extrabold">Kurir</h2>
                 {originLocation && (
                   <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
-                    Dikirim dari: <strong className="font-semibold text-foreground">{originLocation.city}, {originLocation.province}</strong>
+                    Dikirim dari:{" "}
+                    <strong className="font-semibold text-foreground">
+                      {originLocation.city}, {originLocation.province}
+                    </strong>
                   </span>
                 )}
               </div>
               {!form.recipient_provinsi || !form.recipient_kota || !kecamatan ? (
                 <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground rounded-lg bg-muted/20">
-                  Silakan tentukan provinsi, kota, dan kecamatan alamat pengiriman Anda terlebih dahulu untuk melihat pilihan layanan kurir JNE.
+                  Silakan tentukan provinsi, kota, dan kecamatan alamat pengiriman Anda terlebih
+                  dahulu untuk melihat pilihan layanan kurir JNE.
                 </div>
               ) : ratesLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="border border-border p-4 rounded-lg animate-pulse bg-muted/40 h-20 flex flex-col justify-center">
+                    <div
+                      key={i}
+                      className="border border-border p-4 rounded-lg animate-pulse bg-muted/40 h-20 flex flex-col justify-center"
+                    >
                       <div className="h-4 bg-muted-foreground/20 rounded w-2/3 mb-2"></div>
                       <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
                     </div>
                   ))}
                 </div>
               ) : rates.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                   {rates.map((r) => (
                     <button
                       type="button"
                       key={r.name}
                       onClick={() => set("courier", r.name)}
                       className={`border p-4 text-left cursor-pointer transition-all rounded-lg ${
-                        form.courier === r.name ? "border-primary bg-accent/40 shadow-sm" : "border-border hover:border-muted-foreground/30"
+                        form.courier === r.name
+                          ? "border-primary bg-accent/40 shadow-sm"
+                          : "border-border hover:border-muted-foreground/30"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-foreground">{r.name}</span>
-                        <img 
-                          src="https://upload.wikimedia.org/wikipedia/commons/9/92/New_Logo_JNE.png" 
-                          alt="JNE" 
-                          className="h-4 object-contain" 
+                        <img
+                          src="https://upload.wikimedia.org/wikipedia/commons/9/92/New_Logo_JNE.png"
+                          alt="JNE"
+                          className="h-4 object-contain"
                         />
                       </div>
-                      <div className="text-sm font-extrabold text-foreground mt-1.5">{formatIDR(r.cost)}</div>
+                      <div className="text-sm font-extrabold text-foreground mt-1.5">
+                        {formatIDR(r.cost)}
+                      </div>
                       <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
                         <span>Estimasi:</span>
                         <span className="font-medium text-foreground">{r.etd}</span>
@@ -510,22 +573,30 @@ function CheckoutPage() {
                 </div>
               ) : (
                 <div className="border border-dashed border-destructive/20 p-6 text-center text-sm text-destructive rounded-lg bg-destructive/5">
-                  Gagal memuat tarif pengiriman untuk wilayah ini. Silakan hubungi admin atau coba lagi.
+                  Gagal memuat tarif pengiriman untuk wilayah ini. Silakan hubungi admin atau coba
+                  lagi.
                 </div>
               )}
             </section>
 
-            <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg">
-              <h2 className="display-md mb-4 flex items-center gap-2">
-                Metode Pembayaran
-              </h2>
+            <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg w-full">
+              <h2 className="display-md mb-4 flex items-center gap-2">Metode Pembayaran</h2>
               <div className="flex items-center gap-4">
                 <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
-                  <img src="https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png" alt="Mayar" className="h-7 object-contain" />
+                  <img
+                    src="https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png"
+                    alt="Mayar"
+                    className="h-7 object-contain"
+                  />
                 </div>
                 <div className="text-sm">
-                  <p className="font-bold text-foreground">Pembayaran Instan & Otomatis via Mayar</p>
-                  <p className="text-muted-foreground mt-0.5">Mendukung QRIS, E-Wallet (GoPay, OVO, ShopeePay), Virtual Account (BCA, Mandiri, BNI), dan Kartu Kredit.</p>
+                  <p className="font-bold text-foreground">
+                    Pembayaran Instan & Otomatis via Mayar
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">
+                    Mendukung QRIS, E-Wallet (GoPay, OVO, ShopeePay), Virtual Account (BCA, Mandiri,
+                    BNI), dan Kartu Kredit.
+                  </p>
                 </div>
               </div>
             </section>
@@ -537,13 +608,23 @@ function CheckoutPage() {
               {items.map((i) => (
                 <div key={i.id} className="flex gap-3 text-sm">
                   <div className="size-14 bg-background overflow-hidden flex-shrink-0">
-                    {i.products?.cover_image_url && <img src={i.products.cover_image_url} alt="" className="size-full object-cover" />}
+                    {i.products?.cover_image_url && (
+                      <img
+                        src={i.products.cover_image_url}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-medium">{i.products?.name}</p>
-                    <p className="text-xs text-muted-foreground">{i.size} × {i.quantity}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {i.size} × {i.quantity}
+                    </p>
                   </div>
-                  <span className="tabular-nums">{formatIDR(Number(i.products?.price ?? 0) * i.quantity)}</span>
+                  <span className="tabular-nums">
+                    {formatIDR(Number(i.products?.price ?? 0) * i.quantity)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -553,24 +634,27 @@ function CheckoutPage() {
                 <Ticket className="size-3.5" /> Voucher Belanja
               </Label>
               <div className="flex gap-2 mt-1.5">
-                <Input 
-                  placeholder="Kode voucher" 
-                  value={voucherCodeInput} 
+                <Input
+                  placeholder="Kode voucher"
+                  value={voucherCodeInput}
                   onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
                   className="h-10 text-sm bg-background"
                 />
                 {selectedVoucher ? (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => { setSelectedVoucher(null); setVoucherCodeInput(""); }}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedVoucher(null);
+                      setVoucherCodeInput("");
+                    }}
                     className="h-10 text-xs px-3 text-destructive border-destructive hover:bg-destructive/10 cursor-pointer flex-shrink-0"
                   >
                     Batal
                   </Button>
                 ) : (
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     onClick={() => applyVoucherCode(voucherCodeInput)}
                     className="h-10 text-xs px-4 cursor-pointer flex-shrink-0"
                   >
@@ -588,8 +672,14 @@ function CheckoutPage() {
             </div>
 
             <dl className="mt-6 text-sm space-y-2 border-t border-border pt-4">
-              <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatIDR(subtotal)}</dd></div>
-              <div className="flex justify-between"><dt>Ongkos kirim</dt><dd>{formatIDR(shipping)}</dd></div>
+              <div className="flex justify-between">
+                <dt>Subtotal</dt>
+                <dd>{formatIDR(subtotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt>Ongkos kirim</dt>
+                <dd>{formatIDR(shipping)}</dd>
+              </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
                   <dt className="flex items-center gap-1">
@@ -601,9 +691,14 @@ function CheckoutPage() {
               )}
             </dl>
             <div className="border-t border-border mt-4 pt-4 flex justify-between text-base font-extrabold">
-              <span>Total</span><span>{formatIDR(total)}</span>
+              <span>Total</span>
+              <span>{formatIDR(total)}</span>
             </div>
-            <Button type="submit" className="w-full mt-6 h-12 cursor-pointer" disabled={loading || items.length === 0 || ratesLoading || !selectedRate}>
+            <Button
+              type="submit"
+              className="w-full mt-6 h-12 cursor-pointer"
+              disabled={loading || items.length === 0 || ratesLoading || !selectedRate}
+            >
               {loading ? "Memproses..." : ratesLoading ? "Menghitung Ongkir..." : "Buat Pesanan"}
             </Button>
           </aside>
@@ -625,10 +720,10 @@ function CheckoutPage() {
               vouchersQuery.data.map((v) => {
                 const isApplicable = subtotal >= Number(v.min_purchase);
                 const isSelected = selectedVoucher?.id === v.id;
-                
+
                 return (
-                  <div 
-                    key={v.id} 
+                  <div
+                    key={v.id}
                     className={`relative border-2 border-dashed rounded-lg p-4 flex items-center justify-between transition-all overflow-hidden bg-background
                       ${isSelected ? "border-primary bg-primary/5" : "border-border"}
                       ${!isApplicable ? "opacity-60" : "hover:border-primary/50"}
@@ -647,10 +742,9 @@ function CheckoutPage() {
                         )}
                       </div>
                       <div className="font-extrabold text-base">
-                        {v.discount_type === "percentage" 
-                          ? `Diskon ${v.discount_value}%` 
-                          : `Diskon ${formatIDR(v.discount_value)}`
-                        }
+                        {v.discount_type === "percentage"
+                          ? `Diskon ${v.discount_value}%`
+                          : `Diskon ${formatIDR(v.discount_value)}`}
                       </div>
                       {v.discount_type === "percentage" && v.max_discount && (
                         <div className="text-xs text-muted-foreground">
@@ -658,9 +752,17 @@ function CheckoutPage() {
                         </div>
                       )}
                       <div className="text-[11px] text-muted-foreground mt-1.5 space-y-0.5">
-                        <p>Min. Belanja: <span className="font-medium">{formatIDR(v.min_purchase)}</span></p>
+                        <p>
+                          Min. Belanja:{" "}
+                          <span className="font-medium">{formatIDR(v.min_purchase)}</span>
+                        </p>
                         {v.end_date && (
-                          <p>Berlaku s/d: {new Date(v.end_date).toLocaleDateString("id-ID", { dateStyle: "medium" })}</p>
+                          <p>
+                            Berlaku s/d:{" "}
+                            {new Date(v.end_date).toLocaleDateString("id-ID", {
+                              dateStyle: "medium",
+                            })}
+                          </p>
                         )}
                       </div>
                       {!isApplicable && (
@@ -671,18 +773,22 @@ function CheckoutPage() {
                     </div>
                     <div className="flex-shrink-0 z-10">
                       {isSelected ? (
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           size="sm"
-                          onClick={() => { setSelectedVoucher(null); setVoucherCodeInput(""); setShowVoucherDrawer(false); }}
+                          onClick={() => {
+                            setSelectedVoucher(null);
+                            setVoucherCodeInput("");
+                            setShowVoucherDrawer(false);
+                          }}
                           className="cursor-pointer text-xs"
                         >
                           Batal
                         </Button>
                       ) : (
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={!isApplicable}
                           onClick={() => {
@@ -701,7 +807,9 @@ function CheckoutPage() {
                 );
               })
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Tidak ada voucher tersedia saat ini.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Tidak ada voucher tersedia saat ini.
+              </p>
             )}
           </div>
         </DialogContent>

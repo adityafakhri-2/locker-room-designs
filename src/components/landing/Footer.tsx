@@ -4,7 +4,10 @@ const COLS = [
   { title: "Shop", links: ["Collections", "Vintage", "Retro", "Limited Edition", "About"] },
   { title: "Customer Service", links: ["FAQ", "Contact", "Shipping", "Returns", "Size Guide"] },
   { title: "Social", links: ["Instagram", "TikTok", "YouTube"] },
-  { title: "Contact", links: ["hello@thelockerroom.id", "WhatsApp +62 812 0000 0000", "Jakarta, Indonesia"] },
+  {
+    title: "Contact",
+    links: ["hello@thelockerroom.id", "WhatsApp +62 812 0000 0000", "Jakarta, Indonesia"],
+  },
 ];
 
 export function Footer() {
@@ -26,7 +29,11 @@ export function Footer() {
               <a href="#" aria-label="Instagram" className="hover:text-primary transition-colors">
                 <Instagram className="size-5" strokeWidth={1.5} />
               </a>
-              <a href="#" aria-label="TikTok" className="hover:text-primary transition-colors text-sm font-semibold tracking-wider">
+              <a
+                href="#"
+                aria-label="TikTok"
+                className="hover:text-primary transition-colors text-sm font-semibold tracking-wider"
+              >
                 TIKTOK
               </a>
               <a href="#" aria-label="YouTube" className="hover:text-primary transition-colors">
@@ -42,7 +49,10 @@ export function Footer() {
                 <ul className="mt-5 space-y-3">
                   {c.links.map((l) => (
                     <li key={l}>
-                      <a href="#" className="text-sm text-background/85 hover:text-primary transition-colors">
+                      <a
+                        href="#"
+                        className="text-sm text-background/85 hover:text-primary transition-colors"
+                      >
                         {l}
                       </a>
                     </li>

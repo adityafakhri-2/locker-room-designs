@@ -10,16 +10,40 @@ import limited from "@/assets/collection-limited.jpg";
 
 const STATIC_IMAGE_MAPPING: Record<string, string> = {
   "new-season": newSeason,
-  "vintage": vintage,
-  "retro": retro,
+  vintage: vintage,
+  retro: retro,
   "limited-edition": limited,
 };
 
 const FALLBACK_COLLECTIONS = [
-  { slug: "new-season", title: "New Season Jerseys", subtitle: "Koleksi jersey musim terbaru dari klub dan tim nasional favorit.", cover_url: newSeason, latest_product_cover_url: null as string | null },
-  { slug: "vintage", title: "Vintage Jerseys", subtitle: "Jersey bersejarah yang membawa kembali kenangan sepak bola.", cover_url: vintage, latest_product_cover_url: null as string | null },
-  { slug: "retro", title: "Retro Collection", subtitle: "Reproduksi jersey legendaris dari era keemasan sepak bola.", cover_url: retro, latest_product_cover_url: null as string | null },
-  { slug: "limited-edition", title: "Limited Edition", subtitle: "Koleksi eksklusif dengan jumlah terbatas.", cover_url: limited, latest_product_cover_url: null as string | null },
+  {
+    slug: "new-season",
+    title: "New Season Jerseys",
+    subtitle: "Koleksi jersey musim terbaru dari klub dan tim nasional favorit.",
+    cover_url: newSeason,
+    latest_product_cover_url: null as string | null,
+  },
+  {
+    slug: "vintage",
+    title: "Vintage Jerseys",
+    subtitle: "Jersey bersejarah yang membawa kembali kenangan sepak bola.",
+    cover_url: vintage,
+    latest_product_cover_url: null as string | null,
+  },
+  {
+    slug: "retro",
+    title: "Retro Collection",
+    subtitle: "Reproduksi jersey legendaris dari era keemasan sepak bola.",
+    cover_url: retro,
+    latest_product_cover_url: null as string | null,
+  },
+  {
+    slug: "limited-edition",
+    title: "Limited Edition",
+    subtitle: "Koleksi eksklusif dengan jumlah terbatas.",
+    cover_url: limited,
+    latest_product_cover_url: null as string | null,
+  },
 ];
 
 export function FeaturedCollections() {
@@ -33,17 +57,38 @@ export function FeaturedCollections() {
         .order("sort_order");
       if (errCols) throw errCols;
 
-      const { data: cats, error: errCats } = await supabase
-        .from("categories")
-        .select("id, slug");
+      const { data: cats, error: errCats } = await supabase.from("categories").select("id, slug");
       if (errCats) throw errCats;
 
-      const targetCols = cols && cols.length > 0 ? cols : [
-        { slug: "new-season", title: "New Season Jerseys", subtitle: "Koleksi jersey musim terbaru dari klub dan tim nasional favorit.", cover_url: null },
-        { slug: "vintage", title: "Vintage Jerseys", subtitle: "Jersey bersejarah yang membawa kembali kenangan sepak bola.", cover_url: null },
-        { slug: "retro", title: "Retro Collection", subtitle: "Reproduksi jersey legendaris dari era keemasan sepak bola.", cover_url: null },
-        { slug: "limited-edition", title: "Limited Edition", subtitle: "Koleksi eksklusif dengan jumlah terbatas.", cover_url: null },
-      ];
+      const targetCols =
+        cols && cols.length > 0
+          ? cols
+          : [
+              {
+                slug: "new-season",
+                title: "New Season Jerseys",
+                subtitle: "Koleksi jersey musim terbaru dari klub dan tim nasional favorit.",
+                cover_url: null,
+              },
+              {
+                slug: "vintage",
+                title: "Vintage Jerseys",
+                subtitle: "Jersey bersejarah yang membawa kembali kenangan sepak bola.",
+                cover_url: null,
+              },
+              {
+                slug: "retro",
+                title: "Retro Collection",
+                subtitle: "Reproduksi jersey legendaris dari era keemasan sepak bola.",
+                cover_url: null,
+              },
+              {
+                slug: "limited-edition",
+                title: "Limited Edition",
+                subtitle: "Koleksi eksklusif dengan jumlah terbatas.",
+                cover_url: null,
+              },
+            ];
 
       const colsWithCovers = await Promise.all(
         targetCols.map(async (col) => {
@@ -63,7 +108,7 @@ export function FeaturedCollections() {
             ...col,
             latest_product_cover_url: latestProd?.cover_image_url || null,
           };
-        })
+        }),
       );
 
       return colsWithCovers;
@@ -79,8 +124,8 @@ export function FeaturedCollections() {
           Temukan koleksi <span className="italic font-light">favoritmu.</span>
         </h2>
         <p className="lg:col-span-4 lg:col-start-9 text-muted-foreground self-end max-w-md">
-          Empat pintu masuk ke arsip jersey kami — dari kit musim ini hingga
-          potongan langka yang sulit ditemukan di pasar lain.
+          Empat pintu masuk ke arsip jersey kami — dari kit musim ini hingga potongan langka yang
+          sulit ditemukan di pasar lain.
         </p>
       </div>
 
@@ -89,7 +134,12 @@ export function FeaturedCollections() {
           const cover = c.cover_url || STATIC_IMAGE_MAPPING[c.slug] || newSeason;
           const tag = String(idx + 1).padStart(2, "0");
           return (
-            <Link key={c.slug} to="/shop" search={{ category: c.slug }} className="group flex flex-col">
+            <Link
+              key={c.slug}
+              to="/shop"
+              search={{ category: c.slug }}
+              className="group flex flex-col"
+            >
               <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                 <img
                   src={cover}

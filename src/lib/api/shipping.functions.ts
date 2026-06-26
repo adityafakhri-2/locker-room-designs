@@ -30,7 +30,7 @@ function findRajaOngkirCity(provName: string, cityName: string): City | undefine
   const targetCityClean = cleanName(cityName);
 
   // 1. Coba pencocokan persis (setelah dibersihkan)
-  let matched = cities.find(c => {
+  let matched = cities.find((c) => {
     const cProvClean = cleanName(c.province);
     const cCityClean = cleanName(c.city_name);
     return cProvClean === targetProvClean && cCityClean === targetCityClean;
@@ -39,7 +39,7 @@ function findRajaOngkirCity(provName: string, cityName: string): City | undefine
   if (matched) return matched;
 
   // 2. Coba pencocokan parsial jika persis gagal (misal untuk menangani perbedaan penulisan provinsi)
-  matched = cities.find(c => {
+  matched = cities.find((c) => {
     const cProvClean = cleanName(c.province);
     const cCityClean = cleanName(c.city_name);
     return cProvClean.includes(targetProvClean) && cCityClean === targetCityClean;
@@ -49,13 +49,18 @@ function findRajaOngkirCity(provName: string, cityName: string): City | undefine
 }
 
 // Fungsi untuk mendapatkan kota asal dinamis dari profil Admin di Supabase
-async function getAdminOrigin(): Promise<{ city_id: string; city_name: string; province: string; kecamatan: string }> {
+async function getAdminOrigin(): Promise<{
+  city_id: string;
+  city_name: string;
+  province: string;
+  kecamatan: string;
+}> {
   // Default fallback: Jakarta Selatan (153)
   const defaultOrigin = {
     city_id: "153",
     city_name: "Jakarta Selatan",
     province: "DKI Jakarta",
-    kecamatan: ""
+    kecamatan: "",
   };
 
   try {
@@ -71,7 +76,9 @@ async function getAdminOrigin(): Promise<{ city_id: string; city_name: string; p
       .maybeSingle();
 
     if (roleError || !userRole) {
-      console.warn("[Shipping API] Tidak ada user dengan role admin. Menggunakan origin default (Jakarta Selatan).");
+      console.warn(
+        "[Shipping API] Tidak ada user dengan role admin. Menggunakan origin default (Jakarta Selatan).",
+      );
       return defaultOrigin;
     }
 
@@ -83,14 +90,18 @@ async function getAdminOrigin(): Promise<{ city_id: string; city_name: string; p
       .maybeSingle();
 
     if (profileError || !profile || !profile.kota) {
-      console.warn("[Shipping API] Profil admin tidak ditemukan atau kolom kota kosong. Menggunakan origin default.");
+      console.warn(
+        "[Shipping API] Profil admin tidak ditemukan atau kolom kota kosong. Menggunakan origin default.",
+      );
       return defaultOrigin;
     }
 
     // 3. Cocokkan kota admin ke RajaOngkir ID
     const matchedCity = findRajaOngkirCity(profile.provinsi || "", profile.kota);
     if (!matchedCity) {
-      console.warn(`[Shipping API] Kota admin "${profile.kota}" tidak cocok dengan data RajaOngkir. Menggunakan origin default.`);
+      console.warn(
+        `[Shipping API] Kota admin "${profile.kota}" tidak cocok dengan data RajaOngkir. Menggunakan origin default.`,
+      );
       return defaultOrigin;
     }
 
@@ -108,12 +119,14 @@ async function getAdminOrigin(): Promise<{ city_id: string; city_name: string; p
       }
     }
 
-    console.log(`[Shipping API] Kota asal admin berhasil dideteksi secara dinamis: ${matchedCity.city_name} (Kecamatan: ${kecamatan})`);
+    console.log(
+      `[Shipping API] Kota asal admin berhasil dideteksi secara dinamis: ${matchedCity.city_name} (Kecamatan: ${kecamatan})`,
+    );
     return {
       city_id: matchedCity.city_id,
       city_name: matchedCity.city_name,
       province: matchedCity.province,
-      kecamatan
+      kecamatan,
     };
   } catch (err) {
     console.error("[Shipping API] Error saat mendapatkan kota asal admin:", err);
@@ -122,14 +135,17 @@ async function getAdminOrigin(): Promise<{ city_id: string; city_name: string; p
 }
 
 // Helper untuk mencari ID V2 RajaOngkir
-async function searchRajaOngkirV2Destination(keyword: string, apiKey: string): Promise<number | null> {
+async function searchRajaOngkirV2Destination(
+  keyword: string,
+  apiKey: string,
+): Promise<number | null> {
   try {
     const url = `https://rajaongkir.komerce.id/api/v1/destination/domestic-destination?search=${encodeURIComponent(keyword)}&limit=5`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "key": apiKey
-      }
+        key: apiKey,
+      },
     });
 
     if (!response.ok) {
@@ -154,15 +170,15 @@ const calculateShippingRatesInput = z.object({
   destinationProvinsi: z.string().min(1),
   destinationKota: z.string().min(1),
   destinationKecamatan: z.string().optional(),
-  totalQuantity: z.number().int().positive()
+  totalQuantity: z.number().int().positive(),
 });
 
 export interface ShippingService {
-  service: string;      // REG, YES, OKE
-  name: string;         // JNE REG, JNE YES, JNE OKE
-  description: string;  // Layanan Reguler, dsb.
+  service: string; // REG, YES, OKE
+  name: string; // JNE REG, JNE YES, JNE OKE
+  description: string; // Layanan Reguler, dsb.
   cost: number;
-  etd: string;          // 1-2 hari
+  etd: string; // 1-2 hari
 }
 
 // Hitung ongkir fallback offline berdasarkan kota asal/tujuan, zona provinsi, dan berat
@@ -170,11 +186,17 @@ function calculateOfflineRates(
   destProvince: string,
   destCity: string,
   originCity: string,
-  weightGrams: number
+  weightGrams: number,
 ): ShippingService[] {
   const p = destProvince.toLowerCase();
-  const cDest = destCity.toLowerCase().replace(/^(kota|kabupaten|kab)\.?\s+/i, "").trim();
-  const cOrigin = originCity.toLowerCase().replace(/^(kota|kabupaten|kab)\.?\s+/i, "").trim();
+  const cDest = destCity
+    .toLowerCase()
+    .replace(/^(kota|kabupaten|kab)\.?\s+/i, "")
+    .trim();
+  const cOrigin = originCity
+    .toLowerCase()
+    .replace(/^(kota|kabupaten|kab)\.?\s+/i, "")
+    .trim();
 
   let baseRatePerKg = 15000; // Default fallback umum
 
@@ -190,8 +212,12 @@ function calculateOfflineRates(
   } else if (p.includes("bali")) {
     baseRatePerKg = 22000;
   } else if (
-    p.includes("sumatera") || p.includes("aceh") || p.includes("riau") ||
-    p.includes("jambi") || p.includes("bengkulu") || p.includes("lampung") ||
+    p.includes("sumatera") ||
+    p.includes("aceh") ||
+    p.includes("riau") ||
+    p.includes("jambi") ||
+    p.includes("bengkulu") ||
+    p.includes("lampung") ||
     p.includes("bangka")
   ) {
     baseRatePerKg = 25000;
@@ -216,15 +242,15 @@ function calculateOfflineRates(
       name: "JNE REG",
       description: "Layanan Reguler",
       cost: costReg,
-      etd: "1-3 hari"
+      etd: "1-3 hari",
     },
     {
       service: "YES",
       name: "JNE YES",
       description: "Yakin Esok Sampai",
       cost: costYes,
-      etd: "1 hari"
-    }
+      etd: "1 hari",
+    },
   ];
 }
 
@@ -233,7 +259,7 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
   .inputValidator(calculateShippingRatesInput)
   .handler(async ({ data }) => {
     const apiKey = process.env.RAJAONGKIR_API_KEY;
-    
+
     // Estimasi berat jersey: 200 gram per pcs
     const weightGrams = data.totalQuantity * 200;
 
@@ -246,14 +272,18 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
 
     if (apiKey) {
       // Cari origin V2 ID
-      const originKeyword = origin.kecamatan ? `${origin.kecamatan} ${origin.city_name}` : origin.city_name;
+      const originKeyword = origin.kecamatan
+        ? `${origin.kecamatan} ${origin.city_name}`
+        : origin.city_name;
       originV2Id = await searchRajaOngkirV2Destination(originKeyword, apiKey);
       if (!originV2Id && origin.kecamatan) {
         originV2Id = await searchRajaOngkirV2Destination(origin.city_name, apiKey);
       }
 
       // Cari destination V2 ID
-      const destKeyword = data.destinationKecamatan ? `${data.destinationKecamatan} ${data.destinationKota}` : data.destinationKota;
+      const destKeyword = data.destinationKecamatan
+        ? `${data.destinationKecamatan} ${data.destinationKota}`
+        : data.destinationKota;
       destV2Id = await searchRajaOngkirV2Destination(destKeyword, apiKey);
       if (!destV2Id && data.destinationKecamatan) {
         destV2Id = await searchRajaOngkirV2Destination(data.destinationKota, apiKey);
@@ -262,24 +292,34 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
 
     // Jika API Key tidak diset atau ID V2 tidak didapatkan, gunakan fallback offline
     if (!apiKey || !originV2Id || !destV2Id) {
-      console.warn("[Shipping API] Menggunakan fallback offline karena API Key tidak dikonfigurasi atau ID V2 tidak ditemukan.", {
-        hasApiKey: !!apiKey,
-        originV2Id,
-        destV2Id
-      });
+      console.warn(
+        "[Shipping API] Menggunakan fallback offline karena API Key tidak dikonfigurasi atau ID V2 tidak ditemukan.",
+        {
+          hasApiKey: !!apiKey,
+          originV2Id,
+          destV2Id,
+        },
+      );
       return {
         success: true,
-        rates: calculateOfflineRates(data.destinationProvinsi, data.destinationKota, origin.city_name, weightGrams),
+        rates: calculateOfflineRates(
+          data.destinationProvinsi,
+          data.destinationKota,
+          origin.city_name,
+          weightGrams,
+        ),
         originCity: origin.city_name,
         originProvince: origin.province,
         destCity: data.destinationKota,
         weightGrams,
-        isMock: true
+        isMock: true,
       };
     }
 
     try {
-      console.log(`[Shipping API] Mengambil ongkir real-time V2 dari ${origin.city_name} (ID V2: ${originV2Id}) ke ${data.destinationKota} (ID V2: ${destV2Id}) dengan berat ${weightGrams} gram`);
+      console.log(
+        `[Shipping API] Mengambil ongkir real-time V2 dari ${origin.city_name} (ID V2: ${originV2Id}) ke ${data.destinationKota} (ID V2: ${destV2Id}) dengan berat ${weightGrams} gram`,
+      );
 
       // Request ke API Komerce V2
       const bodyParams = new URLSearchParams();
@@ -291,10 +331,10 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
       const response = await fetch("https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost", {
         method: "POST",
         headers: {
-          "key": apiKey,
-          "content-type": "application/x-www-form-urlencoded"
+          key: apiKey,
+          "content-type": "application/x-www-form-urlencoded",
         },
-        body: bodyParams.toString()
+        body: bodyParams.toString(),
       });
 
       if (!response.ok) {
@@ -321,7 +361,7 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
             name: `JNE ${c.service}`,
             description: c.description || "",
             cost: Number(c.cost),
-            etd: etdClean
+            etd: etdClean,
           };
         });
 
@@ -332,19 +372,26 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
         originProvince: origin.province,
         destCity: data.destinationKota,
         weightGrams,
-        isMock: false
+        isMock: false,
       };
-
     } catch (err) {
-      console.error("[Shipping API] Gagal memanggil API RajaOngkir V2, menggunakan fallback offline:", err);
+      console.error(
+        "[Shipping API] Gagal memanggil API RajaOngkir V2, menggunakan fallback offline:",
+        err,
+      );
       return {
         success: true,
-        rates: calculateOfflineRates(data.destinationProvinsi, data.destinationKota, origin.city_name, weightGrams),
+        rates: calculateOfflineRates(
+          data.destinationProvinsi,
+          data.destinationKota,
+          origin.city_name,
+          weightGrams,
+        ),
         originCity: origin.city_name,
         originProvince: origin.province,
         destCity: data.destinationKota,
         weightGrams,
-        isMock: true
+        isMock: true,
       };
     }
   });
@@ -355,14 +402,14 @@ export const getStoreOrigin = createServerFn({ method: "GET" }).handler(async ()
     return {
       success: true,
       city: origin.city_name,
-      province: origin.province
+      province: origin.province,
     };
   } catch (err) {
     console.error("Error getting store origin:", err);
     return {
       success: true,
       city: "Jakarta Selatan",
-      province: "DKI Jakarta"
+      province: "DKI Jakarta",
     };
   }
 });

@@ -1,14 +1,32 @@
 import { Section } from "./Section";
 import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 
 const ITEMS = [
-  { q: "Apakah semua jersey original?", a: "Ya. Kami hanya menjual jersey original. Setiap produk melalui pemeriksaan tag, jahitan, dan kode produksi sebelum masuk ke katalog." },
-  { q: "Bagaimana proses verifikasi keaslian?", a: "Tim kurator kami memeriksa material, label, hologram, dan menyandingkan dengan database referensi. Jersey vintage dan limited edition juga dilengkapi sertifikat keaslian bernomor seri." },
-  { q: "Apakah tersedia size guide?", a: "Setiap halaman produk memiliki size guide lengkap dengan tabel ukuran dada, panjang badan, dan rekomendasi fit (slim / regular / loose)." },
-  { q: "Bisakah mengembalikan barang?", a: "Bisa dalam 7 hari setelah barang diterima, selama dalam kondisi asli dan tag belum dilepas. Khusus item limited edition berlaku ketentuan tambahan." },
-  { q: "Bagaimana cara pembayaran?", a: "Transfer bank, e-wallet (GoPay, OVO, Dana, ShopeePay), kartu kredit, dan cicilan 0% via bank rekanan." },
+  {
+    q: "Apakah semua jersey original?",
+    a: "Ya. Kami hanya menjual jersey original. Setiap produk melalui pemeriksaan tag, jahitan, dan kode produksi sebelum masuk ke katalog.",
+  },
+  {
+    q: "Bagaimana proses verifikasi keaslian?",
+    a: "Tim kurator kami memeriksa material, label, hologram, dan menyandingkan dengan database referensi. Jersey vintage dan limited edition juga dilengkapi sertifikat keaslian bernomor seri.",
+  },
+  {
+    q: "Apakah tersedia size guide?",
+    a: "Setiap halaman produk memiliki size guide lengkap dengan tabel ukuran dada, panjang badan, dan rekomendasi fit (slim / regular / loose).",
+  },
+  {
+    q: "Bisakah mengembalikan barang?",
+    a: "Bisa dalam 7 hari setelah barang diterima, selama dalam kondisi asli dan tag belum dilepas. Khusus item limited edition berlaku ketentuan tambahan.",
+  },
+  {
+    q: "Bagaimana cara pembayaran?",
+    a: "Transfer bank, e-wallet (GoPay, OVO, Dana, ShopeePay), kartu kredit, dan cicilan 0% via bank rekanan.",
+  },
 ];
 
 export function FAQ() {

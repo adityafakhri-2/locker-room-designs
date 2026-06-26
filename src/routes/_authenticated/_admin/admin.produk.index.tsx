@@ -40,7 +40,9 @@ function AdminProducts() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
-  const [sortField, setSortField] = useState<"name" | "category" | "stock" | "price" | "is_active" | null>(null);
+  const [sortField, setSortField] = useState<
+    "name" | "category" | "stock" | "price" | "is_active" | null
+  >(null);
   const [sortAsc, setSortAsc] = useState(true);
 
   const categoriesQuery = useQuery({
@@ -50,17 +52,23 @@ function AdminProducts() {
 
   const q = useQuery({
     queryKey: ["admin-products"],
-    queryFn: async () => (await supabase.from("products").select("*, categories(name)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () =>
+      (
+        await supabase
+          .from("products")
+          .select("*, categories(name)")
+          .order("created_at", { ascending: false })
+      ).data ?? [],
   });
-  
+
   const del = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("products").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { 
-      toast.success("Produk dihapus"); 
-      qc.invalidateQueries({ queryKey: ["admin-products"] }); 
+    onSuccess: () => {
+      toast.success("Produk dihapus");
+      qc.invalidateQueries({ queryKey: ["admin-products"] });
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -111,10 +119,10 @@ function AdminProducts() {
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (!sortField) return 0;
-    
+
     let valA: any = "";
     let valB: any = "";
-    
+
     if (sortField === "name") {
       valA = a.name.toLowerCase();
       valB = b.name.toLowerCase();
@@ -131,7 +139,7 @@ function AdminProducts() {
       valA = a.is_active ? 1 : 0;
       valB = b.is_active ? 1 : 0;
     }
-    
+
     if (valA < valB) return sortAsc ? -1 : 1;
     if (valA > valB) return sortAsc ? 1 : -1;
     return 0;
@@ -139,22 +147,31 @@ function AdminProducts() {
 
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
-      <PageHeader eyebrow="Produk" title="Manajemen Produk" action={
-        <Button asChild><Link to="/admin/produk/$id" params={{ id: "baru" }}><Plus className="size-4 mr-1" />Tambah Produk</Link></Button>
-      } />
+      <PageHeader
+        eyebrow="Produk"
+        title="Manajemen Produk"
+        action={
+          <Button asChild>
+            <Link to="/admin/produk/$id" params={{ id: "baru" }}>
+              <Plus className="size-4 mr-1" />
+              Tambah Produk
+            </Link>
+          </Button>
+        }
+      />
       <Card>
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="relative flex-1 min-w-[240px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              placeholder="Cari nama, tim, atau kategori..." 
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama, tim, atau kategori..."
               className="pl-9 pr-9 h-9"
             />
             {search && (
-              <button 
-                onClick={() => setSearch("")} 
+              <button
+                onClick={() => setSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="size-4" />
@@ -212,51 +229,86 @@ function AdminProducts() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left eyebrow text-muted-foreground border-b border-border">
-                    <th className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group" onClick={() => handleSort("name")}>
+                    <th
+                      className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
+                      onClick={() => handleSort("name")}
+                    >
                       <div className="flex items-center gap-1">
                         Nama
                         {sortField === "name" ? (
-                          sortAsc ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
                         ) : (
                           <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
                         )}
                       </div>
                     </th>
-                    <th className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group" onClick={() => handleSort("category")}>
+                    <th
+                      className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
+                      onClick={() => handleSort("category")}
+                    >
                       <div className="flex items-center gap-1">
                         Kategori
                         {sortField === "category" ? (
-                          sortAsc ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
                         ) : (
                           <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
                         )}
                       </div>
                     </th>
-                    <th className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group" onClick={() => handleSort("stock")}>
+                    <th
+                      className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
+                      onClick={() => handleSort("stock")}
+                    >
                       <div className="flex items-center gap-1">
                         Stok
                         {sortField === "stock" ? (
-                          sortAsc ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
                         ) : (
                           <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
                         )}
                       </div>
                     </th>
-                    <th className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group" onClick={() => handleSort("price")}>
+                    <th
+                      className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
+                      onClick={() => handleSort("price")}
+                    >
                       <div className="flex items-center gap-1">
                         Harga
                         {sortField === "price" ? (
-                          sortAsc ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
                         ) : (
                           <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
                         )}
                       </div>
                     </th>
-                    <th className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group" onClick={() => handleSort("is_active")}>
+                    <th
+                      className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
+                      onClick={() => handleSort("is_active")}
+                    >
                       <div className="flex items-center gap-1">
                         Aktif
                         {sortField === "is_active" ? (
-                          sortAsc ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
                         ) : (
                           <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
                         )}
@@ -267,18 +319,29 @@ function AdminProducts() {
                 </thead>
                 <tbody>
                   {sortedProducts.map((p) => (
-                    <tr key={p.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="border-b border-border/50 hover:bg-muted/10 transition-colors"
+                    >
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-3">
                           <div className="size-10 bg-muted rounded border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
                             {p.cover_image_url ? (
-                              <img src={p.cover_image_url} alt="" className="size-full object-cover" />
+                              <img
+                                src={p.cover_image_url}
+                                alt=""
+                                className="size-full object-cover"
+                              />
                             ) : (
                               <Image className="size-5 text-muted-foreground/50" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <Link to="/admin/produk/$id" params={{ id: p.id }} className="font-semibold hover:underline block truncate max-w-[280px]">
+                            <Link
+                              to="/admin/produk/$id"
+                              params={{ id: p.id }}
+                              className="font-semibold hover:underline block truncate max-w-[280px]"
+                            >
                               {p.name}
                             </Link>
                             <div className="text-xs text-muted-foreground">{p.team || "—"}</div>
@@ -286,20 +349,21 @@ function AdminProducts() {
                         </div>
                       </td>
                       <td className="text-xs pr-4 max-w-[150px] truncate">
-                        {Array.isArray(p.category_ids) && p.category_ids.length > 0 ? (
-                          categoriesQuery.data
-                            ?.filter((c) => p.category_ids.includes(c.id))
-                            .map((c) => c.name)
-                            .join(", ") || "—"
-                        ) : (
-                          p.categories?.name ?? "—"
-                        )}
+                        {Array.isArray(p.category_ids) && p.category_ids.length > 0
+                          ? categoriesQuery.data
+                              ?.filter((c) => p.category_ids.includes(c.id))
+                              .map((c) => c.name)
+                              .join(", ") || "—"
+                          : (p.categories?.name ?? "—")}
                       </td>
                       <td className="text-xs pr-4">{p.stock}</td>
                       <td className="tabular-nums pr-4">{formatIDR(p.price)}</td>
                       <td className="text-xs pr-4">{p.is_active ? "✓" : "—"}</td>
                       <td>
-                        <button onClick={() => handleDeleteSingle(p.id)} className="text-destructive hover:opacity-70 cursor-pointer">
+                        <button
+                          onClick={() => handleDeleteSingle(p.id)}
+                          className="text-destructive hover:opacity-70 cursor-pointer"
+                        >
                           <Trash2 className="size-4" />
                         </button>
                       </td>
@@ -309,7 +373,9 @@ function AdminProducts() {
               </table>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-6">Tidak ada produk yang cocok dengan pencarian Anda.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Tidak ada produk yang cocok dengan pencarian Anda.
+            </p>
           )
         ) : (
           <p className="text-sm text-muted-foreground">

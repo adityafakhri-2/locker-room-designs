@@ -18,7 +18,14 @@ export const Route = createFileRoute("/_authenticated/_admin/admin/pengaturan")(
 function AdminStoreSettings() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ nama_lengkap: "", no_hp: "", alamat: "", kota: "", provinsi: "", kode_pos: "" });
+  const [form, setForm] = useState({
+    nama_lengkap: "",
+    no_hp: "",
+    alamat: "",
+    kota: "",
+    provinsi: "",
+    kode_pos: "",
+  });
   const [alamatDetail, setAlamatDetail] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
@@ -66,8 +73,9 @@ function AdminStoreSettings() {
     e.preventDefault();
     setSaving(true);
 
-    const finalAlamat = alamatDetail + 
-      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+    const finalAlamat =
+      alamatDetail +
+      (kecamatan ? `, Kec. ${kecamatan}` : "") +
       (kelurahan ? `, Kel. ${kelurahan}` : "");
 
     const updatedPayload = {
@@ -112,26 +120,28 @@ function AdminStoreSettings() {
       <Card>
         <div className="max-w-2xl">
           <p className="text-sm text-muted-foreground mb-6">
-            Konfigurasi informasi toko dan alamat asal pengiriman Anda. Alamat ini akan digunakan secara otomatis sebagai titik asal (origin) untuk menghitung tarif pengiriman RajaOngkir ke pelanggan.
+            Konfigurasi informasi toko dan alamat asal pengiriman Anda. Alamat ini akan digunakan
+            secara otomatis sebagai titik asal (origin) untuk menghitung tarif pengiriman RajaOngkir
+            ke pelanggan.
           </p>
           <form onSubmit={save} className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Label>Nama Toko / Pemilik</Label>
-              <Input 
-                required 
+              <Input
+                required
                 disabled={!isEditing}
-                value={form.nama_lengkap} 
-                onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })} 
+                value={form.nama_lengkap}
+                onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
                 placeholder="Contoh: The Locker Room"
               />
             </div>
             <div className="sm:col-span-2">
               <Label>Nomor WhatsApp / HP Toko</Label>
-              <Input 
-                required 
+              <Input
+                required
                 disabled={!isEditing}
-                value={form.no_hp} 
-                onChange={(e) => setForm({ ...form, no_hp: e.target.value })} 
+                value={form.no_hp}
+                onChange={(e) => setForm({ ...form, no_hp: e.target.value })}
                 placeholder="Contoh: 081234567890"
               />
             </div>
@@ -159,17 +169,25 @@ function AdminStoreSettings() {
 
             <div className="sm:col-span-2 mt-6">
               {!isEditing ? (
-                <Button type="button" onClick={() => setIsEditing(true)} className="w-full sm:w-auto cursor-pointer">
+                <Button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="w-full sm:w-auto cursor-pointer"
+                >
                   Edit Toko
                 </Button>
               ) : (
                 <div className="flex gap-3">
-                  <Button type="submit" disabled={saving} className="w-full sm:w-auto cursor-pointer">
+                  <Button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full sm:w-auto cursor-pointer"
+                  >
                     {saving ? "Menyimpan..." : "Simpan Pengaturan"}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       if (q.data) {
                         const parsed = parseAlamat(q.data.alamat ?? "");

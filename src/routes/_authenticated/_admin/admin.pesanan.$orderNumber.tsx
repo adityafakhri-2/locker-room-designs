@@ -7,7 +7,13 @@ import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShel
 import { ADMIN_NAV } from "./admin.index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +40,9 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   events.push({ status: "pending", at: order.created_at });
 
   // 2. Sudah Dibayar (Menunggu Konfirmasi)
-  const hasPaid = proofUploadedAt || (payment && payment.status !== "waiting_payment" && payment.status !== "rejected");
+  const hasPaid =
+    proofUploadedAt ||
+    (payment && payment.status !== "waiting_payment" && payment.status !== "rejected");
   if (hasPaid) {
     const uploadTime = proofUploadedAt || payment?.updated_at || order.created_at;
     events.push({ status: "waiting_verification", at: uploadTime });
@@ -42,7 +50,10 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
 
   // 3. Pembayaran Diterima / Disetujui
   if (payment && payment.status === "approved") {
-    events.push({ status: "paid", at: payment.verified_at || payment.updated_at || order.updated_at });
+    events.push({
+      status: "paid",
+      at: payment.verified_at || payment.updated_at || order.updated_at,
+    });
   }
 
   // 4. Sedang Diproses (Dikemas)
@@ -83,7 +94,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   const uniqueEvents: Array<{ status: string; at: string }> = [];
   events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
-  events.forEach(e => {
+  events.forEach((e) => {
     if (!seen.has(e.status)) {
       seen.add(e.status);
       uniqueEvents.push(e);
@@ -102,13 +113,22 @@ function AdminOrderDetail() {
   const q = useQuery({
     queryKey: ["admin-order", orderNumber],
     queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*, order_items(*), payments(*)").eq("order_number", orderNumber).maybeSingle();
+      const { data } = await supabase
+        .from("orders")
+        .select("*, order_items(*), payments(*)")
+        .eq("order_number", orderNumber)
+        .maybeSingle();
       if (!data) return null;
       const payment = (Array.isArray(data.payments) ? data.payments[0] : data.payments) as any;
       let proofUrl = "";
       let proofUploadedAt = null;
       if (payment) {
-        const { data: proofs } = await supabase.from("payment_proofs").select("*").eq("payment_id", payment.id).order("uploaded_at", { ascending: false }).limit(1);
+        const { data: proofs } = await supabase
+          .from("payment_proofs")
+          .select("*")
+          .eq("payment_id", payment.id)
+          .order("uploaded_at", { ascending: false })
+          .limit(1);
         if (proofs?.[0]) {
           proofUrl = await signedUrl("payment-proofs", proofs[0].image_url);
           proofUploadedAt = proofs[0].uploaded_at;
@@ -118,17 +138,28 @@ function AdminOrderDetail() {
     },
   });
 
-  if (!q.data?.order) return <DashboardShell items={ADMIN_NAV} title="Admin Panel">Memuat...</DashboardShell>;
+  if (!q.data?.order)
+    return (
+      <DashboardShell items={ADMIN_NAV} title="Admin Panel">
+        Memuat...
+      </DashboardShell>
+    );
   const { order, payment, proofUrl, proofUploadedAt } = q.data;
 
   async function approve() {
-    await supabase.from("payments").update({ status: "approved", verified_at: new Date().toISOString() }).eq("id", payment.id);
+    await supabase
+      .from("payments")
+      .update({ status: "approved", verified_at: new Date().toISOString() })
+      .eq("id", payment.id);
     toast.success("Pembayaran disetujui. Stok telah dipotong.");
     qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
   }
   async function reject() {
     if (!rejectReason) return toast.error("Beri alasan penolakan");
-    await supabase.from("payments").update({ status: "rejected", reject_reason: rejectReason }).eq("id", payment.id);
+    await supabase
+      .from("payments")
+      .update({ status: "rejected", reject_reason: rejectReason })
+      .eq("id", payment.id);
     toast.success("Pembayaran ditolak");
     qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
   }
@@ -136,11 +167,14 @@ function AdminOrderDetail() {
     if (!tracking) return toast.error("Masukkan nomor resi");
 
     try {
-      const { error } = await supabase.from("orders").update({
-        status: "shipped",
-        tracking_number: tracking,
-        courier: order.courier,
-      }).eq("id", order.id);
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          status: "shipped",
+          tracking_number: tracking,
+          courier: order.courier,
+        })
+        .eq("id", order.id);
       if (error) throw error;
       toast.success("Pesanan telah dikirim");
       qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
@@ -151,7 +185,10 @@ function AdminOrderDetail() {
 
   async function handleCancelOrder() {
     try {
-      const { error } = await supabase.from("orders").update({ status: "cancelled", cancel_reason: "admin" }).eq("id", order.id);
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: "cancelled", cancel_reason: "admin" })
+        .eq("id", order.id);
       if (error) throw error;
       toast.success("Pesanan berhasil dibatalkan");
       qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
@@ -160,15 +197,27 @@ function AdminOrderDetail() {
     }
   }
 
-  const displayStatus = (order.status === "pending" && payment?.status === "waiting_verification")
-    ? "waiting_verification"
-    : order.status;
+  const displayStatus =
+    order.status === "pending" && payment?.status === "waiting_verification"
+      ? "waiting_verification"
+      : order.status;
 
   const timeline = buildTimeline(order, payment, proofUploadedAt);
 
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
-      <PageHeader eyebrow={order.order_number} title={statusLabel(displayStatus)} action={<Link to="/admin/pesanan" className="text-sm text-muted-foreground hover:underline cursor-pointer">← Kembali</Link>} />
+      <PageHeader
+        eyebrow={order.order_number}
+        title={statusLabel(displayStatus)}
+        action={
+          <Link
+            to="/admin/pesanan"
+            className="text-sm text-muted-foreground hover:underline cursor-pointer"
+          >
+            ← Kembali
+          </Link>
+        }
+      />
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
         <div className="space-y-6">
@@ -185,7 +234,7 @@ function AdminOrderDetail() {
                         "absolute -left-[21px] top-1.5 rounded-full transition-all duration-300",
                         isLatest
                           ? "size-3 bg-primary border-2 border-background"
-                          : "size-2 bg-muted-foreground/45 border border-background"
+                          : "size-2 bg-muted-foreground/45 border border-background",
                       )}
                     />
                     {isLatest && (
@@ -196,16 +245,20 @@ function AdminOrderDetail() {
                       <div
                         className={cn(
                           "flex items-center gap-2 transition-all duration-300",
-                          isLatest ? "text-primary text-sm font-extrabold" : "text-muted-foreground/80 text-xs font-medium"
+                          isLatest
+                            ? "text-primary text-sm font-extrabold"
+                            : "text-muted-foreground/80 text-xs font-medium",
                         )}
                       >
                         {statusLabel(t.status)}
                         {isLatest}
                       </div>
-                      <div className={cn(
-                        "text-muted-foreground transition-all duration-300",
-                        isLatest ? "text-xs mt-0.5" : "text-[10px]"
-                      )}>
+                      <div
+                        className={cn(
+                          "text-muted-foreground transition-all duration-300",
+                          isLatest ? "text-xs mt-0.5" : "text-[10px]",
+                        )}
+                      >
                         {formatDateTime(t.at)}
                       </div>
                     </div>
@@ -218,33 +271,54 @@ function AdminOrderDetail() {
           <Card>
             <h3 className="font-extrabold mb-4">Item</h3>
             {order.order_items?.map((it) => (
-              <div key={it.id} className="flex gap-4 py-3 border-b border-border/50 last:border-0 text-sm items-center">
+              <div
+                key={it.id}
+                className="flex gap-4 py-3 border-b border-border/50 last:border-0 text-sm items-center"
+              >
                 <div className="size-12 bg-muted overflow-hidden flex-shrink-0 rounded border border-border">
                   {it.image_url ? (
                     <img src={it.image_url} alt="" className="size-full object-cover" />
                   ) : (
-                    <div className="size-full flex items-center justify-center text-[10px] text-muted-foreground">No img</div>
+                    <div className="size-full flex items-center justify-center text-[10px] text-muted-foreground">
+                      No img
+                    </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{it.product_name}</div>
-                  <div className="text-xs text-muted-foreground">{it.size} × {it.quantity}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {it.size} × {it.quantity}
+                  </div>
                 </div>
                 <div className="tabular-nums font-semibold">{formatIDR(it.subtotal)}</div>
               </div>
             ))}
             <div className="mt-4 text-right text-sm space-y-1">
-              <div>Subtotal: <span className="font-semibold">{formatIDR(order.subtotal)}</span></div>
-              <div>Ongkir ({order.courier}): <span className="font-semibold">{formatIDR(order.shipping_cost)}</span></div>
+              <div>
+                Subtotal: <span className="font-semibold">{formatIDR(order.subtotal)}</span>
+              </div>
+              <div>
+                Ongkir ({order.courier}):{" "}
+                <span className="font-semibold">{formatIDR(order.shipping_cost)}</span>
+              </div>
               <div className="text-base font-extrabold">Total: {formatIDR(order.grand_total)}</div>
             </div>
           </Card>
 
           <Card>
             <h3 className="font-extrabold mb-3">Penerima</h3>
-            <p className="text-sm">{order.recipient_name} · {order.recipient_no_hp}</p>
-            <p className="text-sm text-muted-foreground mt-1">{order.recipient_alamat}, {order.recipient_kota}, {order.recipient_provinsi} {order.recipient_kode_pos}</p>
-            {order.note && <p className="text-sm mt-3"><strong>Catatan:</strong> {order.note}</p>}
+            <p className="text-sm">
+              {order.recipient_name} · {order.recipient_no_hp}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {order.recipient_alamat}, {order.recipient_kota}, {order.recipient_provinsi}{" "}
+              {order.recipient_kode_pos}
+            </p>
+            {order.note && (
+              <p className="text-sm mt-3">
+                <strong>Catatan:</strong> {order.note}
+              </p>
+            )}
           </Card>
         </div>
 
@@ -255,7 +329,9 @@ function AdminOrderDetail() {
               <div className="space-y-3">
                 <div className="text-xs bg-muted/40 border border-border p-3 rounded">
                   <span className="text-muted-foreground">Kurir Pilihan Pelanggan:</span>{" "}
-                  <span className="font-bold text-foreground text-sm block mt-0.5">{order.courier}</span>
+                  <span className="font-bold text-foreground text-sm block mt-0.5">
+                    {order.courier}
+                  </span>
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-muted-foreground">Nomor Resi</label>
@@ -287,7 +363,9 @@ function AdminOrderDetail() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">No. Resi:</span>{" "}
-                  <span className="font-mono font-bold text-foreground">{order.tracking_number}</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {order.tracking_number}
+                  </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Status Pesanan:</span>{" "}
@@ -299,15 +377,29 @@ function AdminOrderDetail() {
 
           <Card>
             <h3 className="font-extrabold mb-3">Pembayaran</h3>
-            <p className="text-sm">{payment ? `${statusLabel(payment.status)} via ${payment.bank}` : "—"}</p>
+            <p className="text-sm">
+              {payment ? `${statusLabel(payment.status)} via ${payment.bank}` : "—"}
+            </p>
             {proofUrl ? (
-              <a href={proofUrl} target="_blank" rel="noreferrer"><img src={proofUrl} alt="Bukti" className="mt-3 w-full border border-border" /></a>
-            ) : <p className="text-xs text-muted-foreground mt-2">Belum ada bukti transfer.</p>}
+              <a href={proofUrl} target="_blank" rel="noreferrer">
+                <img src={proofUrl} alt="Bukti" className="mt-3 w-full border border-border" />
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-2">Belum ada bukti transfer.</p>
+            )}
             {payment?.status === "waiting_verification" && (
               <div className="mt-4 space-y-2">
-                <Button className="w-full" onClick={approve}>Setujui Pembayaran</Button>
-                <Input placeholder="Alasan penolakan" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
-                <Button variant="outline" className="w-full" onClick={reject}>Tolak</Button>
+                <Button className="w-full" onClick={approve}>
+                  Setujui Pembayaran
+                </Button>
+                <Input
+                  placeholder="Alasan penolakan"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                />
+                <Button variant="outline" className="w-full" onClick={reject}>
+                  Tolak
+                </Button>
               </div>
             )}
           </Card>
@@ -316,7 +408,10 @@ function AdminOrderDetail() {
             <div className="pt-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full text-destructive border-destructive/20 hover:bg-destructive/10 text-xs h-9 cursor-pointer">
+                  <Button
+                    variant="outline"
+                    className="w-full text-destructive border-destructive/20 hover:bg-destructive/10 text-xs h-9 cursor-pointer"
+                  >
                     Batalkan Pesanan (Admin)
                   </Button>
                 </AlertDialogTrigger>
@@ -324,12 +419,16 @@ function AdminOrderDetail() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Batalkan Pesanan ini?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Apakah Anda yakin ingin membatalkan pesanan ini? Stok produk akan dikembalikan dan tindakan ini tidak dapat dibatalkan.
+                      Apakah Anda yakin ingin membatalkan pesanan ini? Stok produk akan dikembalikan
+                      dan tindakan ini tidak dapat dibatalkan.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className="cursor-pointer">Kembali</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/95 cursor-pointer">
+                    <AlertDialogAction
+                      onClick={handleCancelOrder}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/95 cursor-pointer"
+                    >
                       Batalkan Pesanan
                     </AlertDialogAction>
                   </AlertDialogFooter>

@@ -25,7 +25,9 @@ function download(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
+  a.href = url;
+  a.download = filename;
+  a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -36,18 +38,29 @@ export const Route = createFileRoute("/_authenticated/_admin/admin/laporan")({
 function AdminReports() {
   const orders = useQuery({
     queryKey: ["report-orders"],
-    queryFn: async () => (await supabase.from("orders").select("*").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("orders").select("*").order("created_at", { ascending: false })).data ??
+      [],
   });
   const products = useQuery({
     queryKey: ["report-products"],
-    queryFn: async () => (await supabase.from("products").select("name, team, stock, sold_count, price").order("sold_count", { ascending: false })).data ?? [],
+    queryFn: async () =>
+      (
+        await supabase
+          .from("products")
+          .select("name, team, stock, sold_count, price")
+          .order("sold_count", { ascending: false })
+      ).data ?? [],
   });
   const customers = useQuery({
     queryKey: ["report-customers"],
-    queryFn: async () => (await supabase.from("profiles").select("email, nama_lengkap, kota, created_at")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("profiles").select("email, nama_lengkap, kota, created_at")).data ?? [],
   });
 
-  const validOrders = (orders.data ?? []).filter((o) => ["paid", "processing", "shipped", "delivered"].includes(o.status));
+  const validOrders = (orders.data ?? []).filter((o) =>
+    ["paid", "processing", "shipped", "delivered"].includes(o.status),
+  );
   const totalRevenue = validOrders.reduce((s, o) => s + Number(o.grand_total), 0);
 
   // monthly revenue
@@ -78,13 +91,15 @@ function AdminReports() {
         revenue,
       }));
 
-      const bestSellersList = (products.data ?? []).map((p) => ({
-        name: p.name,
-        sold_count: p.sold_count ?? 0,
-        stock: p.stock ?? 0,
-        price: p.price ?? 0,
-        team: p.team || null,
-      })).slice(0, 10);
+      const bestSellersList = (products.data ?? [])
+        .map((p) => ({
+          name: p.name,
+          sold_count: p.sold_count ?? 0,
+          stock: p.stock ?? 0,
+          price: p.price ?? 0,
+          team: p.team || null,
+        }))
+        .slice(0, 10);
 
       const result = await analyzeSalesData({
         data: {
@@ -111,7 +126,9 @@ function AdminReports() {
     }
   }
 
-  const [savedAnalyses, setSavedAnalyses] = useState<{ id: string; date: string; content: string }[]>([]);
+  const [savedAnalyses, setSavedAnalyses] = useState<
+    { id: string; date: string; content: string }[]
+  >([]);
 
   useEffect(() => {
     const raw = localStorage.getItem("saved_sales_analyses");
@@ -133,9 +150,9 @@ function AdminReports() {
         month: "short",
         day: "numeric",
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
       }),
-      content: analysis
+      content: analysis,
     };
     const updated = [newSave, ...savedAnalyses];
     setSavedAnalyses(updated);
@@ -160,7 +177,7 @@ function AdminReports() {
         month: "long",
         day: "numeric",
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
       });
       printWindow.document.write(`
         <html>
@@ -256,9 +273,18 @@ function AdminReports() {
       <PageHeader eyebrow="Laporan" title="Laporan & Ekspor" />
 
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <Card><div className="eyebrow text-muted-foreground">Total Revenue</div><div className="display-md mt-2">{formatIDR(totalRevenue)}</div></Card>
-        <Card><div className="eyebrow text-muted-foreground">Pesanan Valid</div><div className="display-md mt-2">{validOrders.length}</div></Card>
-        <Card><div className="eyebrow text-muted-foreground">Pelanggan</div><div className="display-md mt-2">{customers.data?.length ?? 0}</div></Card>
+        <Card>
+          <div className="eyebrow text-muted-foreground">Total Revenue</div>
+          <div className="display-md mt-2">{formatIDR(totalRevenue)}</div>
+        </Card>
+        <Card>
+          <div className="eyebrow text-muted-foreground">Pesanan Valid</div>
+          <div className="display-md mt-2">{validOrders.length}</div>
+        </Card>
+        <Card>
+          <div className="eyebrow text-muted-foreground">Pelanggan</div>
+          <div className="display-md mt-2">{customers.data?.length ?? 0}</div>
+        </Card>
       </div>
 
       <Card className="mb-6 border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/10">
@@ -315,17 +341,23 @@ function AdminReports() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Klik tombol di atas untuk menganalisis data penjualan Anda, memprediksi tren masa depan, dan mendapatkan strategi bisnis konkret.
+            Klik tombol di atas untuk menganalisis data penjualan Anda, memprediksi tren masa depan,
+            dan mendapatkan strategi bisnis konkret.
           </p>
         )}
       </Card>
 
       {savedAnalyses.length > 0 && (
         <Card className="mb-6">
-          <h3 className="font-extrabold text-sm text-muted-foreground uppercase tracking-wider mb-4">Riwayat Analisis Tersimpan</h3>
+          <h3 className="font-extrabold text-sm text-muted-foreground uppercase tracking-wider mb-4">
+            Riwayat Analisis Tersimpan
+          </h3>
           <div className="space-y-3">
             {savedAnalyses.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200">
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200"
+              >
                 <div className="space-y-0.5">
                   <p className="text-xs text-muted-foreground">Analisis Penjualan</p>
                   <p className="text-sm font-semibold text-foreground">{item.date}</p>
@@ -361,12 +393,26 @@ function AdminReports() {
       <Card className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-extrabold">Revenue per Bulan</h3>
-          <Button size="sm" variant="outline" onClick={() => download("revenue.csv", toCSV(Object.entries(monthly).map(([k, v]) => ({ bulan: k, revenue: v }))))}>Ekspor CSV</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              download(
+                "revenue.csv",
+                toCSV(Object.entries(monthly).map(([k, v]) => ({ bulan: k, revenue: v }))),
+              )
+            }
+          >
+            Ekspor CSV
+          </Button>
         </div>
         <table className="w-full text-sm">
           <tbody>
             {Object.entries(monthly).map(([k, v]) => (
-              <tr key={k} className="border-b border-border/50"><td className="py-2">{k}</td><td className="text-right tabular-nums">{formatIDR(v)}</td></tr>
+              <tr key={k} className="border-b border-border/50">
+                <td className="py-2">{k}</td>
+                <td className="text-right tabular-nums">{formatIDR(v)}</td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -375,13 +421,29 @@ function AdminReports() {
       <Card className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-extrabold">Best Sellers</h3>
-          <Button size="sm" variant="outline" onClick={() => download("best-sellers.csv", toCSV(products.data ?? []))}>Ekspor CSV</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => download("best-sellers.csv", toCSV(products.data ?? []))}
+          >
+            Ekspor CSV
+          </Button>
         </div>
         <table className="w-full text-sm">
-          <thead><tr className="text-left eyebrow text-muted-foreground border-b border-border"><th className="py-2">Produk</th><th>Terjual</th><th>Stok</th></tr></thead>
+          <thead>
+            <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+              <th className="py-2">Produk</th>
+              <th>Terjual</th>
+              <th>Stok</th>
+            </tr>
+          </thead>
           <tbody>
             {(products.data ?? []).slice(0, 10).map((p) => (
-              <tr key={p.name} className="border-b border-border/50"><td className="py-2">{p.name}</td><td>{p.sold_count}</td><td>{p.stock}</td></tr>
+              <tr key={p.name} className="border-b border-border/50">
+                <td className="py-2">{p.name}</td>
+                <td>{p.sold_count}</td>
+                <td>{p.stock}</td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -390,10 +452,20 @@ function AdminReports() {
       <Card>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-extrabold">Laporan Pesanan</h3>
-          <Button size="sm" variant="outline" onClick={() => download("orders.csv", toCSV(orders.data ?? []))}>Ekspor Semua Pesanan (CSV)</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => download("orders.csv", toCSV(orders.data ?? []))}
+          >
+            Ekspor Semua Pesanan (CSV)
+          </Button>
         </div>
-        <p className="text-sm text-muted-foreground">Ekspor data lengkap pesanan ke file CSV — dapat dibuka langsung di Excel.</p>
-        <p className="text-xs text-muted-foreground mt-2">Total pelanggan tercatat: {customers.data?.length ?? 0} ({formatDate(new Date())}).</p>
+        <p className="text-sm text-muted-foreground">
+          Ekspor data lengkap pesanan ke file CSV — dapat dibuka langsung di Excel.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Total pelanggan tercatat: {customers.data?.length ?? 0} ({formatDate(new Date())}).
+        </p>
       </Card>
     </DashboardShell>
   );

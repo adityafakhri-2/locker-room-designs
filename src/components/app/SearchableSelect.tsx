@@ -10,11 +10,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Option {
   value: string;
@@ -57,12 +53,10 @@ export function SearchableSelect({
           className={cn(
             "w-full justify-between font-normal text-left h-9 border-input bg-background text-sm shadow-sm transition-colors hover:bg-background hover:text-foreground",
             !value && "text-muted-foreground",
-            className
+            className,
           )}
         >
-          <span className="truncate">
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
+          <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -86,7 +80,7 @@ export function SearchableSelect({
                   <Check
                     className={cn(
                       "h-4 w-4 shrink-0 ml-2",
-                      value === opt.value ? "opacity-100" : "opacity-0"
+                      value === opt.value ? "opacity-100" : "opacity-0",
                     )}
                   />
                 </CommandItem>

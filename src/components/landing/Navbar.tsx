@@ -32,9 +32,15 @@ export function Navbar({ overHero = false }: NavbarProps) {
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
     enabled: !!user,
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
+    queryFn: async () =>
+      (await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle()).data,
   });
-  const displayName = profileQuery.data?.nama_lengkap || user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || user?.email || "";
+  const displayName =
+    profileQuery.data?.nama_lengkap ||
+    user?.user_metadata?.nama_lengkap ||
+    user?.user_metadata?.full_name ||
+    user?.email ||
+    "";
 
   useEffect(() => {
     if (!overHero) return;
@@ -50,7 +56,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
         "fixed inset-x-0 top-0 z-50 transition-all duration-500",
         scrolled
           ? "bg-background/95 backdrop-blur border-b border-border text-foreground"
-          : "bg-transparent text-white"
+          : "bg-transparent text-white",
       )}
     >
       <div className="container-swiss grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4 h-16 md:h-20">
@@ -74,47 +80,89 @@ export function Navbar({ overHero = false }: NavbarProps) {
         </nav>
 
         <div className="hidden sm:flex items-center justify-end gap-5">
-          <Link to="/search" search={{ q: "" }} aria-label="Search" className="hover:opacity-60 transition-opacity cursor-pointer">
+          <Link
+            to="/search"
+            search={{ q: "" }}
+            aria-label="Search"
+            className="hover:opacity-60 transition-opacity cursor-pointer"
+          >
             <Search className="size-4" strokeWidth={1.5} />
           </Link>
-          <Link to={user ? "/dashboard/wishlist" : "/auth"} aria-label="Wishlist" className="hover:opacity-60 transition-opacity relative cursor-pointer">
+          <Link
+            to={user ? "/dashboard/wishlist" : "/auth"}
+            aria-label="Wishlist"
+            className="hover:opacity-60 transition-opacity relative cursor-pointer"
+          >
             <Heart className="size-4" strokeWidth={1.5} />
             {wlCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{wlCount}</span>
+              <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">
+                {wlCount}
+              </span>
             )}
           </Link>
-          <Link to="/cart" aria-label="Cart" className="hover:opacity-60 transition-opacity relative cursor-pointer">
+          <Link
+            to="/cart"
+            aria-label="Cart"
+            className="hover:opacity-60 transition-opacity relative cursor-pointer"
+          >
             <ShoppingBag className="size-4" strokeWidth={1.5} />
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">{cartCount}</span>
+              <span className="absolute -top-1.5 -right-2 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">
+                {cartCount}
+              </span>
             )}
           </Link>
-          <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"} aria-label="Account" className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer">
+          <Link
+            to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
+            aria-label="Account"
+            className="hover:opacity-60 transition-opacity flex items-center gap-2 cursor-pointer"
+          >
             {user && (
-              <span className="text-xs font-semibold max-w-[120px] truncate">
-                {displayName}
-              </span>
+              <span className="text-xs font-semibold max-w-[120px] truncate">{displayName}</span>
             )}
             <User className="size-4" strokeWidth={1.5} />
           </Link>
         </div>
 
-        <button aria-label="Menu" className="sm:hidden justify-self-end cursor-pointer" onClick={() => setOpen((v) => !v)}>
+        <button
+          aria-label="Menu"
+          className="sm:hidden justify-self-end cursor-pointer size-11 flex items-center justify-center -mr-2"
+          onClick={() => setOpen((v) => !v)}
+        >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
       </div>
 
       {open && (
         <div className="sm:hidden border-t border-border bg-background text-foreground">
-          <nav className="container-swiss py-6 flex flex-col gap-4">
+          <nav className="container-swiss py-6 flex flex-col gap-1">
             {NAV.map((n) => (
-              <Link key={n.label} to={n.to} onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">
+              <Link
+                key={n.label}
+                to={n.to}
+                onClick={() => setOpen(false)}
+                className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block"
+              >
                 {n.label}
               </Link>
             ))}
-            <Link to="/cart" onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">Keranjang ({cartCount})</Link>
-            <Link to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"} onClick={() => setOpen(false)} className="text-base font-medium cursor-pointer">
-              {user ? (isAdmin ? `Admin Panel (${displayName})` : `Dashboard (${displayName})`) : "Login / Daftar"}
+            <Link
+              to="/cart"
+              onClick={() => setOpen(false)}
+              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block"
+            >
+              Keranjang ({cartCount})
+            </Link>
+            <Link
+              to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
+              onClick={() => setOpen(false)}
+              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block"
+            >
+              {user
+                ? isAdmin
+                  ? `Admin Panel (${displayName})`
+                  : `Dashboard (${displayName})`
+                : "Login / Daftar"}
             </Link>
           </nav>
         </div>

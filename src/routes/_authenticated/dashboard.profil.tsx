@@ -21,7 +21,14 @@ function ProfilePage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ nama_lengkap: "", no_hp: "", alamat: "", kota: "", provinsi: "", kode_pos: "" });
+  const [form, setForm] = useState({
+    nama_lengkap: "",
+    no_hp: "",
+    alamat: "",
+    kota: "",
+    provinsi: "",
+    kode_pos: "",
+  });
   const [alamatDetail, setAlamatDetail] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
@@ -32,7 +39,11 @@ function ProfilePage() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user!.id)
+        .maybeSingle();
       if (error) {
         console.error("Error fetching profile:", error);
         toast.error("Gagal mengambil profil: " + error.message);
@@ -48,9 +59,12 @@ function ProfilePage() {
     if (q.data) {
       const parsed = parseAlamat(q.data.alamat ?? "");
       setForm({
-        nama_lengkap: q.data.nama_lengkap ?? "", no_hp: q.data.no_hp ?? "",
-        alamat: q.data.alamat ?? "", kota: q.data.kota ?? "",
-        provinsi: q.data.provinsi ?? "", kode_pos: q.data.kode_pos ?? "",
+        nama_lengkap: q.data.nama_lengkap ?? "",
+        no_hp: q.data.no_hp ?? "",
+        alamat: q.data.alamat ?? "",
+        kota: q.data.kota ?? "",
+        provinsi: q.data.provinsi ?? "",
+        kode_pos: q.data.kode_pos ?? "",
       });
       setAlamatDetail(parsed.street);
       setKecamatan(parsed.kecamatan);
@@ -61,32 +75,33 @@ function ProfilePage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    
+
     // Combine detail, district (kecamatan), and village (kelurahan)
-    const finalAlamat = alamatDetail + 
-      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+    const finalAlamat =
+      alamatDetail +
+      (kecamatan ? `, Kec. ${kecamatan}` : "") +
       (kelurahan ? `, Kel. ${kelurahan}` : "");
 
     const updatedPayload = {
       ...form,
       alamat: finalAlamat,
     };
-    
+
     console.log("Attempting to update profile payload:", updatedPayload);
-    
+
     // 1. Try updating first
     const { data, error } = await supabase
       .from("profiles")
       .update(updatedPayload)
       .eq("id", user!.id)
       .select();
-      
+
     if (error) {
       console.error("Error updating profile:", error);
       setSaving(false);
       return toast.error("Gagal menyimpan profil: " + error.message);
     }
-    
+
     // 2. Fall back to upsert if update modified 0 rows (missing row or RLS filter)
     if (!data || data.length === 0) {
       console.log("No rows updated. Profile row might not exist. Attempting upsert fallback...");
@@ -94,25 +109,27 @@ function ProfilePage() {
         .from("profiles")
         .upsert({ id: user!.id, ...updatedPayload }, { onConflict: "id" })
         .select();
-        
+
       setSaving(false);
-      
+
       if (upsertError) {
         console.error("Upsert fallback failed:", upsertError);
         return toast.error("Gagal menyimpan profil: " + upsertError.message);
       }
-      
+
       if (!upsertData || upsertData.length === 0) {
         console.error("Both update and upsert returned empty results (RLS policy block)");
-        return toast.error("Gagal menyimpan profil: Akses ditolak oleh aturan database (RLS Policy)");
+        return toast.error(
+          "Gagal menyimpan profil: Akses ditolak oleh aturan database (RLS Policy)",
+        );
       }
-      
+
       console.log("Upsert fallback success response:", upsertData);
     } else {
       setSaving(false);
       console.log("Update success response:", data);
     }
-    
+
     toast.success("Profil disimpan");
     setIsEditing(false);
     qc.invalidateQueries({ queryKey: ["profile"] });
@@ -125,12 +142,24 @@ function ProfilePage() {
 
   return (
     <DashboardShell items={CUSTOMER_NAV} title="Akun Saya">
-      <PageHeader eyebrow="Profil" title="Data Pribadi" action={<Button variant="outline" onClick={logout} className="cursor-pointer">Logout</Button>} />
+      <PageHeader
+        eyebrow="Profil"
+        title="Data Pribadi"
+        action={
+          <Button variant="outline" onClick={logout} className="cursor-pointer">
+            Logout
+          </Button>
+        }
+      />
       <Card>
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-4 max-w-2xl">
           <div className="sm:col-span-2">
             <Label>Nama Lengkap</Label>
-            <Input disabled={!isEditing} value={form.nama_lengkap} onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })} />
+            <Input
+              disabled={!isEditing}
+              value={form.nama_lengkap}
+              onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
+            />
           </div>
           <div>
             <Label>Email</Label>
@@ -138,9 +167,13 @@ function ProfilePage() {
           </div>
           <div>
             <Label>Nomor HP</Label>
-            <Input disabled={!isEditing} value={form.no_hp} onChange={(e) => setForm({ ...form, no_hp: e.target.value })} />
+            <Input
+              disabled={!isEditing}
+              value={form.no_hp}
+              onChange={(e) => setForm({ ...form, no_hp: e.target.value })}
+            />
           </div>
-          
+
           <IndonesiaRegionSelector
             disabled={!isEditing}
             provinsi={form.provinsi}
@@ -167,22 +200,32 @@ function ProfilePage() {
                 <Button type="submit" disabled={saving} className="cursor-pointer">
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     if (q.data) {
                       const parsed = parseAlamat(q.data.alamat ?? "");
                       setForm({
-                        nama_lengkap: q.data.nama_lengkap ?? "", no_hp: q.data.no_hp ?? "",
-                        alamat: q.data.alamat ?? "", kota: q.data.kota ?? "",
-                        provinsi: q.data.provinsi ?? "", kode_pos: q.data.kode_pos ?? "",
+                        nama_lengkap: q.data.nama_lengkap ?? "",
+                        no_hp: q.data.no_hp ?? "",
+                        alamat: q.data.alamat ?? "",
+                        kota: q.data.kota ?? "",
+                        provinsi: q.data.provinsi ?? "",
+                        kode_pos: q.data.kode_pos ?? "",
                       });
                       setAlamatDetail(parsed.street);
                       setKecamatan(parsed.kecamatan);
                       setKelurahan(parsed.kelurahan);
                     } else {
-                      setForm({ nama_lengkap: "", no_hp: "", alamat: "", kota: "", provinsi: "", kode_pos: "" });
+                      setForm({
+                        nama_lengkap: "",
+                        no_hp: "",
+                        alamat: "",
+                        kota: "",
+                        provinsi: "",
+                        kode_pos: "",
+                      });
                       setAlamatDetail("");
                       setKecamatan("");
                       setKelurahan("");

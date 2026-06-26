@@ -2,9 +2,24 @@ import { ShieldCheck, ScrollText, Eye } from "lucide-react";
 import { Section } from "./Section";
 
 const FEATURES = [
-  { n: "01", icon: ShieldCheck, title: "Original Verified", desc: "Setiap jersey diverifikasi melalui pengecekan tag, jahitan, material, dan kode produksi resmi." },
-  { n: "02", icon: ScrollText, title: "Certificate of Authenticity", desc: "Jersey vintage dan limited edition dilengkapi sertifikat keaslian bernomor seri." },
-  { n: "03", icon: Eye, title: "Collector Inspection", desc: "Diperiksa langsung oleh tim kurator kolektor berpengalaman lebih dari 10 tahun." },
+  {
+    n: "01",
+    icon: ShieldCheck,
+    title: "Original Verified",
+    desc: "Setiap jersey diverifikasi melalui pengecekan tag, jahitan, material, dan kode produksi resmi.",
+  },
+  {
+    n: "02",
+    icon: ScrollText,
+    title: "Certificate of Authenticity",
+    desc: "Jersey vintage dan limited edition dilengkapi sertifikat keaslian bernomor seri.",
+  },
+  {
+    n: "03",
+    icon: Eye,
+    title: "Collector Inspection",
+    desc: "Diperiksa langsung oleh tim kurator kolektor berpengalaman lebih dari 10 tahun.",
+  },
 ];
 
 export function AuthenticityPromise() {

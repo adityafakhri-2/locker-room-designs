@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/webhook")({
           if (event === "payment.received") {
             const extraData = data?.extraData;
             const orderId = extraData?.order_id;
-            
+
             if (orderId) {
               console.log(`[Webhook Mayar] Memproses pembayaran sukses untuk Order ID: ${orderId}`);
 
@@ -34,31 +34,46 @@ export const Route = createFileRoute("/api/webhook")({
               }
 
               if (!payment) {
-                console.warn("[Webhook Mayar] Data pembayaran tidak ditemukan untuk Order ID:", orderId);
-                return new Response(JSON.stringify({ error: "Data pembayaran tidak ditemukan" }), { status: 404 });
+                console.warn(
+                  "[Webhook Mayar] Data pembayaran tidak ditemukan untuk Order ID:",
+                  orderId,
+                );
+                return new Response(JSON.stringify({ error: "Data pembayaran tidak ditemukan" }), {
+                  status: 404,
+                });
               }
 
               // 2. Jika status pembayaran belum disetujui (approved), perbarui statusnya
               if (payment.status !== "approved") {
                 const { error: uErr } = await supabaseAdmin
                   .from("payments")
-                  .update({ 
+                  .update({
                     status: "approved",
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
                   })
                   .eq("id", payment.id);
 
                 if (uErr) {
-                  console.error("[Webhook Mayar] Gagal memperbarui status pembayaran ke approved:", uErr);
+                  console.error(
+                    "[Webhook Mayar] Gagal memperbarui status pembayaran ke approved:",
+                    uErr,
+                  );
                   return new Response(JSON.stringify({ error: uErr.message }), { status: 500 });
                 }
 
-                console.log(`[Webhook Mayar] Pembayaran berhasil disetujui untuk Order ID: ${orderId}. Database trigger akan otomatis mengubah status pesanan menjadi 'processing' (dikemas).`);
+                console.log(
+                  `[Webhook Mayar] Pembayaran berhasil disetujui untuk Order ID: ${orderId}. Database trigger akan otomatis mengubah status pesanan menjadi 'processing' (dikemas).`,
+                );
               } else {
-                console.log("[Webhook Mayar] Pembayaran untuk Order ID tersebut sudah disetujui sebelumnya.");
+                console.log(
+                  "[Webhook Mayar] Pembayaran untuk Order ID tersebut sudah disetujui sebelumnya.",
+                );
               }
             } else {
-              console.warn("[Webhook Mayar] Properti order_id tidak ditemukan di extraData:", extraData);
+              console.warn(
+                "[Webhook Mayar] Properti order_id tidak ditemukan di extraData:",
+                extraData,
+              );
             }
           } else {
             console.log(`[Webhook Mayar] Mengabaikan event: ${event}`);

@@ -120,21 +120,27 @@ const analyzeSalesDataSchema = z.object({
   totalRevenue: z.number(),
   validOrdersCount: z.number(),
   totalCustomersCount: z.number(),
-  monthlyRevenue: z.array(z.object({
-    month: z.string(),
-    revenue: z.number(),
-  })),
-  bestSellers: z.array(z.object({
-    name: z.string(),
-    sold_count: z.number(),
-    stock: z.number(),
-    price: z.number(),
-    team: z.string().nullable().optional(),
-  })),
-  cityDistribution: z.array(z.object({
-    city: z.string(),
-    count: z.number(),
-  })),
+  monthlyRevenue: z.array(
+    z.object({
+      month: z.string(),
+      revenue: z.number(),
+    }),
+  ),
+  bestSellers: z.array(
+    z.object({
+      name: z.string(),
+      sold_count: z.number(),
+      stock: z.number(),
+      price: z.number(),
+      team: z.string().nullable().optional(),
+    }),
+  ),
+  cityDistribution: z.array(
+    z.object({
+      city: z.string(),
+      count: z.number(),
+    }),
+  ),
 });
 
 export const analyzeSalesData = createServerFn({ method: "POST" })
@@ -145,8 +151,15 @@ export const analyzeSalesData = createServerFn({ method: "POST" })
       throw new Error("GEMINI_API_KEY is not defined in the environment");
     }
 
-    const monthlyText = data.monthlyRevenue.map((m) => `- ${m.month}: Rp ${m.revenue.toLocaleString("id-ID")}`).join("\n");
-    const bestSellersText = data.bestSellers.map((b) => `- ${b.name} (${b.team || "No Team"}): Terjual ${b.sold_count}, Sisa Stok ${b.stock}, Harga Rp ${b.price.toLocaleString("id-ID")}`).join("\n");
+    const monthlyText = data.monthlyRevenue
+      .map((m) => `- ${m.month}: Rp ${m.revenue.toLocaleString("id-ID")}`)
+      .join("\n");
+    const bestSellersText = data.bestSellers
+      .map(
+        (b) =>
+          `- ${b.name} (${b.team || "No Team"}): Terjual ${b.sold_count}, Sisa Stok ${b.stock}, Harga Rp ${b.price.toLocaleString("id-ID")}`,
+      )
+      .join("\n");
     const cityText = data.cityDistribution.map((c) => `- ${c.city}: ${c.count} pesanan`).join("\n");
 
     const promptText = `
@@ -209,7 +222,9 @@ Format respons Anda harus bersih, rapi, dan mudah dibaca:
 
         // Retry on transient server errors
         if (response.status >= 500 && i < attempts - 1) {
-          console.warn(`Gemini API returned ${response.status} for analysis. Retrying in ${delay}ms...`);
+          console.warn(
+            `Gemini API returned ${response.status} for analysis. Retrying in ${delay}ms...`,
+          );
           await new Promise((resolve) => setTimeout(resolve, delay));
           delay *= 2;
           continue;
@@ -313,8 +328,8 @@ ATURAN FORMAT RESPONS:
               },
             ],
             generationConfig: {
-              responseMimeType: "application/json"
-            }
+              responseMimeType: "application/json",
+            },
           }),
         });
 
@@ -324,7 +339,9 @@ ATURAN FORMAT RESPONS:
 
         // Retry on transient server errors
         if (response.status >= 500 && i < attempts - 1) {
-          console.warn(`Gemini API returned ${response.status} for pricing. Retrying in ${delay}ms...`);
+          console.warn(
+            `Gemini API returned ${response.status} for pricing. Retrying in ${delay}ms...`,
+          );
           await new Promise((resolve) => setTimeout(resolve, delay));
           delay *= 2;
           continue;
@@ -365,4 +382,3 @@ ATURAN FORMAT RESPONS:
       throw new Error("Gagal memproses respons harga dari AI");
     }
   });
-

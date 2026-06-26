@@ -19,18 +19,27 @@ function AdminCategories() {
   const [slug, setSlug] = useState("");
   const q = useQuery({
     queryKey: ["admin-cats"],
-    queryFn: async () => (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
   });
   const add = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("categories").insert({ name, slug: slug || name.toLowerCase().replace(/\s+/g, "-") });
+      const { error } = await supabase
+        .from("categories")
+        .insert({ name, slug: slug || name.toLowerCase().replace(/\s+/g, "-") });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kategori ditambahkan"); setName(""); setSlug(""); qc.invalidateQueries({ queryKey: ["admin-cats"] }); },
+    onSuccess: () => {
+      toast.success("Kategori ditambahkan");
+      setName("");
+      setSlug("");
+      qc.invalidateQueries({ queryKey: ["admin-cats"] });
+    },
     onError: (e) => toast.error((e as Error).message),
   });
   const del = useMutation({
-    mutationFn: async (id: string) => (await supabase.from("categories").delete().eq("id", id)).error,
+    mutationFn: async (id: string) =>
+      (await supabase.from("categories").delete().eq("id", id)).error,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-cats"] }),
   });
   return (
@@ -39,15 +48,27 @@ function AdminCategories() {
       <Card className="mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3">
           <Input placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="slug (opsional)" value={slug} onChange={(e) => setSlug(e.target.value)} />
+          <Input
+            placeholder="slug (opsional)"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+          />
           <Button onClick={() => name && add.mutate()}>Tambah</Button>
         </div>
       </Card>
       <Card>
         {q.data?.map((c) => (
-          <div key={c.id} className="flex justify-between items-center py-2 border-b border-border/50 last:border-0">
-            <div><div className="font-semibold">{c.name}</div><div className="text-xs text-muted-foreground">{c.slug}</div></div>
-            <button onClick={() => del.mutate(c.id)} className="text-destructive"><Trash2 className="size-4" /></button>
+          <div
+            key={c.id}
+            className="flex justify-between items-center py-2 border-b border-border/50 last:border-0"
+          >
+            <div>
+              <div className="font-semibold">{c.name}</div>
+              <div className="text-xs text-muted-foreground">{c.slug}</div>
+            </div>
+            <button onClick={() => del.mutate(c.id)} className="text-destructive">
+              <Trash2 className="size-4" />
+            </button>
           </div>
         ))}
       </Card>

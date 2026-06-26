@@ -45,7 +45,9 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
               className="size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
             />
           ) : (
-            <div className="size-full grid place-items-center text-muted-foreground text-xs">No image</div>
+            <div className="size-full grid place-items-center text-muted-foreground text-xs">
+              No image
+            </div>
           )}
         </Link>
         {p.authenticity_badge && (
@@ -54,7 +56,9 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
             className="absolute top-3 left-3 max-w-[calc(100%-4rem)] inline-flex items-center gap-1.5 bg-background/95 px-2.5 py-1 eyebrow text-[10px] select-none"
           >
             <span className="size-1.5 shrink-0 bg-primary" />
-            <span className="truncate">{BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}</span>
+            <span className="truncate">
+              {BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
+            </span>
           </span>
         )}
         <button
@@ -68,17 +72,23 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
             }
             toggle.mutate(p.id);
           }}
-          className="absolute top-3 right-3 grid place-items-center size-8 bg-background/95 hover:bg-background"
+          className="absolute top-3 right-3 grid place-items-center size-10 bg-background/95 hover:bg-background rounded-full shadow-sm"
         >
-          <Heart className={cn("size-3.5", liked && "fill-primary text-primary")} strokeWidth={1.5} />
+          <Heart className={cn("size-4", liked && "fill-primary text-primary")} strokeWidth={1.5} />
         </button>
       </div>
-      <Link to="/product/$slug" params={{ slug: p.slug }} className="pt-4 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3">
+      <Link
+        to="/product/$slug"
+        params={{ slug: p.slug }}
+        className="pt-4 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
+      >
         <h3 className="text-sm md:text-base font-semibold tracking-tight truncate">{p.name}</h3>
         <span className="text-sm font-semibold tabular-nums">{formatIDR(p.price)}</span>
       </Link>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 mt-1">
-        <span className="text-xs text-muted-foreground truncate">{[p.team, p.release_year].filter(Boolean).join(" · ")}</span>
+        <span className="text-xs text-muted-foreground truncate">
+          {[p.team, p.release_year].filter(Boolean).join(" · ")}
+        </span>
         {footer}
       </div>
     </article>

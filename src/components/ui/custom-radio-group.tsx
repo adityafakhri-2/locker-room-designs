@@ -38,23 +38,19 @@ export function CustomRadioGroup({
       <div
         className={cn(
           "flex gap-6",
-          orientation === "vertical" ? "flex-col" : "flex-row items-center"
+          orientation === "vertical" ? "flex-col" : "flex-row items-center",
         )}
       >
         {options.map((opt) => {
           const optionId = `radio-${name || "opt"}-${opt.value}`;
           return (
             <div key={opt.value} className="flex items-center space-x-2.5">
-              <RadioGroupItem 
-                value={opt.value} 
-                id={optionId} 
-                className="cursor-pointer"
-              />
-              <Label 
-                htmlFor={optionId} 
+              <RadioGroupItem value={opt.value} id={optionId} className="cursor-pointer" />
+              <Label
+                htmlFor={optionId}
                 className={cn(
                   "text-sm font-semibold cursor-pointer select-none text-foreground hover:opacity-80 transition-opacity",
-                  disabled && "pointer-events-none opacity-55"
+                  disabled && "pointer-events-none opacity-55",
                 )}
               >
                 {opt.label}

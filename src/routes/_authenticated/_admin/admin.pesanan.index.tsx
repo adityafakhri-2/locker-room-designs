@@ -10,7 +10,13 @@ import { Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,10 +54,15 @@ function AdminOrders() {
   }
 
   function sortIcon(field: string) {
-    if (sortField !== field) return <ArrowUpDown className="size-3 text-muted-foreground/30 ml-1.5 opacity-40 group-hover:opacity-100" />;
-    return sortAsc 
-      ? <ArrowUp className="size-3 text-primary ml-1.5" />
-      : <ArrowDown className="size-3 text-primary ml-1.5" />;
+    if (sortField !== field)
+      return (
+        <ArrowUpDown className="size-3 text-muted-foreground/30 ml-1.5 opacity-40 group-hover:opacity-100" />
+      );
+    return sortAsc ? (
+      <ArrowUp className="size-3 text-primary ml-1.5" />
+    ) : (
+      <ArrowDown className="size-3 text-primary ml-1.5" />
+    );
   }
 
   const q = useQuery({
@@ -59,8 +70,11 @@ function AdminOrders() {
     queryFn: async () => {
       await supabase.rpc("check_and_cancel_expired_orders");
       const [ordersRes, profilesRes] = await Promise.all([
-        supabase.from("orders").select("*, payments(status)").order("created_at", { ascending: false }),
-        supabase.from("profiles").select("id, email, nama_lengkap")
+        supabase
+          .from("orders")
+          .select("*, payments(status)")
+          .order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id, email, nama_lengkap"),
       ]);
       if (ordersRes.error) {
         throw new Error(ordersRes.error.message);
@@ -70,12 +84,12 @@ function AdminOrders() {
       }
       const orders = ordersRes.data ?? [];
       const profiles = profilesRes.data ?? [];
-      const profileMap = new Map(profiles.map(p => [p.id, p]));
-      return orders.map(o => ({
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
+      return orders.map((o) => ({
         ...o,
-        profiles: profileMap.get(o.user_id) || null
+        profiles: profileMap.get(o.user_id) || null,
       }));
-    }
+    },
   });
 
   const counts = useMemo(() => {
@@ -90,9 +104,10 @@ function AdminOrders() {
 
     list.forEach((o) => {
       const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
-      const displayStatus = (o.status === "pending" && payment?.status === "waiting_verification")
-        ? "waiting_verification"
-        : o.status;
+      const displayStatus =
+        o.status === "pending" && payment?.status === "waiting_verification"
+          ? "waiting_verification"
+          : o.status;
 
       if (displayStatus === "pending") pending++;
       else if (displayStatus === "waiting_verification" || displayStatus === "paid") paid++;
@@ -126,9 +141,10 @@ function AdminOrders() {
     if (orderFilter !== "all") {
       list = list.filter((o) => {
         const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
-        const displayStatus = (o.status === "pending" && payment?.status === "waiting_verification")
-          ? "waiting_verification"
-          : o.status;
+        const displayStatus =
+          o.status === "pending" && payment?.status === "waiting_verification"
+            ? "waiting_verification"
+            : o.status;
 
         if (orderFilter === "pending") {
           return displayStatus === "pending";
@@ -165,8 +181,14 @@ function AdminOrders() {
       } else if (sortField === "status") {
         const payA = Array.isArray(a.payments) ? a.payments[0] : (a.payments as any);
         const payB = Array.isArray(b.payments) ? b.payments[0] : (b.payments as any);
-        valA = (a.status === "pending" && payA?.status === "waiting_verification") ? "waiting_verification" : a.status;
-        valB = (b.status === "pending" && payB?.status === "waiting_verification") ? "waiting_verification" : b.status;
+        valA =
+          a.status === "pending" && payA?.status === "waiting_verification"
+            ? "waiting_verification"
+            : a.status;
+        valB =
+          b.status === "pending" && payB?.status === "waiting_verification"
+            ? "waiting_verification"
+            : b.status;
       } else if (sortField === "payment_status") {
         const payA = Array.isArray(a.payments) ? a.payments[0] : (a.payments as any);
         const payB = Array.isArray(b.payments) ? b.payments[0] : (b.payments as any);
@@ -197,7 +219,7 @@ function AdminOrders() {
     },
     onError: (err: any) => {
       toast.error("Gagal menghapus pesanan: " + err.message);
-    }
+    },
   });
 
   function handleDeleteSingle(id: string) {
@@ -212,15 +234,15 @@ function AdminOrders() {
 
   function handleSelectRow(id: string, checked: boolean) {
     if (checked) {
-      setSelectedIds(prev => [...prev, id]);
+      setSelectedIds((prev) => [...prev, id]);
     } else {
-      setSelectedIds(prev => prev.filter(x => x !== id));
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
     }
   }
 
   function handleSelectAll(checked: boolean) {
     if (checked && q.data) {
-      setSelectedIds(q.data.map(o => o.id));
+      setSelectedIds(q.data.map((o) => o.id));
     } else {
       setSelectedIds([]);
     }
@@ -250,7 +272,9 @@ function AdminOrders() {
         ) : q.isError ? (
           <div className="text-sm text-destructive p-4 border border-destructive/20 bg-destructive/10 rounded-md">
             <p className="font-semibold">Gagal memuat data pesanan:</p>
-            <p className="mt-1 font-mono text-xs">{q.error instanceof Error ? q.error.message : String(q.error)}</p>
+            <p className="mt-1 font-mono text-xs">
+              {q.error instanceof Error ? q.error.message : String(q.error)}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -274,16 +298,16 @@ function AdminOrders() {
                       "pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap focus:outline-none",
                       isActive
                         ? "border-primary text-primary font-bold"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
                     )}
                   >
                     <span>{tab.label}</span>
-                    <span className={cn(
-                      "px-2 py-0.5 text-[10px] rounded-full font-bold transition-colors",
-                      isActive 
-                        ? "bg-primary/10 text-primary" 
-                        : "bg-muted text-muted-foreground"
-                    )}>
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 text-[10px] rounded-full font-bold transition-colors",
+                        isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                      )}
+                    >
                       {tab.count}
                     </span>
                   </button>
@@ -293,19 +317,25 @@ function AdminOrders() {
 
             {/* Search & Filter Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-              <Input 
-                placeholder="Cari nomor order, penerima..." 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
+              <Input
+                placeholder="Cari nomor order, penerima..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-full text-xs h-9"
               />
 
               <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="text-xs h-9 cursor-pointer"><SelectValue placeholder="Filter Status Bayar" /></SelectTrigger>
+                <SelectTrigger className="text-xs h-9 cursor-pointer">
+                  <SelectValue placeholder="Filter Status Bayar" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="cursor-pointer">Semua Status Bayar</SelectItem>
+                  <SelectItem value="all" className="cursor-pointer">
+                    Semua Status Bayar
+                  </SelectItem>
                   {["waiting_payment", "waiting_verification", "approved", "rejected"].map((s) => (
-                    <SelectItem key={s} value={s} className="cursor-pointer">{statusLabel(s)}</SelectItem>
+                    <SelectItem key={s} value={s} className="cursor-pointer">
+                      {statusLabel(s)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -319,77 +349,157 @@ function AdminOrders() {
                       <th className="py-2 w-10 text-center">
                         <input
                           type="checkbox"
-                          checked={q.data ? selectedIds.length === q.data.length && q.data.length > 0 : false}
+                          checked={
+                            q.data
+                              ? selectedIds.length === q.data.length && q.data.length > 0
+                              : false
+                          }
                           onChange={(e) => handleSelectAll(e.target.checked)}
                           className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer"
                         />
                       </th>
-                      <th className="py-2 cursor-pointer select-none group" onClick={() => handleSort("order_number")}>
+                      <th
+                        className="py-2 cursor-pointer select-none group"
+                        onClick={() => handleSort("order_number")}
+                      >
                         <div className="flex items-center">Order {sortIcon("order_number")}</div>
                       </th>
-                      <th className="cursor-pointer select-none group" onClick={() => handleSort("created_at")}>
+                      <th
+                        className="cursor-pointer select-none group"
+                        onClick={() => handleSort("created_at")}
+                      >
                         <div className="flex items-center">Tanggal {sortIcon("created_at")}</div>
                       </th>
-                      <th className="cursor-pointer select-none group" onClick={() => handleSort("recipient_name")}>
-                        <div className="flex items-center">Pelanggan {sortIcon("recipient_name")}</div>
+                      <th
+                        className="cursor-pointer select-none group"
+                        onClick={() => handleSort("recipient_name")}
+                      >
+                        <div className="flex items-center">
+                          Pelanggan {sortIcon("recipient_name")}
+                        </div>
                       </th>
-                      <th className="cursor-pointer select-none group" onClick={() => handleSort("status")}>
+                      <th
+                        className="cursor-pointer select-none group"
+                        onClick={() => handleSort("status")}
+                      >
                         <div className="flex items-center">Status {sortIcon("status")}</div>
                       </th>
-                      <th className="cursor-pointer select-none group" onClick={() => handleSort("payment_status")}>
+                      <th
+                        className="cursor-pointer select-none group"
+                        onClick={() => handleSort("payment_status")}
+                      >
                         <div className="flex items-center">Bayar {sortIcon("payment_status")}</div>
                       </th>
-                      <th className="text-right cursor-pointer select-none group" onClick={() => handleSort("grand_total")}>
-                        <div className="flex items-center justify-end">Total {sortIcon("grand_total")}</div>
+                      <th
+                        className="text-right cursor-pointer select-none group"
+                        onClick={() => handleSort("grand_total")}
+                      >
+                        <div className="flex items-center justify-end">
+                          Total {sortIcon("grand_total")}
+                        </div>
                       </th>
                       <th className="w-12 text-center"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAndSortedList.map((o) => {
-                      const payment = Array.isArray(o.payments) ? o.payments[0] : o.payments as any;
+                      const payment = Array.isArray(o.payments)
+                        ? o.payments[0]
+                        : (o.payments as any);
                       const profile = o.profiles as any;
                       const isSelected = selectedIds.includes(o.id);
 
-                      const displayStatus = (o.status === "pending" && payment?.status === "waiting_verification")
-                        ? "waiting_verification"
-                        : o.status;
+                      const displayStatus =
+                        o.status === "pending" && payment?.status === "waiting_verification"
+                          ? "waiting_verification"
+                          : o.status;
 
                       // Design status badges
                       // 1. Order Status Badge
-                      let orderBadge = <span className="text-xs text-muted-foreground">{statusLabel(displayStatus)}</span>;
+                      let orderBadge = (
+                        <span className="text-xs text-muted-foreground">
+                          {statusLabel(displayStatus)}
+                        </span>
+                      );
                       if (displayStatus === "pending") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">Menunggu Pembayaran</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+                            Menunggu Pembayaran
+                          </span>
+                        );
                       } else if (displayStatus === "waiting_verification") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">Sudah Dibayar (Menunggu Konfirmasi)</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">
+                            Sudah Dibayar (Menunggu Konfirmasi)
+                          </span>
+                        );
                       } else if (displayStatus === "paid") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">Pembayaran Diterima</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                            Pembayaran Diterima
+                          </span>
+                        );
                       } else if (displayStatus === "delivered") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">Selesai</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                            Selesai
+                          </span>
+                        );
                       } else if (displayStatus === "processing") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">Sedang Diproses</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">
+                            Sedang Diproses
+                          </span>
+                        );
                       } else if (displayStatus === "shipped") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">Dikirim</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                            Dikirim
+                          </span>
+                        );
                       } else if (displayStatus === "cancelled") {
-                        orderBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">Dibatalkan</span>;
+                        orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
+                            Dibatalkan
+                          </span>
+                        );
                       }
 
                       // 2. Payment Status Badge
                       let payBadge = <span className="text-xs text-muted-foreground">—</span>;
                       if (payment) {
                         if (payment.status === "waiting_payment") {
-                          payBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">Menunggu Pembayaran</span>;
+                          payBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                              Menunggu Pembayaran
+                            </span>
+                          );
                         } else if (payment.status === "waiting_verification") {
-                          payBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">Sudah Dibayar (Menunggu Konfirmasi)</span>;
+                          payBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">
+                              Sudah Dibayar (Menunggu Konfirmasi)
+                            </span>
+                          );
                         } else if (payment.status === "approved" || payment.status === "paid") {
-                          payBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">Disetujui</span>;
+                          payBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                              Disetujui
+                            </span>
+                          );
                         } else if (payment.status === "rejected") {
-                          payBadge = <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">Ditolak</span>;
+                          payBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
+                              Ditolak
+                            </span>
+                          );
                         }
                       }
 
                       return (
-                        <tr key={o.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
+                        <tr
+                          key={o.id}
+                          className="border-b border-border/50 hover:bg-muted/10 transition-colors"
+                        >
                           <td className="py-3 text-center">
                             <input
                               type="checkbox"
@@ -408,10 +518,14 @@ function AdminOrders() {
                             </Link>
                           </td>
                           <td className="text-xs">{formatDate(o.created_at)}</td>
-                          <td className="text-xs">{profile?.nama_lengkap || profile?.email || "—"}</td>
+                          <td className="text-xs">
+                            {profile?.nama_lengkap || profile?.email || "—"}
+                          </td>
                           <td className="py-2">{orderBadge}</td>
                           <td className="py-2">{payBadge}</td>
-                          <td className="text-right tabular-nums font-semibold">{formatIDR(o.grand_total)}</td>
+                          <td className="text-right tabular-nums font-semibold">
+                            {formatIDR(o.grand_total)}
+                          </td>
                           <td className="py-3 text-center">
                             <button
                               onClick={() => handleDeleteSingle(o.id)}
@@ -428,7 +542,9 @@ function AdminOrders() {
                 </table>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">Tidak ada pesanan masuk yang cocok dengan kriteria pencarian / filter.</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Tidak ada pesanan masuk yang cocok dengan kriteria pencarian / filter.
+              </p>
             )}
           </div>
         )}

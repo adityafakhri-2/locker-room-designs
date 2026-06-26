@@ -25,8 +25,8 @@ export function Newsletter() {
             <span className="italic font-light">langka berikutnya.</span>
           </h2>
           <p className="mt-6 text-muted-foreground max-w-xl">
-            Dapatkan informasi jersey terbaru, koleksi vintage, dan promo
-            eksklusif langsung ke email Anda.
+            Dapatkan informasi jersey terbaru, koleksi vintage, dan promo eksklusif langsung ke
+            email Anda.
           </p>
         </div>
 

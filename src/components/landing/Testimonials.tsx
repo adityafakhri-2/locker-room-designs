@@ -4,9 +4,27 @@ import t2 from "@/assets/testimonial-2.jpg";
 import t3 from "@/assets/testimonial-3.jpg";
 
 const REVIEWS = [
-  { quote: "Sulit menemukan jersey vintage original yang terpercaya. The Locker Room menjadi tempat favorit saya untuk berburu koleksi langka.", name: "Rizky Pratama", city: "Jakarta", img: t1 },
-  { quote: "Detailnya luar biasa. Kemasan museum-grade, sertifikat keaslian rapi, dan pelayanannya seperti membeli karya seni.", name: "Bagas Setiawan", city: "Bandung", img: t2 },
-  { quote: "Beli jersey vintage Italia untuk hadiah suami. Dia langsung bisa bercerita momennya — itulah nilai yang tidak bisa dibeli di tempat lain.", name: "Anindya Larasati", city: "Surabaya", img: t3 },
+  {
+    quote:
+      "Sulit menemukan jersey vintage original yang terpercaya. The Locker Room menjadi tempat favorit saya untuk berburu koleksi langka.",
+    name: "Rizky Pratama",
+    city: "Jakarta",
+    img: t1,
+  },
+  {
+    quote:
+      "Detailnya luar biasa. Kemasan museum-grade, sertifikat keaslian rapi, dan pelayanannya seperti membeli karya seni.",
+    name: "Bagas Setiawan",
+    city: "Bandung",
+    img: t2,
+  },
+  {
+    quote:
+      "Beli jersey vintage Italia untuk hadiah suami. Dia langsung bisa bercerita momennya — itulah nilai yang tidak bisa dibeli di tempat lain.",
+    name: "Anindya Larasati",
+    city: "Surabaya",
+    img: t3,
+  },
 ];
 
 export function Testimonials() {
@@ -22,7 +40,10 @@ export function Testimonials() {
 
       <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
         {REVIEWS.map((r) => (
-          <figure key={r.name} className="flex flex-col justify-between bg-muted p-8 md:p-10 min-h-[340px]">
+          <figure
+            key={r.name}
+            className="flex flex-col justify-between bg-muted p-8 md:p-10 min-h-[340px]"
+          >
             <blockquote className="text-base md:text-lg leading-relaxed text-foreground">
               <span className="text-primary">“</span>
               {r.quote}

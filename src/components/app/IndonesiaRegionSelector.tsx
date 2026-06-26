@@ -7,9 +7,7 @@ import { SearchableSelect } from "@/components/app/SearchableSelect";
 // Helper to convert ALL UPPERCASE API results to beautiful Title Case
 export function toTitleCase(str: string): string {
   if (!str) return "";
-  return str
-    .toLowerCase()
-    .replace(/(?:^|\s|-)\S/g, (m) => m.toUpperCase());
+  return str.toLowerCase().replace(/(?:^|\s|-)\S/g, (m) => m.toUpperCase());
 }
 
 // Helper to parse detailed address column into street address, district, and village
@@ -128,7 +126,9 @@ export function IndonesiaRegionSelector({
     async function loadProvinces() {
       setLoadingProvinces(true);
       try {
-        const res = await fetch("https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@gh-pages/api/provinces.json");
+        const res = await fetch(
+          "https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@gh-pages/api/provinces.json",
+        );
         if (!res.ok) throw new Error("Failed to fetch provinces");
         const data: ApiItem[] = await res.json();
         setProvinces(data);
@@ -160,7 +160,9 @@ export function IndonesiaRegionSelector({
     async function loadRegencies() {
       setLoadingRegencies(true);
       try {
-        const res = await fetch(`https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@gh-pages/api/regencies/${provId}.json`);
+        const res = await fetch(
+          `https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@gh-pages/api/regencies/${provId}.json`,
+        );
         if (!res.ok) throw new Error("Failed to fetch regencies");
         const data: ApiItem[] = await res.json();
         setRegencies(data);
@@ -192,7 +194,9 @@ export function IndonesiaRegionSelector({
     async function loadDistricts() {
       setLoadingDistricts(true);
       try {
-        const res = await fetch(`https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@gh-pages/api/districts/${regId}.json`);
+        const res = await fetch(
+          `https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@gh-pages/api/districts/${regId}.json`,
+        );
         if (!res.ok) throw new Error("Failed to fetch districts");
         const data: ApiItem[] = await res.json();
         setDistricts(data);
@@ -230,7 +234,9 @@ export function IndonesiaRegionSelector({
         const cleanKota = kota.replace(/^(KOTA|KABUPATEN|KAB)\.?\s+/i, "").trim();
         const searchQuery = `${kecamatan} ${cleanKota}`;
 
-        const res = await fetch(`https://kodepos.vercel.app/search/?q=${encodeURIComponent(searchQuery)}`);
+        const res = await fetch(
+          `https://kodepos.vercel.app/search/?q=${encodeURIComponent(searchQuery)}`,
+        );
         if (!res.ok) throw new Error("Failed to fetch postal codes");
         const json = await res.json();
         if (json.statusCode === 200 && Array.isArray(json.data)) {
@@ -241,7 +247,7 @@ export function IndonesiaRegionSelector({
               (!kota || stringsMatch(item.regency, kota))
             );
           });
-          
+
           const finalData = filtered.length > 0 ? filtered : json.data;
           setVillages(finalData);
 
@@ -317,14 +323,16 @@ export function IndonesiaRegionSelector({
   };
 
   return (
-    <div className="space-y-4 sm:col-span-2 grid grid-cols-1 gap-4">
+    <div className="sm:col-span-2 grid grid-cols-1 gap-4 w-full">
       {/* Row 1: Provinsi & Kota/Kabupaten (2 columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
         {/* Provinsi select */}
         <div>
           <Label htmlFor="indonesia-province" className="flex items-center gap-1.5 h-5 mb-1.5">
             Provinsi {required && <span className="text-destructive">*</span>}
-            {loadingProvinces && <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>}
+            {loadingProvinces && (
+              <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>
+            )}
           </Label>
           <SearchableSelect
             options={provinces.map((p) => ({ value: p.id, label: toTitleCase(p.name) }))}
@@ -340,7 +348,9 @@ export function IndonesiaRegionSelector({
         <div>
           <Label htmlFor="indonesia-regency" className="flex items-center gap-1.5 h-5 mb-1.5">
             Kota/Kabupaten {required && <span className="text-destructive">*</span>}
-            {loadingRegencies && <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>}
+            {loadingRegencies && (
+              <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>
+            )}
           </Label>
           <SearchableSelect
             options={regencies.map((r) => ({ value: r.id, label: toTitleCase(r.name) }))}
@@ -354,12 +364,14 @@ export function IndonesiaRegionSelector({
       </div>
 
       {/* Row 2: Kecamatan, Kelurahan & Kode Pos (3 columns) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
         {/* Kecamatan select */}
         <div>
           <Label htmlFor="indonesia-district" className="flex items-center gap-1.5 h-5 mb-1.5">
             Kecamatan {required && <span className="text-destructive">*</span>}
-            {loadingDistricts && <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>}
+            {loadingDistricts && (
+              <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>
+            )}
           </Label>
           <SearchableSelect
             options={districts.map((d) => ({ value: d.id, label: toTitleCase(d.name) }))}
@@ -377,7 +389,9 @@ export function IndonesiaRegionSelector({
             <div>
               <Label htmlFor="indonesia-village" className="flex items-center gap-1.5 h-5 mb-1.5">
                 Kelurahan / Desa {required && <span className="text-destructive">*</span>}
-                {loadingVillages && <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>}
+                {loadingVillages && (
+                  <span className="text-xs text-muted-foreground animate-pulse">(Memuat...)</span>
+                )}
               </Label>
               <SearchableSelect
                 options={villages.map((v, idx) => ({
@@ -393,22 +407,23 @@ export function IndonesiaRegionSelector({
             </div>
 
             <div>
-              <Label htmlFor="indonesia-zip-display" className="flex items-center gap-1.5 h-5 mb-1.5">
+              <Label
+                htmlFor="indonesia-zip-display"
+                className="flex items-center gap-1.5 h-5 mb-1.5"
+              >
                 Kode Pos
               </Label>
-              <Input
-                id="indonesia-zip-display"
-                disabled
-                placeholder="Kode Pos"
-                value={kodePos}
-              />
+              <Input id="indonesia-zip-display" disabled placeholder="Kode Pos" value={kodePos} />
             </div>
           </>
         ) : (
           // Fallback fields when postal code API is down or empty
           <>
             <div>
-              <Label htmlFor="indonesia-village-manual" className="flex items-center gap-1.5 h-5 mb-1.5">
+              <Label
+                htmlFor="indonesia-village-manual"
+                className="flex items-center gap-1.5 h-5 mb-1.5"
+              >
                 Kelurahan {required && <span className="text-destructive">*</span>}
               </Label>
               <Input
@@ -421,7 +436,10 @@ export function IndonesiaRegionSelector({
               />
             </div>
             <div>
-              <Label htmlFor="indonesia-zip-manual" className="flex items-center gap-1.5 h-5 mb-1.5">
+              <Label
+                htmlFor="indonesia-zip-manual"
+                className="flex items-center gap-1.5 h-5 mb-1.5"
+              >
                 Kode Pos {required && <span className="text-destructive">*</span>}
               </Label>
               <Input
@@ -439,7 +457,10 @@ export function IndonesiaRegionSelector({
 
       {/* Alamat Lengkap (Manual Input) */}
       <div>
-        <Label htmlFor="indonesia-street" className="flex items-center gap-1.5 h-5 mb-1.5">Alamat Lengkap (Jalan, Blok, No. Rumah, RT/RW) {required && <span className="text-destructive">*</span>}</Label>
+        <Label htmlFor="indonesia-street" className="flex items-center gap-1.5 h-5 mb-1.5">
+          Alamat Lengkap (Jalan, Blok, No. Rumah, RT/RW){" "}
+          {required && <span className="text-destructive">*</span>}
+        </Label>
         <Textarea
           id="indonesia-street"
           required={required}

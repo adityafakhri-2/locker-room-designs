@@ -113,11 +113,11 @@ function AuthPage() {
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    
+
     if (error) {
       if (error.message.toLowerCase().includes("email not confirmed")) {
         return toast.error(
-          "Email belum terkonfirmasi! Silakan cek kotak masuk email Anda untuk melakukan verifikasi, atau nonaktifkan 'Confirm email' di Dashboard Supabase -> Auth -> Providers -> Email jika sedang masa pengembangan."
+          "Email belum terkonfirmasi! Silakan cek kotak masuk email Anda untuk melakukan verifikasi, atau nonaktifkan 'Confirm email' di Dashboard Supabase -> Auth -> Providers -> Email jika sedang masa pengembangan.",
         );
       }
       return toast.error(error.message);
@@ -147,8 +147,9 @@ function AuthPage() {
       return toast.error("Konfirmasi password tidak cocok dengan password!");
     }
 
-    const finalAlamat = alamatDetail + 
-      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+    const finalAlamat =
+      alamatDetail +
+      (kecamatan ? `, Kec. ${kecamatan}` : "") +
       (kelurahan ? `, Kel. ${kelurahan}` : "");
 
     if (!namaLengkap || !noHp || !alamatDetail || !kota || !provinsi || !kodePos) {
@@ -166,16 +167,20 @@ function AuthPage() {
           alamat: finalAlamat,
           kota: kota,
           provinsi: provinsi,
-          kode_pos: kodePos
-        }
+          kode_pos: kodePos,
+        },
       },
     });
-    
+
     if (error) {
       setLoading(false);
-      if (error.status === 429 || error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("too many requests")) {
+      if (
+        error.status === 429 ||
+        error.message.toLowerCase().includes("rate limit") ||
+        error.message.toLowerCase().includes("too many requests")
+      ) {
         return toast.error(
-          "Batas pengiriman email pendaftaran terlampaui (Rate Limit 429). Silakan tunggu beberapa menit, atau konfirmasi email pengguna secara manual di Dashboard Supabase (Auth -> Users -> Klik User -> Confirm User)."
+          "Batas pengiriman email pendaftaran terlampaui (Rate Limit 429). Silakan tunggu beberapa menit, atau konfirmasi email pengguna secara manual di Dashboard Supabase (Auth -> Users -> Klik User -> Confirm User).",
         );
       }
       return toast.error(error.message);
@@ -183,13 +188,16 @@ function AuthPage() {
 
     if (data?.session) {
       // Update profile with additional address details if session is active immediately
-      await supabase.from("profiles").update({
-        no_hp: noHp,
-        alamat: finalAlamat,
-        kota: kota,
-        provinsi: provinsi,
-        kode_pos: kodePos
-      }).eq("id", data.session.user.id);
+      await supabase
+        .from("profiles")
+        .update({
+          no_hp: noHp,
+          alamat: finalAlamat,
+          kota: kota,
+          provinsi: provinsi,
+          kode_pos: kodePos,
+        })
+        .eq("id", data.session.user.id);
 
       // Check user role
       const { data: roleData } = await supabase
@@ -208,7 +216,9 @@ function AuthPage() {
       }
     } else {
       setLoading(false);
-      toast.success("Registrasi berhasil! Silakan cek kotak masuk email Anda untuk melakukan verifikasi akun.");
+      toast.success(
+        "Registrasi berhasil! Silakan cek kotak masuk email Anda untuk melakukan verifikasi akun.",
+      );
     }
   }
 
@@ -229,8 +239,9 @@ function AuthPage() {
   async function completeProfile(e: React.FormEvent) {
     e.preventDefault();
 
-    const finalAlamat = alamatDetail + 
-      (kecamatan ? `, Kec. ${kecamatan}` : "") + 
+    const finalAlamat =
+      alamatDetail +
+      (kecamatan ? `, Kec. ${kecamatan}` : "") +
       (kelurahan ? `, Kel. ${kelurahan}` : "");
 
     if (!namaLengkap || !noHp || !alamatDetail || !kota || !provinsi || !kodePos) {
@@ -352,7 +363,9 @@ function AuthPage() {
       <Navbar />
       <div className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12">
         <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
-          <Link to="/" className="eyebrow text-muted-foreground">← Kembali ke beranda</Link>
+          <Link to="/" className="eyebrow text-muted-foreground">
+            ← Kembali ke beranda
+          </Link>
           <h1 className="display-md mt-4">The Locker Room</h1>
           <p className="text-sm text-muted-foreground mt-2">Where Football Memories Live.</p>
 
@@ -366,7 +379,14 @@ function AuthPage() {
               <form onSubmit={login} className="space-y-4">
                 <div>
                   <Label htmlFor="le">Email</Label>
-                  <Input id="le" type="email" placeholder="contoh@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input
+                    id="le"
+                    type="email"
+                    placeholder="contoh@email.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="lp">Password</Label>
@@ -389,16 +409,22 @@ function AuthPage() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full">{loading ? "Memproses..." : "Masuk"}</Button>
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? "Memproses..." : "Masuk"}
+                </Button>
               </form>
             </TabsContent>
 
             <TabsContent value="register" className="mt-6">
               {/* Step progress indicator */}
               <div className="flex items-center justify-between mb-5 text-[11px] font-bold text-muted-foreground border-b border-border/40 pb-3">
-                <span className={step === 1 ? "text-primary font-extrabold" : ""}>1. BUAT AKUN</span>
+                <span className={step === 1 ? "text-primary font-extrabold" : ""}>
+                  1. BUAT AKUN
+                </span>
                 <div className="flex-1 border-t border-dashed border-border/60 mx-3" />
-                <span className={step === 2 ? "text-primary font-extrabold" : ""}>2. LENGKAPI PROFIL</span>
+                <span className={step === 2 ? "text-primary font-extrabold" : ""}>
+                  2. LENGKAPI PROFIL
+                </span>
               </div>
 
               <form onSubmit={register} className="space-y-4">
@@ -406,7 +432,14 @@ function AuthPage() {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="re">Email</Label>
-                      <Input id="re" type="email" placeholder="contoh@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                      <Input
+                        id="re"
+                        type="email"
+                        placeholder="contoh@email.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label htmlFor="rp">Password</Label>
@@ -426,7 +459,11 @@ function AuthPage() {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                         >
-                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          {showPassword ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -448,7 +485,11 @@ function AuthPage() {
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                         >
-                          {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          {showConfirmPassword ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -478,11 +519,23 @@ function AuthPage() {
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div>
                       <Label htmlFor="rn">Nama Lengkap</Label>
-                      <Input id="rn" placeholder="Nama Lengkap Anda" required value={namaLengkap} onChange={(e) => setNamaLengkap(e.target.value)} />
+                      <Input
+                        id="rn"
+                        placeholder="Nama Lengkap Anda"
+                        required
+                        value={namaLengkap}
+                        onChange={(e) => setNamaLengkap(e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label htmlFor="rphone">Nomor HP</Label>
-                      <Input id="rphone" placeholder="Contoh: 08123456789" required value={noHp} onChange={(e) => setNoHp(e.target.value)} />
+                      <Input
+                        id="rphone"
+                        placeholder="Contoh: 08123456789"
+                        required
+                        value={noHp}
+                        onChange={(e) => setNoHp(e.target.value)}
+                      />
                     </div>
                     <IndonesiaRegionSelector
                       provinsi={provinsi}
@@ -514,7 +567,9 @@ function AuthPage() {
                       </Button>
                     </div>
                     {hasUsers === false && (
-                      <p className="text-xs text-muted-foreground text-center">Pengguna pertama yang mendaftar otomatis menjadi admin.</p>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Pengguna pertama yang mendaftar otomatis menjadi admin.
+                      </p>
                     )}
                   </div>
                 )}

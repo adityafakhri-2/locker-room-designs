@@ -28,9 +28,8 @@ export function FootballMemories() {
         </h2>
 
         <p className="mt-10 max-w-2xl text-base md:text-lg leading-relaxed text-white/80">
-          Dari malam final Liga Champions hingga momen kejayaan tim nasional,
-          setiap jersey memiliki sejarah yang layak dikenang. Kami merawatnya
-          agar cerita itu tidak pernah memudar.
+          Dari malam final Liga Champions hingga momen kejayaan tim nasional, setiap jersey memiliki
+          sejarah yang layak dikenang. Kami merawatnya agar cerita itu tidak pernah memudar.
         </p>
       </div>
     </section>

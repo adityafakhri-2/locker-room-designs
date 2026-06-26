@@ -18,7 +18,9 @@ export async function signedUrl(bucket: string, path: string | null | undefined)
 
 /** Upload a file to a bucket at a given path. Returns the storage path on success. */
 export async function uploadFile(bucket: string, path: string, file: File): Promise<string> {
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, cacheControl: "3600" });
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { upsert: true, cacheControl: "3600" });
   if (error) throw error;
   return path;
 }

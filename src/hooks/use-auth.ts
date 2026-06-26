@@ -16,7 +16,11 @@ export function useAuth() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  return { session, user: session?.user ?? null, loading } as { session: Session | null; user: User | null; loading: boolean };
+  return { session, user: session?.user ?? null, loading } as {
+    session: Session | null;
+    user: User | null;
+    loading: boolean;
+  };
 }
 
 export function useIsAdmin() {

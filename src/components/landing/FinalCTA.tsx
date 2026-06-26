@@ -15,8 +15,8 @@ export function FinalCTA() {
         </h2>
         <div className="mt-12 grid lg:grid-cols-12 gap-10 items-end">
           <p className="lg:col-span-6 text-base md:text-lg text-primary-foreground/85 max-w-xl">
-            Mulai koleksi atau temukan kembali kenangan sepak bola favoritmu —
-            dikurasi oleh kolektor, dijamin original.
+            Mulai koleksi atau temukan kembali kenangan sepak bola favoritmu — dikurasi oleh
+            kolektor, dijamin original.
           </p>
           <div className="lg:col-span-6 lg:col-start-7 flex flex-wrap gap-3">
             <a

@@ -38,11 +38,11 @@ export function DateTimePicker({
         period: "AM",
       };
     }
-    
+
     let hour24 = dateVal.getHours();
     const minuteStr = String(dateVal.getMinutes()).padStart(2, "0");
     const period = hour24 >= 12 ? "PM" : "AM";
-    
+
     let hour12 = hour24 % 12;
     if (hour12 === 0) hour12 = 12;
     const hourStr = String(hour12).padStart(2, "0");
@@ -62,7 +62,7 @@ export function DateTimePicker({
     newDate: Date | undefined,
     newHour: string,
     newMinute: string,
-    newPeriod: string
+    newPeriod: string,
   ) => {
     if (!newDate) {
       onChange?.(undefined);
@@ -111,10 +111,10 @@ export function DateTimePicker({
     if (hour12 === 0) hour12 = 12;
 
     handleUpdate(
-      now, 
-      String(hour12).padStart(2, "0"), 
-      String(now.getMinutes()).padStart(2, "0"), 
-      periodVal
+      now,
+      String(hour12).padStart(2, "0"),
+      String(now.getMinutes()).padStart(2, "0"),
+      periodVal,
     );
   };
 
@@ -150,7 +150,7 @@ export function DateTimePicker({
           className={cn(
             "w-full justify-between text-left font-normal h-10 px-3 cursor-pointer bg-background border-input hover:bg-accent",
             !value && "text-muted-foreground",
-            className
+            className,
           )}
         >
           <span className="truncate">
@@ -159,15 +159,13 @@ export function DateTimePicker({
           <CalendarIcon className="size-4 opacity-50 flex-shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 flex flex-col md:flex-row bg-background border border-border shadow-lg" align="start">
+      <PopoverContent
+        className="w-auto p-0 flex flex-col md:flex-row bg-background border border-border shadow-lg"
+        align="start"
+      >
         {/* Left side: Calendar */}
         <div className="flex flex-col border-b md:border-b-0 md:border-r border-border p-2">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleDateChange}
-            initialFocus
-          />
+          <Calendar mode="single" selected={date} onSelect={handleDateChange} initialFocus />
           <div className="flex justify-between items-center border-t border-border mt-2 pt-2 px-2">
             <button
               type="button"
@@ -190,8 +188,13 @@ export function DateTimePicker({
         <div className="flex divide-x divide-border h-[300px] p-2 bg-background select-none">
           {/* Hours Column */}
           <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-2">H</span>
-            <div ref={hourRef} className="flex-1 w-12 overflow-y-auto scrollbar-none space-y-1 pb-24">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-2">
+              H
+            </span>
+            <div
+              ref={hourRef}
+              className="flex-1 w-12 overflow-y-auto scrollbar-none space-y-1 pb-24"
+            >
               {hours.map((h) => {
                 const isActive = h === hour;
                 return (
@@ -204,7 +207,7 @@ export function DateTimePicker({
                       "w-8 h-8 rounded text-sm flex items-center justify-center cursor-pointer transition-colors mx-auto",
                       isActive
                         ? "bg-primary text-primary-foreground font-bold"
-                        : "hover:bg-accent text-foreground"
+                        : "hover:bg-accent text-foreground",
                     )}
                   >
                     {h}
@@ -216,8 +219,13 @@ export function DateTimePicker({
 
           {/* Minutes Column */}
           <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-2">M</span>
-            <div ref={minuteRef} className="flex-1 w-12 overflow-y-auto scrollbar-none space-y-1 pb-24">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-2">
+              M
+            </span>
+            <div
+              ref={minuteRef}
+              className="flex-1 w-12 overflow-y-auto scrollbar-none space-y-1 pb-24"
+            >
               {minutes.map((m) => {
                 const isActive = m === minute;
                 return (
@@ -230,7 +238,7 @@ export function DateTimePicker({
                       "w-8 h-8 rounded text-sm flex items-center justify-center cursor-pointer transition-colors mx-auto",
                       isActive
                         ? "bg-primary text-primary-foreground font-bold"
-                        : "hover:bg-accent text-foreground"
+                        : "hover:bg-accent text-foreground",
                     )}
                   >
                     {m}
@@ -242,7 +250,9 @@ export function DateTimePicker({
 
           {/* Period Column (AM/PM) */}
           <div className="flex flex-col items-center">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-2">P</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1.5 px-2">
+              P
+            </span>
             <div className="w-12 space-y-1">
               {periods.map((p) => {
                 const isActive = p === period;
@@ -255,7 +265,7 @@ export function DateTimePicker({
                       "w-8 h-8 rounded text-sm flex items-center justify-center cursor-pointer transition-colors mx-auto",
                       isActive
                         ? "bg-primary text-primary-foreground font-bold"
-                        : "hover:bg-accent text-foreground"
+                        : "hover:bg-accent text-foreground",
                     )}
                   >
                     {p}

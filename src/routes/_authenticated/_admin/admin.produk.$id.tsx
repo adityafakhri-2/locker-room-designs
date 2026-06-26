@@ -10,12 +10,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { uploadFile, signedUrl } from "@/lib/storage";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, ChevronDown, Calendar as CalendarIcon, Plus, X, ShieldCheck, Shirt, Gem, Sparkles, Loader2 } from "lucide-react";
+import {
+  Trash2,
+  ChevronDown,
+  Calendar as CalendarIcon,
+  Plus,
+  X,
+  ShieldCheck,
+  Shirt,
+  Gem,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -37,7 +60,10 @@ function formatBytes(bytes: number, decimals = 2) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
-function compressAndConvertToWebp(file: File, quality = 0.8): Promise<{ blob: Blob; originalSize: number; compressedSize: number }> {
+function compressAndConvertToWebp(
+  file: File,
+  quality = 0.8,
+): Promise<{ blob: Blob; originalSize: number; compressedSize: number }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -77,7 +103,7 @@ function compressAndConvertToWebp(file: File, quality = 0.8): Promise<{ blob: Bl
             });
           },
           "image/webp",
-          quality
+          quality,
         );
       };
       img.onerror = () => reject(new Error("Gagal memuat gambar"));
@@ -89,10 +115,22 @@ function compressAndConvertToWebp(file: File, quality = 0.8): Promise<{ blob: Bl
 }
 
 interface PFormState {
-  slug: string; name: string; price: string; category_ids: string[];
-  brand: string; team: string; league: string; country: string; release_year: string;
-  condition: string; sizes: string; description: string; story: string;
-  authenticity_badge: string; video_url: string; is_active: boolean;
+  slug: string;
+  name: string;
+  price: string;
+  category_ids: string[];
+  brand: string;
+  team: string;
+  league: string;
+  country: string;
+  release_year: string;
+  condition: string;
+  sizes: string;
+  description: string;
+  story: string;
+  authenticity_badge: string;
+  video_url: string;
+  is_active: boolean;
 }
 
 function formatThousand(val: string | number): string {
@@ -102,17 +140,29 @@ function formatThousand(val: string | number): string {
 }
 
 const emptyForm: PFormState = {
-  slug: "", name: "", price: "0", category_ids: [],
-  brand: "", team: "", league: "", country: "", release_year: "",
-  condition: "excellent", sizes: "S,M,L,XL", description: "", story: "",
-  authenticity_badge: "original_verified", video_url: "", is_active: true,
+  slug: "",
+  name: "",
+  price: "0",
+  category_ids: [],
+  brand: "",
+  team: "",
+  league: "",
+  country: "",
+  release_year: "",
+  condition: "excellent",
+  sizes: "S,M,L,XL",
+  description: "",
+  story: "",
+  authenticity_badge: "original_verified",
+  video_url: "",
+  is_active: true,
 };
 
 const BADGES = [
   { value: "original_verified", label: "Original Terverifikasi", icon: ShieldCheck },
   { value: "match_worn", label: "Jersey Pertandingan (Match Worn)", icon: Shirt },
   { value: "collector_item", label: "Barang Koleksi (Collector Item)", icon: Gem },
-  { value: "limited_edition", label: "Edisi Terbatas (Limited Edition)", icon: Sparkles }
+  { value: "limited_edition", label: "Edisi Terbatas (Limited Edition)", icon: Sparkles },
 ];
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/produk/$id")({
@@ -128,9 +178,20 @@ function ProductForm() {
   const [loading, setLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
-  const [priceSuggestion, setPriceSuggestion] = useState<{ suggestedPrice: number; analysis: string } | null>(null);
+  const [priceSuggestion, setPriceSuggestion] = useState<{
+    suggestedPrice: number;
+    analysis: string;
+  } | null>(null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
-  const [images, setImages] = useState<{ id?: string; url: string; storage_path?: string; originalSize?: number; compressedSize?: number }[]>([]);
+  const [images, setImages] = useState<
+    {
+      id?: string;
+      url: string;
+      storage_path?: string;
+      originalSize?: number;
+      compressedSize?: number;
+    }[]
+  >([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [deletedStoragePaths, setDeletedStoragePaths] = useState<string[]>([]);
 
@@ -142,12 +203,15 @@ function ProductForm() {
   const [newConditionVal, setNewConditionVal] = useState("");
   const [editingConditionId, setEditingConditionId] = useState<string | null>(null);
   const [editingConditionVal, setEditingConditionVal] = useState("");
-  const [conditionToDelete, setConditionToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [conditionToDelete, setConditionToDelete] = useState<{ id: string; name: string } | null>(
+    null,
+  );
   const [imageUploading, setImageUploading] = useState(false);
 
   const cats = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
   });
 
   const metadataSuggestions = useQuery({
@@ -158,7 +222,7 @@ function ProductForm() {
       const lSet = new Set<string>();
       const tSet = new Set<string>();
       const cSet = new Set<string>();
-      (data ?? []).forEach(p => {
+      (data ?? []).forEach((p) => {
         if (p.brand) bSet.add(p.brand);
         if (p.league) lSet.add(p.league);
         if (p.team) tSet.add(p.team);
@@ -170,12 +234,13 @@ function ProductForm() {
         teams: Array.from(tSet).sort(),
         countries: Array.from(cSet).sort(),
       };
-    }
+    },
   });
 
   const conditionsQuery = useQuery({
     queryKey: ["product-conditions"],
-    queryFn: async () => (await supabase.from("product_conditions").select("*").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("product_conditions").select("*").order("name")).data ?? [],
   });
 
   const addConditionMutation = useMutation({
@@ -189,7 +254,7 @@ function ProductForm() {
     },
     onError: (err: any) => {
       toast.error("Gagal menambahkan kondisi: " + err.message);
-    }
+    },
   });
 
   const deleteConditionMutation = useMutation({
@@ -203,12 +268,15 @@ function ProductForm() {
     },
     onError: (err: any) => {
       toast.error("Gagal menghapus kondisi: " + err.message);
-    }
+    },
   });
 
   const editConditionMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("product_conditions").update({ name: name.trim() }).eq("id", id);
+      const { error } = await supabase
+        .from("product_conditions")
+        .update({ name: name.trim() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -217,14 +285,18 @@ function ProductForm() {
     },
     onError: (err: any) => {
       toast.error("Gagal mengubah kondisi: " + err.message);
-    }
+    },
   });
 
   const existing = useQuery({
     queryKey: ["product-edit", id],
     enabled: !isNew,
     queryFn: async () => {
-      const { data } = await supabase.from("products").select("*, product_images(*)").eq("id", id).maybeSingle();
+      const { data } = await supabase
+        .from("products")
+        .select("*, product_images(*)")
+        .eq("id", id)
+        .maybeSingle();
       return data;
     },
   });
@@ -233,22 +305,30 @@ function ProductForm() {
     if (!existing.data) return;
     const p = existing.data;
     setForm({
-      slug: p.slug, name: p.name, price: formatThousand(p.price),
+      slug: p.slug,
+      name: p.name,
+      price: formatThousand(p.price),
       category_ids: p.category_ids ?? (p.category_id ? [p.category_id] : []),
-      brand: p.brand ?? "", team: p.team ?? "",
-      league: p.league ?? "", country: p.country ?? "", release_year: String(p.release_year ?? ""),
-      condition: p.condition ?? "excellent", sizes: (p.sizes ?? []).join(","),
-      description: p.description ?? "", story: p.story ?? "",
+      brand: p.brand ?? "",
+      team: p.team ?? "",
+      league: p.league ?? "",
+      country: p.country ?? "",
+      release_year: String(p.release_year ?? ""),
+      condition: p.condition ?? "excellent",
+      sizes: (p.sizes ?? []).join(","),
+      description: p.description ?? "",
+      story: p.story ?? "",
       authenticity_badge: p.authenticity_badge ?? "original_verified",
-      video_url: p.video_url ?? "", is_active: p.is_active,
+      video_url: p.video_url ?? "",
+      is_active: p.is_active,
     });
-    
+
     if (p.size_stock) {
       setSizeStocks(p.size_stock as Record<string, number>);
     } else {
       const szs = p.sizes ?? [];
       const initStocks: Record<string, number> = {};
-      szs.forEach(s => {
+      szs.forEach((s) => {
         initStocks[s] = Math.ceil(p.stock / Math.max(szs.length, 1));
       });
       setSizeStocks(initStocks);
@@ -262,7 +342,9 @@ function ProductForm() {
     setImages(loadedImages);
   }, [existing.data]);
 
-  function set<K extends keyof PFormState>(k: K, v: PFormState[K]) { setForm((f) => ({ ...f, [k]: v })); }
+  function set<K extends keyof PFormState>(k: K, v: PFormState[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
 
   async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -272,36 +354,41 @@ function ProductForm() {
     try {
       const fileList = Array.from(files);
       toast.info(`Mengompres ${fileList.length} gambar ke WebP...`);
-      
-      const newImages: { storage_path: string; url: string; originalSize: number; compressedSize: number }[] = [];
-      
+
+      const newImages: {
+        storage_path: string;
+        url: string;
+        originalSize: number;
+        compressedSize: number;
+      }[] = [];
+
       for (const file of fileList) {
         try {
           const result = await compressAndConvertToWebp(file, 0.8);
           const compressedFile = new File(
-            [result.blob], 
-            `${file.name.substring(0, file.name.lastIndexOf('.')) || file.name}.webp`, 
-            { type: "image/webp" }
+            [result.blob],
+            `${file.name.substring(0, file.name.lastIndexOf(".")) || file.name}.webp`,
+            { type: "image/webp" },
           );
 
           const path = `${Date.now()}-${compressedFile.name}`;
           await uploadFile("product-images", path, compressedFile);
-          
+
           const { data } = supabase.storage.from("product-images").getPublicUrl(path);
           const url = data.publicUrl;
-          
+
           newImages.push({
             storage_path: path,
             url,
             originalSize: result.originalSize,
-            compressedSize: result.compressedSize
+            compressedSize: result.compressedSize,
           });
         } catch (singleErr) {
           console.error(`Gagal mengunggah ${file.name}:`, singleErr);
           toast.error(`Gagal mengunggah ${file.name}: ${(singleErr as Error).message}`);
         }
       }
-      
+
       if (newImages.length > 0) {
         setImages((arr) => [...arr, ...newImages]);
         toast.success(`${newImages.length} gambar berhasil diunggah`);
@@ -316,31 +403,47 @@ function ProductForm() {
     }
   }
 
-  const currentSizes = form.sizes.split(",").map((s) => s.trim()).filter(Boolean);
+  const currentSizes = form.sizes
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const totalStockCalculated = currentSizes.reduce((sum, s) => sum + (sizeStocks[s] ?? 0), 0);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
 
-  const suggestions = metadataSuggestions.data ?? { brands: [], leagues: [], teams: [], countries: [] };
+  const suggestions = metadataSuggestions.data ?? {
+    brands: [],
+    leagues: [],
+    teams: [],
+    countries: [],
+  };
 
   const allBrands = suggestions.brands;
-  const filteredBrands = allBrands.filter((b: string) =>
-    b.toLowerCase().includes(form.brand.toLowerCase()) && b.toLowerCase() !== form.brand.toLowerCase()
+  const filteredBrands = allBrands.filter(
+    (b: string) =>
+      b.toLowerCase().includes(form.brand.toLowerCase()) &&
+      b.toLowerCase() !== form.brand.toLowerCase(),
   );
 
   const allLeagues = suggestions.leagues;
-  const filteredLeagues = allLeagues.filter((l: string) =>
-    l.toLowerCase().includes(form.league.toLowerCase()) && l.toLowerCase() !== form.league.toLowerCase()
+  const filteredLeagues = allLeagues.filter(
+    (l: string) =>
+      l.toLowerCase().includes(form.league.toLowerCase()) &&
+      l.toLowerCase() !== form.league.toLowerCase(),
   );
 
   const allTeams = suggestions.teams;
-  const filteredTeams = allTeams.filter((t: string) =>
-    t.toLowerCase().includes(form.team.toLowerCase()) && t.toLowerCase() !== form.team.toLowerCase()
+  const filteredTeams = allTeams.filter(
+    (t: string) =>
+      t.toLowerCase().includes(form.team.toLowerCase()) &&
+      t.toLowerCase() !== form.team.toLowerCase(),
   );
 
   const allCountries = suggestions.countries;
-  const filteredCountries = allCountries.filter((c: string) =>
-    c.toLowerCase().includes(form.country.toLowerCase()) && c.toLowerCase() !== form.country.toLowerCase()
+  const filteredCountries = allCountries.filter(
+    (c: string) =>
+      c.toLowerCase().includes(form.country.toLowerCase()) &&
+      c.toLowerCase() !== form.country.toLowerCase(),
   );
 
   async function handleGenerateDescription() {
@@ -433,7 +536,9 @@ function ProductForm() {
       }
     } catch (err: any) {
       console.error(err);
-      toast.toast ? toast.error("Gagal menganalisis harga pasaran: " + (err.message || err)) : toast.error("Gagal menganalisis harga pasaran: " + (err.message || err));
+      toast.toast
+        ? toast.error("Gagal menganalisis harga pasaran: " + (err.message || err))
+        : toast.error("Gagal menganalisis harga pasaran: " + (err.message || err));
     } finally {
       setIsSuggestingPrice(false);
     }
@@ -460,7 +565,12 @@ function ProductForm() {
       });
 
       const payload = {
-        slug: form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        slug:
+          form.slug ||
+          form.name
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, ""),
         name: form.name,
         price: Number(form.price.replace(/\D/g, "")),
         stock: totalStockCalculated,
@@ -485,7 +595,11 @@ function ProductForm() {
 
       let productId = isNew ? null : id;
       if (isNew) {
-        const { data, error } = await supabase.from("products").insert(payload).select("id").single();
+        const { data, error } = await supabase
+          .from("products")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
         productId = data.id;
       } else {
@@ -493,9 +607,13 @@ function ProductForm() {
         if (error) throw error;
       }
       // Sync images: insert any without id
-      const newOnes = images.filter((i) => !i.id && i.storage_path).map((i, idx) => ({
-        product_id: productId!, url: i.storage_path!, sort_order: idx,
-      }));
+      const newOnes = images
+        .filter((i) => !i.id && i.storage_path)
+        .map((i, idx) => ({
+          product_id: productId!,
+          url: i.storage_path!,
+          sort_order: idx,
+        }));
       if (newOnes.length) await supabase.from("product_images").insert(newOnes);
 
       // Delete removed images from database
@@ -515,17 +633,37 @@ function ProductForm() {
       navigate({ to: "/admin/produk" });
     } catch (e) {
       toast.error((e as Error).message);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
-      <PageHeader eyebrow={isNew ? "Produk Baru" : "Edit Produk"} title={isNew ? "Tambah Jersey" : form.name || "Edit"} />
+      <PageHeader
+        eyebrow={isNew ? "Produk Baru" : "Edit Produk"}
+        title={isNew ? "Tambah Jersey" : form.name || "Edit"}
+      />
       <form onSubmit={submit} className="space-y-6">
         <Card>
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2"><Label>Nama Produk</Label><Input required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Masukkan nama produk jersey..." /></div>
-            <div><Label>Slug (otomatis jika kosong)</Label><Input value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="slug-produk-otomatis" /></div>
+            <div className="sm:col-span-2">
+              <Label>Nama Produk</Label>
+              <Input
+                required
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="Masukkan nama produk jersey..."
+              />
+            </div>
+            <div>
+              <Label>Slug (otomatis jika kosong)</Label>
+              <Input
+                value={form.slug}
+                onChange={(e) => set("slug", e.target.value)}
+                placeholder="slug-produk-otomatis"
+              />
+            </div>
             <div>
               <Label className="mb-1.5 block">Kategori</Label>
               <Popover>
@@ -609,7 +747,13 @@ function ProductForm() {
             </div>
             <div>
               <Label>Stok Total (Otomatis dari ukuran)</Label>
-              <Input type="number" disabled value={totalStockCalculated} className="bg-muted cursor-not-allowed" placeholder="Total stok otomatis" />
+              <Input
+                type="number"
+                disabled
+                value={totalStockCalculated}
+                className="bg-muted cursor-not-allowed"
+                placeholder="Total stok otomatis"
+              />
             </div>
 
             <div className="relative">
@@ -746,7 +890,9 @@ function ProductForm() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-3 bg-popover border border-border rounded-md shadow-md">
-                  <div className="text-sm font-semibold mb-2 text-center text-foreground">Tahun Rilis</div>
+                  <div className="text-sm font-semibold mb-2 text-center text-foreground">
+                    Tahun Rilis
+                  </div>
                   <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
                     {years.map((y) => (
                       <button
@@ -757,7 +903,7 @@ function ProductForm() {
                           "p-1.5 text-xs rounded transition-colors cursor-pointer text-center",
                           form.release_year === String(y)
                             ? "bg-[#1E7D32] text-white font-bold"
-                            : "bg-[#F3F4F6] dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 hover:bg-[#1E7D32] hover:text-white"
+                            : "bg-[#F3F4F6] dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 hover:bg-[#1E7D32] hover:text-white",
                         )}
                       >
                         {y}
@@ -767,14 +913,25 @@ function ProductForm() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div><Label>Ukuran (pisahkan koma)</Label><Input value={form.sizes} onChange={(e) => set("sizes", e.target.value)} placeholder="Contoh: S, M, L, XL" /></div>
+            <div>
+              <Label>Ukuran (pisahkan koma)</Label>
+              <Input
+                value={form.sizes}
+                onChange={(e) => set("sizes", e.target.value)}
+                placeholder="Contoh: S, M, L, XL"
+              />
+            </div>
 
             <div className="sm:col-span-2 border border-border p-4 rounded-lg bg-muted/20">
-              <span className="text-sm font-semibold block mb-2">Atur Stok per Ukuran ({currentSizes.length} Ukuran)</span>
+              <span className="text-sm font-semibold block mb-2">
+                Atur Stok per Ukuran ({currentSizes.length} Ukuran)
+              </span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {currentSizes.map((s) => (
                   <div key={s} className="bg-background border border-border p-3 rounded shadow-sm">
-                    <Label className="font-semibold text-xs uppercase text-muted-foreground block mb-1">Stok Ukuran {s}</Label>
+                    <Label className="font-semibold text-xs uppercase text-muted-foreground block mb-1">
+                      Stok Ukuran {s}
+                    </Label>
                     <Input
                       type="number"
                       min={0}
@@ -788,7 +945,9 @@ function ProductForm() {
                   </div>
                 ))}
                 {currentSizes.length === 0 && (
-                  <p className="text-xs text-muted-foreground col-span-2 sm:col-span-4">Ketik ukuran terlebih dahulu di kolom Ukuran di atas.</p>
+                  <p className="text-xs text-muted-foreground col-span-2 sm:col-span-4">
+                    Ketik ukuran terlebih dahulu di kolom Ukuran di atas.
+                  </p>
                 )}
               </div>
             </div>
@@ -797,7 +956,12 @@ function ProductForm() {
               <Label className="mb-1.5 block">Kondisi</Label>
               <Dialog>
                 <DialogTrigger asChild>
-                  <button type="button" className="absolute top-0 right-0 text-xs text-primary hover:underline cursor-pointer">Kelola Kondisi</button>
+                  <button
+                    type="button"
+                    className="absolute top-0 right-0 text-xs text-primary hover:underline cursor-pointer"
+                  >
+                    Kelola Kondisi
+                  </button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md bg-background border border-border p-6 rounded-lg shadow-lg">
                   <DialogHeader>
@@ -826,7 +990,10 @@ function ProductForm() {
 
                     <div className="border border-border rounded-md divide-y divide-border max-h-60 overflow-y-auto">
                       {conditionsQuery.data?.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between p-3 bg-card hover:bg-muted/10">
+                        <div
+                          key={c.id}
+                          className="flex items-center justify-between p-3 bg-card hover:bg-muted/10"
+                        >
                           {editingConditionId === c.id ? (
                             <div className="flex items-center gap-2 flex-1 mr-2">
                               <Input
@@ -840,11 +1007,16 @@ function ProductForm() {
                                 type="button"
                                 size="sm"
                                 className="h-8 px-2"
-                                disabled={editConditionMutation.isPending || !editingConditionVal.trim()}
+                                disabled={
+                                  editConditionMutation.isPending || !editingConditionVal.trim()
+                                }
                                 onClick={() => {
-                                  editConditionMutation.mutate({ id: c.id, name: editingConditionVal }, {
-                                    onSuccess: () => setEditingConditionId(null),
-                                  });
+                                  editConditionMutation.mutate(
+                                    { id: c.id, name: editingConditionVal },
+                                    {
+                                      onSuccess: () => setEditingConditionId(null),
+                                    },
+                                  );
                                 }}
                               >
                                 Simpan
@@ -889,14 +1061,22 @@ function ProductForm() {
                         </div>
                       ))}
                       {conditionsQuery.data?.length === 0 && (
-                        <p className="p-4 text-center text-xs text-muted-foreground">Belum ada pilihan kondisi.</p>
+                        <p className="p-4 text-center text-xs text-muted-foreground">
+                          Belum ada pilihan kondisi.
+                        </p>
                       )}
                     </div>
                   </div>
                 </DialogContent>
               </Dialog>
-              <Select key={conditionsQuery.data?.length ?? 0} value={form.condition || undefined} onValueChange={(v) => set("condition", v)}>
-                <SelectTrigger><SelectValue placeholder="Pilih Kondisi" /></SelectTrigger>
+              <Select
+                key={conditionsQuery.data?.length ?? 0}
+                value={form.condition || undefined}
+                onValueChange={(v) => set("condition", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Kondisi" />
+                </SelectTrigger>
                 <SelectContent>
                   {conditionsQuery.data?.map((c) => (
                     <SelectItem key={c.id} value={c.name}>
@@ -909,7 +1089,10 @@ function ProductForm() {
 
             <div>
               <Label className="mb-1.5 block">Authenticity Badge</Label>
-              <Select value={form.authenticity_badge} onValueChange={(v) => set("authenticity_badge", v)}>
+              <Select
+                value={form.authenticity_badge}
+                onValueChange={(v) => set("authenticity_badge", v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Authenticity Badge" />
                 </SelectTrigger>
@@ -978,8 +1161,12 @@ function ProductForm() {
             </div>
             <div className="sm:col-span-2 flex items-center justify-between p-4 rounded-lg border border-border bg-muted/40 hover:bg-muted/60 transition-colors">
               <div className="space-y-0.5">
-                <Label htmlFor="ia" className="text-base font-semibold cursor-pointer">Status Keaktifan Produk</Label>
-                <p className="text-xs text-muted-foreground">Aktifkan agar produk ini langsung tampil di katalog beranda dan toko pengunjung.</p>
+                <Label htmlFor="ia" className="text-base font-semibold cursor-pointer">
+                  Status Keaktifan Produk
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Aktifkan agar produk ini langsung tampil di katalog beranda dan toko pengunjung.
+                </p>
               </div>
               <Switch
                 id="ia"
@@ -995,14 +1182,25 @@ function ProductForm() {
           <Label>Gambar Produk (gambar pertama menjadi cover)</Label>
           <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-3">
             {images.map((img, i) => (
-              <div key={i} className="relative flex flex-col bg-muted border border-border overflow-hidden rounded-md shadow-sm">
+              <div
+                key={i}
+                className="relative flex flex-col bg-muted border border-border overflow-hidden rounded-md shadow-sm"
+              >
                 <div className="relative aspect-square w-full">
                   <img src={img.url} alt="" className="size-full object-cover" />
-                  <button type="button" onClick={() => handleDeleteImage(i)} className="absolute top-1 right-1 bg-background/90 p-1 rounded hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer"><Trash2 className="size-3" /></button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteImage(i)}
+                    className="absolute top-1 right-1 bg-background/90 p-1 rounded hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
                 </div>
                 {img.originalSize && img.compressedSize && (
                   <div className="p-1.5 text-[10px] text-muted-foreground font-mono bg-background/50 border-t border-border flex flex-col items-center justify-center">
-                    <div className="truncate w-full text-center">{formatBytes(img.originalSize)} → {formatBytes(img.compressedSize)}</div>
+                    <div className="truncate w-full text-center">
+                      {formatBytes(img.originalSize)} → {formatBytes(img.compressedSize)}
+                    </div>
                     <div className="text-green-500 font-bold mt-0.5">
                       WebP (-{Math.round((1 - img.compressedSize / img.originalSize) * 100)}%)
                     </div>
@@ -1023,15 +1221,25 @@ function ProductForm() {
                   <Plus className="h-4 w-4" />
                   <span>Upload</span>
                 </div>
-                <input type="file" accept="image/*" multiple onChange={uploadImage} className="hidden" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={uploadImage}
+                  className="hidden"
+                />
               </label>
             )}
           </div>
         </Card>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>{loading ? "Menyimpan..." : (isNew ? "Buat Produk" : "Simpan Perubahan")}</Button>
-          <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/produk" })}>Batal</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Menyimpan..." : isNew ? "Buat Produk" : "Simpan Perubahan"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/produk" })}>
+            Batal
+          </Button>
         </div>
       </form>
 
@@ -1045,7 +1253,9 @@ function ProductForm() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="bg-muted/50 p-4 rounded-lg text-center border border-border">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Harga Disarankan</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                Harga Disarankan
+              </p>
               <p className="text-3xl font-extrabold text-primary mt-1">
                 {priceSuggestion ? `Rp ${formatThousand(priceSuggestion.suggestedPrice)}` : "Rp 0"}
               </p>
@@ -1057,11 +1267,7 @@ function ProductForm() {
               </p>
             </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsPriceDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsPriceDialogOpen(false)}>
                 Batal
               </Button>
               <Button
@@ -1069,7 +1275,9 @@ function ProductForm() {
                 onClick={() => {
                   if (priceSuggestion) {
                     set("price", formatThousand(priceSuggestion.suggestedPrice));
-                    toast.success(`Harga berhasil diterapkan: Rp ${formatThousand(priceSuggestion.suggestedPrice)}`);
+                    toast.success(
+                      `Harga berhasil diterapkan: Rp ${formatThousand(priceSuggestion.suggestedPrice)}`,
+                    );
                   }
                   setIsPriceDialogOpen(false);
                 }}
@@ -1081,12 +1289,16 @@ function ProductForm() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!conditionToDelete} onOpenChange={(open) => !open && setConditionToDelete(null)}>
+      <AlertDialog
+        open={!!conditionToDelete}
+        onOpenChange={(open) => !open && setConditionToDelete(null)}
+      >
         <AlertDialogContent className="bg-background border border-border">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Pilihan Kondisi</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus pilihan kondisi "{conditionToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus pilihan kondisi "{conditionToDelete?.name}"?
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

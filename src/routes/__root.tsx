@@ -91,9 +91,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@thelockerroom" },
       { name: "twitter:title", content: "The Locker Room — Where Football Memories Live" },
-      { name: "description", content: "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits." },
-      { property: "og:description", content: "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits." },
-      { name: "twitter:description", content: "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits." },
+      {
+        name: "description",
+        content:
+          "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits.",
+      },
+      {
+        property: "og:description",
+        content:
+          "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits.",
+      },
       { property: "og:image", content: "/og-image.png" },
       { name: "twitter:image", content: "/og-image.png" },
     ],

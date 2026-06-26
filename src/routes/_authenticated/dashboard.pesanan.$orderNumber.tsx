@@ -41,7 +41,9 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   events.push({ status: "pending", at: order.created_at });
 
   // 2. Sudah Dibayar (Menunggu Konfirmasi)
-  const hasPaid = proofUploadedAt || (payment && payment.status !== "waiting_payment" && payment.status !== "rejected");
+  const hasPaid =
+    proofUploadedAt ||
+    (payment && payment.status !== "waiting_payment" && payment.status !== "rejected");
   if (hasPaid) {
     const uploadTime = proofUploadedAt || payment?.updated_at || order.created_at;
     events.push({ status: "waiting_verification", at: uploadTime });
@@ -49,7 +51,10 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
 
   // 3. Pembayaran Diterima / Disetujui
   if (payment && payment.status === "approved") {
-    events.push({ status: "paid", at: payment.verified_at || payment.updated_at || order.updated_at });
+    events.push({
+      status: "paid",
+      at: payment.verified_at || payment.updated_at || order.updated_at,
+    });
   }
 
   // 4. Sedang Diproses (Dikemas)
@@ -90,7 +95,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   const uniqueEvents: Array<{ status: string; at: string }> = [];
   events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
-  events.forEach(e => {
+  events.forEach((e) => {
     if (!seen.has(e.status)) {
       seen.add(e.status);
       uniqueEvents.push(e);
@@ -117,21 +122,33 @@ function OrderDetail() {
       // Call RPC check first
       await supabase.rpc("check_and_cancel_expired_orders");
 
-      const { data: order } = await supabase.from("orders").select("*, order_items(*), payments(*), shipments(*)").eq("order_number", orderNumber).maybeSingle();
+      const { data: order } = await supabase
+        .from("orders")
+        .select("*, order_items(*), payments(*), shipments(*)")
+        .eq("order_number", orderNumber)
+        .maybeSingle();
       if (!order) return null;
 
       const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as any);
 
       // Jika menggunakan Mayar dan masih menunggu pembayaran, cek langsung statusnya ke API Mayar
-      if (payment && payment.method === "mayar" && payment.status === "waiting_payment" && payment.reject_reason) {
+      if (
+        payment &&
+        payment.method === "mayar" &&
+        payment.status === "waiting_payment" &&
+        payment.reject_reason
+      ) {
         try {
-          console.log("[Dashboard Pesanan] Memeriksa status pembayaran Mayar secara langsung untuk invoice:", payment.reject_reason);
+          console.log(
+            "[Dashboard Pesanan] Memeriksa status pembayaran Mayar secara langsung untuk invoice:",
+            payment.reject_reason,
+          );
           const { checkMayarPaymentStatus } = await import("@/lib/api/payment.functions");
           await checkMayarPaymentStatus({
             data: {
               paymentId: payment.id,
-              invoiceId: payment.reject_reason
-            }
+              invoiceId: payment.reject_reason,
+            },
           });
 
           // Ambil ulang data order yang terupdate setelah diperiksa
@@ -140,7 +157,7 @@ function OrderDetail() {
             .select("*, order_items(*), payments(*), shipments(*)")
             .eq("order_number", orderNumber)
             .maybeSingle();
-          
+
           if (updatedOrder) {
             return { order: updatedOrder, proofUrl: "", proofUploadedAt: null };
           }
@@ -152,7 +169,12 @@ function OrderDetail() {
       let proofUrl = "";
       let proofUploadedAt = null;
       if (payment) {
-        const { data: proofs } = await supabase.from("payment_proofs").select("*").eq("payment_id", payment.id).order("uploaded_at", { ascending: false }).limit(1);
+        const { data: proofs } = await supabase
+          .from("payment_proofs")
+          .select("*")
+          .eq("payment_id", payment.id)
+          .order("uploaded_at", { ascending: false })
+          .limit(1);
         if (proofs && proofs[0]) {
           proofUrl = await signedUrl("payment-proofs", proofs[0].image_url);
           proofUploadedAt = proofs[0].uploaded_at;
@@ -163,15 +185,32 @@ function OrderDetail() {
   });
 
   const order = q.data?.order;
-  const payment = order ? ((Array.isArray(order.payments) ? order.payments[0] : (order.payments as Record<string, any> | null)) as { id: string; status: string; bank: string | null; method: string; reject_reason: string | null; updated_at: string } | null) : null;
+  const payment = order
+    ? ((Array.isArray(order.payments)
+        ? order.payments[0]
+        : (order.payments as Record<string, any> | null)) as {
+        id: string;
+        status: string;
+        bank: string | null;
+        method: string;
+        reject_reason: string | null;
+        updated_at: string;
+      } | null)
+    : null;
   const isMayar = payment?.method === "mayar";
-  const bank = (!isMayar && payment) ? BANKS.find((b) => b.code === payment.bank) : null;
+  const bank = !isMayar && payment ? BANKS.find((b) => b.code === payment.bank) : null;
 
   const createdAt = order ? new Date(order.created_at) : null;
   const deadline = createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
 
   useEffect(() => {
-    if (!order || order.status !== "pending" || !payment || !["waiting_payment", "rejected"].includes(payment.status) || !deadline) {
+    if (
+      !order ||
+      order.status !== "pending" ||
+      !payment ||
+      !["waiting_payment", "rejected"].includes(payment.status) ||
+      !deadline
+    ) {
       setTimeLeft(null);
       return;
     }
@@ -232,10 +271,13 @@ function OrderDetail() {
       const path = `${user.id}/${order!.id}-${Date.now()}-${selectedFile.name}`;
       await uploadFile("payment-proofs", path, selectedFile);
       await supabase.from("payment_proofs").insert({ payment_id: payment.id, image_url: path });
-      await supabase.from("payments").update({
-        status: "waiting_verification",
-        updated_at: new Date().toISOString()
-      }).eq("id", payment.id);
+      await supabase
+        .from("payments")
+        .update({
+          status: "waiting_verification",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", payment.id);
 
       toast.success("Bukti transfer diunggah");
       setSelectedFile(null);
@@ -264,7 +306,9 @@ function OrderDetail() {
   async function handleConfirmDelivery() {
     if (!order) return;
     try {
-      const { error } = await supabase.rpc("confirm_delivery_own_order", { target_order_id: order.id });
+      const { error } = await supabase.rpc("confirm_delivery_own_order", {
+        target_order_id: order.id,
+      });
       if (error) throw error;
       toast.success("Terima kasih! Pesanan Anda telah ditandai sebagai Selesai.");
       qc.invalidateQueries({ queryKey: ["order", orderNumber] });
@@ -273,15 +317,26 @@ function OrderDetail() {
     }
   }
 
-  if (q.isLoading) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Memuat...</DashboardShell>);
-  if (!order) return (<DashboardShell items={CUSTOMER_NAV} title="Akun Saya">Pesanan tidak ditemukan.</DashboardShell>);
+  if (q.isLoading)
+    return (
+      <DashboardShell items={CUSTOMER_NAV} title="Akun Saya">
+        Memuat...
+      </DashboardShell>
+    );
+  if (!order)
+    return (
+      <DashboardShell items={CUSTOMER_NAV} title="Akun Saya">
+        Pesanan tidak ditemukan.
+      </DashboardShell>
+    );
 
   const proofUrl = q.data?.proofUrl;
   const proofUploadedAt = q.data?.proofUploadedAt || null;
 
-  const displayStatus = (order.status === "pending" && payment?.status === "waiting_verification")
-    ? "waiting_verification"
-    : order.status;
+  const displayStatus =
+    order.status === "pending" && payment?.status === "waiting_verification"
+      ? "waiting_verification"
+      : order.status;
 
   const timeline = buildTimeline(order, payment, proofUploadedAt);
 
@@ -290,7 +345,14 @@ function OrderDetail() {
       <PageHeader
         eyebrow={order.order_number}
         title={statusLabel(displayStatus)}
-        action={<Link to="/dashboard/pesanan" className="text-sm text-muted-foreground hover:underline cursor-pointer">← Kembali</Link>}
+        action={
+          <Link
+            to="/dashboard/pesanan"
+            className="text-sm text-muted-foreground hover:underline cursor-pointer"
+          >
+            ← Kembali
+          </Link>
+        }
       />
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
@@ -308,7 +370,7 @@ function OrderDetail() {
                         "absolute -left-[21px] top-1.5 rounded-full transition-all duration-300",
                         isLatest
                           ? "size-3 bg-primary border-2 border-background"
-                          : "size-2 bg-muted-foreground/45 border border-background"
+                          : "size-2 bg-muted-foreground/45 border border-background",
                       )}
                     />
                     {isLatest && (
@@ -319,16 +381,20 @@ function OrderDetail() {
                       <div
                         className={cn(
                           "flex items-center gap-2 transition-all duration-300",
-                          isLatest ? "text-primary text-sm font-extrabold" : "text-muted-foreground/80 text-xs font-medium"
+                          isLatest
+                            ? "text-primary text-sm font-extrabold"
+                            : "text-muted-foreground/80 text-xs font-medium",
                         )}
                       >
                         {statusLabel(t.status)}
                         {isLatest}
                       </div>
-                      <div className={cn(
-                        "text-muted-foreground transition-all duration-300",
-                        isLatest ? "text-xs mt-0.5" : "text-[10px]"
-                      )}>
+                      <div
+                        className={cn(
+                          "text-muted-foreground transition-all duration-300",
+                          isLatest ? "text-xs mt-0.5" : "text-[10px]",
+                        )}
+                      >
                         {formatDateTime(t.at)}
                       </div>
                     </div>
@@ -342,22 +408,42 @@ function OrderDetail() {
             <h3 className="font-extrabold mb-4">Item Pesanan</h3>
             {order.order_items?.map((it) => (
               <div key={it.id} className="flex gap-4 py-3 border-b border-border/50 last:border-0">
-                <div className="size-16 bg-muted overflow-hidden flex-shrink-0">{it.image_url && <img src={it.image_url} alt="" className="size-full object-cover" />}</div>
-                <div className="flex-1 min-w-0"><div className="font-medium truncate">{it.product_name}</div><div className="text-xs text-muted-foreground">{it.size} × {it.quantity}</div></div>
+                <div className="size-16 bg-muted overflow-hidden flex-shrink-0">
+                  {it.image_url && (
+                    <img src={it.image_url} alt="" className="size-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{it.product_name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {it.size} × {it.quantity}
+                  </div>
+                </div>
                 <div className="text-sm tabular-nums">{formatIDR(it.subtotal)}</div>
               </div>
             ))}
             <div className="mt-4 space-y-1 text-sm text-right">
-              <div>Subtotal: <span className="font-semibold tabular-nums">{formatIDR(order.subtotal)}</span></div>
-              <div>Ongkir ({order.courier}): <span className="font-semibold tabular-nums">{formatIDR(order.shipping_cost)}</span></div>
+              <div>
+                Subtotal:{" "}
+                <span className="font-semibold tabular-nums">{formatIDR(order.subtotal)}</span>
+              </div>
+              <div>
+                Ongkir ({order.courier}):{" "}
+                <span className="font-semibold tabular-nums">{formatIDR(order.shipping_cost)}</span>
+              </div>
               <div className="text-base font-extrabold">Total: {formatIDR(order.grand_total)}</div>
             </div>
           </Card>
 
           <Card>
             <h3 className="font-extrabold mb-4">Alamat Pengiriman</h3>
-            <p className="text-sm"><strong>{order.recipient_name}</strong> · {order.recipient_no_hp}</p>
-            <p className="text-sm text-muted-foreground mt-1">{order.recipient_alamat}, {order.recipient_kota}, {order.recipient_provinsi} {order.recipient_kode_pos}</p>
+            <p className="text-sm">
+              <strong>{order.recipient_name}</strong> · {order.recipient_no_hp}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {order.recipient_alamat}, {order.recipient_kota}, {order.recipient_provinsi}{" "}
+              {order.recipient_kode_pos}
+            </p>
             {order.tracking_number && (
               <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
                 <div className="flex justify-between items-center text-xs">
@@ -365,7 +451,9 @@ function OrderDetail() {
                   <div className="flex items-center gap-1.5 font-mono font-bold text-foreground">
                     <span>{order.tracking_number}</span>
                     <button
-                      onClick={() => copyToClipboard(order.tracking_number || "", "Nomor resi disalin")}
+                      onClick={() =>
+                        copyToClipboard(order.tracking_number || "", "Nomor resi disalin")
+                      }
                       className="p-1 hover:bg-muted border border-transparent hover:border-border rounded cursor-pointer transition-colors"
                       title="Salin nomor resi"
                     >
@@ -380,7 +468,10 @@ function OrderDetail() {
                   asChild
                 >
                   <a
-                    href={(order.courier && COURIER_TRACKING_URLS[order.courier]) ?? `https://cekresi.com/?noresi=${order.tracking_number}`}
+                    href={
+                      (order.courier && COURIER_TRACKING_URLS[order.courier]) ??
+                      `https://cekresi.com/?noresi=${order.tracking_number}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -399,14 +490,16 @@ function OrderDetail() {
                 <CheckCircle2 className="size-10 text-emerald-500 mx-auto animate-bounce" />
                 <h4 className="font-extrabold text-base text-emerald-700">Pesanan Selesai!</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Terima kasih banyak telah berbelanja di <strong>The Locker Room</strong>. Kami harap Anda menyukai produk kami!
+                  Terima kasih banyak telah berbelanja di <strong>The Locker Room</strong>. Kami
+                  harap Anda menyukai produk kami!
                 </p>
               </div>
               <div className="pt-1">
-                <Button className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm flex items-center justify-center gap-1.5" asChild>
-                  <Link to="/shop">
-                    Lihat Koleksi Lainnya
-                  </Link>
+                <Button
+                  className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                  asChild
+                >
+                  <Link to="/shop">Lihat Koleksi Lainnya</Link>
                 </Button>
               </div>
             </Card>
@@ -419,7 +512,8 @@ function OrderDetail() {
                   <CheckCircle2 className="size-4 text-primary" /> Pesanan Telah Dikirim
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Pesanan Anda sedang dalam pengiriman. Silakan konfirmasi jika barang sudah sampai dan diterima dengan baik.
+                  Pesanan Anda sedang dalam pengiriman. Silakan konfirmasi jika barang sudah sampai
+                  dan diterima dengan baik.
                 </p>
               </div>
 
@@ -432,9 +526,13 @@ function OrderDetail() {
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground font-medium">No. Resi:</span>
                     <div className="flex items-center gap-1.5">
-                      <code className="font-mono font-bold text-foreground bg-muted/50 px-1.5 py-0.5 rounded text-[11px]">{order.tracking_number}</code>
+                      <code className="font-mono font-bold text-foreground bg-muted/50 px-1.5 py-0.5 rounded text-[11px]">
+                        {order.tracking_number}
+                      </code>
                       <button
-                        onClick={() => copyToClipboard(order.tracking_number || "", "Nomor resi disalin")}
+                        onClick={() =>
+                          copyToClipboard(order.tracking_number || "", "Nomor resi disalin")
+                        }
                         className="p-1 hover:bg-muted border border-transparent hover:border-border rounded cursor-pointer transition-colors"
                         title="Salin nomor resi"
                       >
@@ -449,7 +547,10 @@ function OrderDetail() {
                     asChild
                   >
                     <a
-                      href={(order.courier && COURIER_TRACKING_URLS[order.courier]) ?? `https://cekresi.com/?noresi=${order.tracking_number}`}
+                      href={
+                        (order.courier && COURIER_TRACKING_URLS[order.courier]) ??
+                        `https://cekresi.com/?noresi=${order.tracking_number}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -469,12 +570,16 @@ function OrderDetail() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Konfirmasi Terima Pesanan?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Apakah Anda yakin telah menerima pesanan ini dengan baik? Tindakan ini akan menyelesaikan pesanan Anda dan status akan berubah menjadi Selesai.
+                      Apakah Anda yakin telah menerima pesanan ini dengan baik? Tindakan ini akan
+                      menyelesaikan pesanan Anda dan status akan berubah menjadi Selesai.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className="cursor-pointer">Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmDelivery} className="bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer">
+                    <AlertDialogAction
+                      onClick={handleConfirmDelivery}
+                      className="bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer"
+                    >
                       Ya, Pesanan Diterima
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -488,178 +593,245 @@ function OrderDetail() {
               <div>
                 <div className="eyebrow text-muted-foreground">Pembayaran</div>
                 <div className="text-lg font-extrabold mt-1">
-                  {order.status === "cancelled" 
-                    ? (order.cancel_reason === "customer" ? "Dibatalkan Pelanggan" : "Dibatalkan")
-                    : (payment ? statusLabel(payment.status) : "—")}
+                  {order.status === "cancelled"
+                    ? order.cancel_reason === "customer"
+                      ? "Dibatalkan Pelanggan"
+                      : "Dibatalkan"
+                    : payment
+                      ? statusLabel(payment.status)
+                      : "—"}
                 </div>
               </div>
 
-            {/* Timer countdown at the very top of Payment status if pending */}
-            {payment && payment.status === "waiting_payment" && order.status === "pending" && timeLeft !== null && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs rounded flex items-center gap-2">
-                <Clock className="size-4 animate-pulse flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">Sisa Waktu Pembayaran:</div>
-                  <div className="font-mono mt-0.5">{timeLeft > 0 ? formatTimeLeft(timeLeft) : "Waktu Habis"}</div>
-                </div>
-              </div>
-            )}
-
-            {order.status === "cancelled" && (
-              <div className="p-3 bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded flex items-center gap-2">
-                <AlertCircle className="size-4 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">Pesanan Dibatalkan</div>
-                  <div className="mt-0.5">
-                    {order.cancel_reason === "customer"
-                      ? "Pesanan telah dibatalkan oleh pelanggan."
-                      : order.cancel_reason === "admin"
-                        ? "Pesanan telah dibatalkan oleh Admin."
-                        : "Waktu pembayaran telah habis."}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {order.status !== "cancelled" && (
-              <>
-                {isMayar ? (
-                  <div className="text-sm space-y-2 border border-primary/20 p-4 bg-primary/5 rounded relative group">
-                    <div className="eyebrow text-xs text-muted-foreground font-semibold">Metode Pembayaran</div>
-                    <div className="font-bold text-sm">Mayar.id (Otomatis)</div>
-                    <div className="text-sm font-extrabold mt-2 pt-2 border-t border-border/50">
-                      Nominal: {formatIDR(order.grand_total)}
+              {/* Timer countdown at the very top of Payment status if pending */}
+              {payment &&
+                payment.status === "waiting_payment" &&
+                order.status === "pending" &&
+                timeLeft !== null && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs rounded flex items-center gap-2">
+                    <Clock className="size-4 animate-pulse flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold">Sisa Waktu Pembayaran:</div>
+                      <div className="font-mono mt-0.5">
+                        {timeLeft > 0 ? formatTimeLeft(timeLeft) : "Waktu Habis"}
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="text-sm border border-destructive/20 p-4 bg-destructive/5 rounded text-destructive">
-                    <p className="font-bold">Transfer Manual Dinonaktifkan</p>
-                    <p className="text-xs mt-1 text-muted-foreground leading-relaxed">
-                      Metode pembayaran transfer bank manual tidak lagi didukung. Silakan hubungi admin atau buat pesanan baru menggunakan Mayar.id.
-                    </p>
-                  </div>
                 )}
-              </>
-            )}
 
-            {/* Transfer Instructions */}
-            {order.status !== "cancelled" && payment && ["waiting_payment", "rejected"].includes(payment.status) && order.status === "pending" && (
-              <div className="text-xs space-y-1.5 text-muted-foreground border-t border-border pt-4">
-                <h4 className="font-bold text-foreground">Instruksi Pembayaran:</h4>
-                {isMayar ? (
-                  <ol className="list-decimal list-inside space-y-0.5">
-                    <li>Klik tombol <strong className="text-primary">Bayar Sekarang via Mayar</strong> di bawah.</li>
-                    <li>Selesaikan pembayaran Anda menggunakan opsi QRIS, VA, E-Wallet, dll.</li>
-                    <li>Setelah selesai, halaman ini akan otomatis memverifikasi status pembayaran Anda saat direfresh.</li>
-                  </ol>
-                ) : (
-                  <p className="text-destructive font-semibold">
-                    Metode pembayaran transfer manual telah dinonaktifkan. Silakan hubungi admin untuk bantuan pembayaran pesanan ini.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Redesigned Highlighted Upload Box / Mayar Payment Box */}
-            <div className="border-t border-border pt-4 space-y-4">
-              {order.status !== "cancelled" ? (
-                isMayar ? (
-                  <>
-                    {payment && payment.status === "waiting_payment" && order.status === "pending" && (
-                      <div className="bg-primary/5 border border-primary/20 p-4 text-center rounded space-y-3">
-                        <Clock className="size-6 text-primary mx-auto animate-pulse" />
-                        <h4 className="font-bold text-xs">Menunggu Pembayaran</h4>
-                        <p className="text-[11px] text-muted-foreground">Silakan selesaikan pembayaran tagihan Anda via Mayar.id dengan tombol di bawah.</p>
-                        <Button
-                          asChild
-                          className="w-full text-xs h-9 cursor-pointer bg-primary hover:bg-primary/95 text-primary-foreground font-semibold flex items-center justify-center gap-1.5"
-                        >
-                          <a href={payment.bank || "#"} target="_blank" rel="noopener noreferrer">
-                            Bayar Sekarang via Mayar
-                          </a>
-                        </Button>
-                      </div>
-                    )}
-
-                    {payment && (payment.status === "approved" || payment.status === "paid") && (
-                      <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
-                        <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
-                        <h4 className="font-bold text-xs text-emerald-600 font-extrabold">Pembayaran Berhasil</h4>
-                        <p className="text-[11px] text-muted-foreground">Pembayaran Anda terverifikasi otomatis. Pesanan segera diproses.</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {payment && payment.status === "waiting_verification" && (
-                      <div className="bg-primary/5 border border-primary/20 p-4 space-y-2 text-center rounded">
-                        <CheckCircle2 className="size-6 text-primary mx-auto" />
-                        <h4 className="font-bold text-xs">Menunggu Verifikasi</h4>
-                        <p className="text-[11px] text-muted-foreground">Bukti transfer sedang diproses verifikasi oleh admin.</p>
-                      </div>
-                    )}
-
-                    {payment && payment.status === "rejected" && (
-                      <div className="bg-destructive/5 border border-destructive/20 p-3 space-y-1.5 rounded text-center">
-                        <AlertCircle className="size-6 text-destructive mx-auto" />
-                        <h4 className="font-bold text-xs text-destructive">Pembayaran Ditolak</h4>
-                        {payment.reject_reason && <p className="text-[11px] text-muted-foreground">Alasan: {payment.reject_reason}</p>}
-                      </div>
-                    )}
-
-                    {payment && (payment.status === "approved" || payment.status === "paid") && (
-                      <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
-                        <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
-                        <h4 className="font-bold text-xs text-emerald-600 font-extrabold">Pembayaran Berhasil</h4>
-                        <p className="text-[11px] text-muted-foreground">Pembayaran terverifikasi. Pesanan segera dikirim.</p>
-                      </div>
-                    )}
-
-                    {q.data?.proofUrl && (
-                      <div className="space-y-1.5 mt-3">
-                        <div className="text-[11px] font-bold text-muted-foreground">Bukti Terunggah:</div>
-                        <img src={q.data.proofUrl} alt="Bukti transfer" className="w-full border border-border rounded" />
-                      </div>
-                    )}
-                  </>
-                )
-              ) : (
-                q.data?.proofUrl && (
-                  <div className="space-y-1.5 mt-3">
-                    <div className="text-[11px] font-bold text-muted-foreground">Bukti Terunggah:</div>
-                    <img src={q.data.proofUrl} alt="Bukti transfer" className="w-full border border-border rounded" />
+              {order.status === "cancelled" && (
+                <div className="p-3 bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded flex items-center gap-2">
+                  <AlertCircle className="size-4 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">Pesanan Dibatalkan</div>
+                    <div className="mt-0.5">
+                      {order.cancel_reason === "customer"
+                        ? "Pesanan telah dibatalkan oleh pelanggan."
+                        : order.cancel_reason === "admin"
+                          ? "Pesanan telah dibatalkan oleh Admin."
+                          : "Waktu pembayaran telah habis."}
+                    </div>
                   </div>
-                )
-              )}
-
-              {/* Batalkan Pesanan Button */}
-              {order.status === "pending" && (
-                <div className="pt-4 border-t border-border mt-4">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 text-xs h-9 cursor-pointer">
-                        Batalkan Pesanan
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Batalkan Pesanan?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Apakah Anda yakin ingin membatalkan pesanan ini? Stok produk akan dikembalikan dan tindakan ini tidak dapat dibatalkan.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="cursor-pointer">Kembali</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCancelOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/95 cursor-pointer">
-                          Batalkan Pesanan
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 </div>
               )}
-            </div>
-          </Card>
+
+              {order.status !== "cancelled" && (
+                <>
+                  {isMayar ? (
+                    <div className="text-sm space-y-2 border border-primary/20 p-4 bg-primary/5 rounded relative group">
+                      <div className="eyebrow text-xs text-muted-foreground font-semibold">
+                        Metode Pembayaran
+                      </div>
+                      <div className="font-bold text-sm">Mayar.id (Otomatis)</div>
+                      <div className="text-sm font-extrabold mt-2 pt-2 border-t border-border/50">
+                        Nominal: {formatIDR(order.grand_total)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm border border-destructive/20 p-4 bg-destructive/5 rounded text-destructive">
+                      <p className="font-bold">Transfer Manual Dinonaktifkan</p>
+                      <p className="text-xs mt-1 text-muted-foreground leading-relaxed">
+                        Metode pembayaran transfer bank manual tidak lagi didukung. Silakan hubungi
+                        admin atau buat pesanan baru menggunakan Mayar.id.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Transfer Instructions */}
+              {order.status !== "cancelled" &&
+                payment &&
+                ["waiting_payment", "rejected"].includes(payment.status) &&
+                order.status === "pending" && (
+                  <div className="text-xs space-y-1.5 text-muted-foreground border-t border-border pt-4">
+                    <h4 className="font-bold text-foreground">Instruksi Pembayaran:</h4>
+                    {isMayar ? (
+                      <ol className="list-decimal list-inside space-y-0.5">
+                        <li>
+                          Klik tombol{" "}
+                          <strong className="text-primary">Bayar Sekarang via Mayar</strong> di
+                          bawah.
+                        </li>
+                        <li>
+                          Selesaikan pembayaran Anda menggunakan opsi QRIS, VA, E-Wallet, dll.
+                        </li>
+                        <li>
+                          Setelah selesai, halaman ini akan otomatis memverifikasi status pembayaran
+                          Anda saat direfresh.
+                        </li>
+                      </ol>
+                    ) : (
+                      <p className="text-destructive font-semibold">
+                        Metode pembayaran transfer manual telah dinonaktifkan. Silakan hubungi admin
+                        untuk bantuan pembayaran pesanan ini.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+              {/* Redesigned Highlighted Upload Box / Mayar Payment Box */}
+              <div className="border-t border-border pt-4 space-y-4">
+                {order.status !== "cancelled" ? (
+                  isMayar ? (
+                    <>
+                      {payment &&
+                        payment.status === "waiting_payment" &&
+                        order.status === "pending" && (
+                          <div className="bg-primary/5 border border-primary/20 p-4 text-center rounded space-y-3">
+                            <Clock className="size-6 text-primary mx-auto animate-pulse" />
+                            <h4 className="font-bold text-xs">Menunggu Pembayaran</h4>
+                            <p className="text-[11px] text-muted-foreground">
+                              Silakan selesaikan pembayaran tagihan Anda via Mayar.id dengan tombol
+                              di bawah.
+                            </p>
+                            <Button
+                              asChild
+                              className="w-full text-xs h-9 cursor-pointer bg-primary hover:bg-primary/95 text-primary-foreground font-semibold flex items-center justify-center gap-1.5"
+                            >
+                              <a
+                                href={payment.bank || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Bayar Sekarang via Mayar
+                              </a>
+                            </Button>
+                          </div>
+                        )}
+
+                      {payment && (payment.status === "approved" || payment.status === "paid") && (
+                        <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
+                          <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
+                          <h4 className="font-bold text-xs text-emerald-600 font-extrabold">
+                            Pembayaran Berhasil
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground">
+                            Pembayaran Anda terverifikasi otomatis. Pesanan segera diproses.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {payment && payment.status === "waiting_verification" && (
+                        <div className="bg-primary/5 border border-primary/20 p-4 space-y-2 text-center rounded">
+                          <CheckCircle2 className="size-6 text-primary mx-auto" />
+                          <h4 className="font-bold text-xs">Menunggu Verifikasi</h4>
+                          <p className="text-[11px] text-muted-foreground">
+                            Bukti transfer sedang diproses verifikasi oleh admin.
+                          </p>
+                        </div>
+                      )}
+
+                      {payment && payment.status === "rejected" && (
+                        <div className="bg-destructive/5 border border-destructive/20 p-3 space-y-1.5 rounded text-center">
+                          <AlertCircle className="size-6 text-destructive mx-auto" />
+                          <h4 className="font-bold text-xs text-destructive">Pembayaran Ditolak</h4>
+                          {payment.reject_reason && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Alasan: {payment.reject_reason}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {payment && (payment.status === "approved" || payment.status === "paid") && (
+                        <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 text-center space-y-1.5 rounded">
+                          <CheckCircle2 className="size-6 text-emerald-500 mx-auto" />
+                          <h4 className="font-bold text-xs text-emerald-600 font-extrabold">
+                            Pembayaran Berhasil
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground">
+                            Pembayaran terverifikasi. Pesanan segera dikirim.
+                          </p>
+                        </div>
+                      )}
+
+                      {q.data?.proofUrl && (
+                        <div className="space-y-1.5 mt-3">
+                          <div className="text-[11px] font-bold text-muted-foreground">
+                            Bukti Terunggah:
+                          </div>
+                          <img
+                            src={q.data.proofUrl}
+                            alt="Bukti transfer"
+                            className="w-full border border-border rounded"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )
+                ) : (
+                  q.data?.proofUrl && (
+                    <div className="space-y-1.5 mt-3">
+                      <div className="text-[11px] font-bold text-muted-foreground">
+                        Bukti Terunggah:
+                      </div>
+                      <img
+                        src={q.data.proofUrl}
+                        alt="Bukti transfer"
+                        className="w-full border border-border rounded"
+                      />
+                    </div>
+                  )
+                )}
+
+                {/* Batalkan Pesanan Button */}
+                {order.status === "pending" && (
+                  <div className="pt-4 border-t border-border mt-4">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 text-xs h-9 cursor-pointer"
+                        >
+                          Batalkan Pesanan
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Batalkan Pesanan?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Apakah Anda yakin ingin membatalkan pesanan ini? Stok produk akan
+                            dikembalikan dan tindakan ini tidak dapat dibatalkan.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="cursor-pointer">Kembali</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelOrder}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/95 cursor-pointer"
+                          >
+                            Batalkan Pesanan
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+              </div>
+            </Card>
           )}
         </aside>
       </div>

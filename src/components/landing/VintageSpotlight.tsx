@@ -20,7 +20,7 @@ export function VintageSpotlight() {
         .from("categories")
         .select("id")
         .in("slug", ["retro", "vintage"]);
-      
+
       if (errCats) throw errCats;
       const catIds = cats?.map((c) => c.id) || [];
 
@@ -65,28 +65,30 @@ export function VintageSpotlight() {
   // Static Fallback Data
   const titleTeam = "Manchester United";
   const titleSub = "Treble Winners 98/99.";
-  const description = "Jersey ini menjadi saksi musim paling bersejarah Manchester United saat meraih Treble Winners pada tahun 1999 — Premier League, FA Cup, dan UEFA Champions League dalam satu musim.";
+  const description =
+    "Jersey ini menjadi saksi musim paling bersejarah Manchester United saat meraih Treble Winners pada tahun 1999 — Premier League, FA Cup, dan UEFA Champions League dalam satu musim.";
   const coverImage = img;
-  
-  const displayTeam = p ? (p.team || p.name) : titleTeam;
+
+  const displayTeam = p ? p.team || p.name : titleTeam;
   const displaySub = p
-    ? (p.team && p.team.toLowerCase() !== p.name.toLowerCase()
+    ? p.team && p.team.toLowerCase() !== p.name.toLowerCase()
       ? p.name.replace(new RegExp(`^${p.team}\\s*`, "i"), "")
-      : "")
+      : ""
     : titleSub;
-  const displayDesc = p ? (p.description || p.story || "") : description;
+  const displayDesc = p ? p.description || p.story || "" : description;
   const displayCover = p?.cover_image_url || coverImage;
 
   const scoreMap = ["A", "AA", "AAA"];
-  const displayScore = p
-    ? scoreMap[Math.min(Math.max(p.collector_score - 1, 0), 2)]
-    : "AAA";
+  const displayScore = p ? scoreMap[Math.min(Math.max(p.collector_score - 1, 0), 2)] : "AAA";
 
   const meta = [
-    { k: "Condition Rating", v: p ? (p.condition || "BNWT") : "9.2 / 10" },
+    { k: "Condition Rating", v: p ? p.condition || "BNWT" : "9.2 / 10" },
     { k: "Collector Score", v: displayScore },
     { k: "Year", v: p ? String(p.release_year || "") : "1998 / 1999" },
-    { k: "Authenticity", v: p ? (BADGE_LABEL[p.authenticity_badge || ""] || "Terverifikasi") : "Certificate Included" },
+    {
+      k: "Authenticity",
+      v: p ? BADGE_LABEL[p.authenticity_badge || ""] || "Terverifikasi" : "Certificate Included",
+    },
   ];
 
   return (
@@ -110,7 +112,9 @@ export function VintageSpotlight() {
           </div>
 
           <div className="lg:col-span-5">
-            <span className="eyebrow text-primary font-bold tracking-wider">Legenda yang Bisa Kamu Miliki</span>
+            <span className="eyebrow text-primary font-bold tracking-wider">
+              Legenda yang Bisa Kamu Miliki
+            </span>
             <h2 className="display-lg mt-4 text-white leading-tight">
               {displayTeam}
               {displaySub && (

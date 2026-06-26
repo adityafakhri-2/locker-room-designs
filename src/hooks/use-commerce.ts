@@ -10,7 +10,9 @@ export function useCart() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cart_items")
-        .select("id, product_id, size, quantity, products(id, slug, name, price, stock, cover_image_url, sizes)")
+        .select(
+          "id, product_id, size, quantity, products(id, slug, name, price, stock, cover_image_url, sizes)",
+        )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -23,7 +25,15 @@ export function useAddToCart() {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ product_id, size, quantity = 1 }: { product_id: string; size?: string | null; quantity?: number }) => {
+    mutationFn: async ({
+      product_id,
+      size,
+      quantity = 1,
+    }: {
+      product_id: string;
+      size?: string | null;
+      quantity?: number;
+    }) => {
       if (!user) throw new Error("Silakan login terlebih dahulu");
       const { data: existing } = await supabase
         .from("cart_items")
@@ -33,10 +43,15 @@ export function useAddToCart() {
         .eq("size", size ?? "")
         .maybeSingle();
       if (existing) {
-        const { error } = await supabase.from("cart_items").update({ quantity: existing.quantity + quantity }).eq("id", existing.id);
+        const { error } = await supabase
+          .from("cart_items")
+          .update({ quantity: existing.quantity + quantity })
+          .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("cart_items").insert({ user_id: user.id, product_id, size: size ?? "", quantity });
+        const { error } = await supabase
+          .from("cart_items")
+          .insert({ user_id: user.id, product_id, size: size ?? "", quantity });
         if (error) throw error;
       }
     },

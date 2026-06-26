@@ -11,13 +11,15 @@ export const createMayarPayment = createServerFn({ method: "POST" })
       customerEmail: z.string().email().or(z.string().length(0)),
       customerMobile: z.string().min(1),
       redirectUrl: z.string().url(),
-    })
+    }),
   )
   .handler(async ({ data }) => {
     const apiKey = process.env.MAYAR_API_KEY;
 
     if (!apiKey) {
-      console.warn("[Mayar API] MAYAR_API_KEY tidak dikonfigurasi. Menggunakan tautan pembayaran simulasi (mock).");
+      console.warn(
+        "[Mayar API] MAYAR_API_KEY tidak dikonfigurasi. Menggunakan tautan pembayaran simulasi (mock).",
+      );
       return {
         success: true,
         link: `${data.redirectUrl}?mock_paid=true`,
@@ -26,8 +28,10 @@ export const createMayarPayment = createServerFn({ method: "POST" })
     }
 
     try {
-      console.log(`[Mayar API] Mengirim permintaan pembuatan invoice untuk pesanan ${data.orderNumber} dengan nominal ${data.amount}`);
-      
+      console.log(
+        `[Mayar API] Mengirim permintaan pembuatan invoice untuk pesanan ${data.orderNumber} dengan nominal ${data.amount}`,
+      );
+
       const payload = {
         name: data.customerName,
         email: data.customerEmail || "customer@example.com", // Mayar mewajibkan email
@@ -39,8 +43,8 @@ export const createMayarPayment = createServerFn({ method: "POST" })
           {
             quantity: 1,
             rate: data.amount,
-            description: `Total Pembayaran Pesanan #${data.orderNumber}`
-          }
+            description: `Total Pembayaran Pesanan #${data.orderNumber}`,
+          },
         ],
         extraData: {
           order_id: data.orderId,
@@ -51,7 +55,7 @@ export const createMayarPayment = createServerFn({ method: "POST" })
       const response = await fetch("https://api.mayar.id/hl/v1/invoice/create", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
@@ -67,11 +71,13 @@ export const createMayarPayment = createServerFn({ method: "POST" })
 
       if (!response.ok) {
         console.error("[Mayar API] Respon error dari Mayar:", responseData);
-        throw new Error(responseData?.message || `Permintaan gagal dengan status ${response.status}`);
+        throw new Error(
+          responseData?.message || `Permintaan gagal dengan status ${response.status}`,
+        );
       }
 
       console.log("[Mayar API] Invoice berhasil dibuat:", responseData);
-      
+
       // Mayar mengembalikan link invoice dalam format responseData.data.link
       return {
         success: true,
@@ -89,7 +95,7 @@ export const checkMayarPaymentStatus = createServerFn({ method: "POST" })
     z.object({
       paymentId: z.string().uuid(),
       invoiceId: z.string().min(1),
-    })
+    }),
   )
   .handler(async ({ data }) => {
     const apiKey = process.env.MAYAR_API_KEY;
@@ -99,12 +105,14 @@ export const checkMayarPaymentStatus = createServerFn({ method: "POST" })
     }
 
     try {
-      console.log(`[Mayar API] Memeriksa status invoice ${data.invoiceId} untuk Pembayaran ${data.paymentId}`);
-      
+      console.log(
+        `[Mayar API] Memeriksa status invoice ${data.invoiceId} untuk Pembayaran ${data.paymentId}`,
+      );
+
       const response = await fetch(`https://api.mayar.id/hl/v1/invoice/${data.invoiceId}`, {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
       });
 
@@ -114,25 +122,25 @@ export const checkMayarPaymentStatus = createServerFn({ method: "POST" })
 
       const responseData = await response.json();
       const status = responseData?.data?.status;
-      
+
       console.log(`[Mayar API] Status invoice dari Mayar: ${status}`);
 
       if (status === "paid") {
         // Impor supabaseAdmin secara dinamis di server
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        
+
         const { error } = await supabaseAdmin
           .from("payments")
-          .update({ 
+          .update({
             status: "approved",
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq("id", data.paymentId);
 
         if (error) {
           throw new Error(`Gagal memperbarui status pembayaran: ${error.message}`);
         }
-        
+
         console.log(`[Mayar API] Pembayaran ${data.paymentId} berhasil di-approve di DB`);
         return { success: true, status: "paid" };
       }
