@@ -18,6 +18,50 @@ export const Route = createFileRoute("/api/webhook")({
             if (orderId) {
               console.log(`[Webhook Mayar] Memproses pembayaran sukses untuk Order ID: ${orderId}`);
 
+              // 0. Verifikasi out-of-band ke Mayar API untuk memvalidasi keaslian status pembayaran (Defense in Depth)
+              const invoiceId = data?.id;
+              if (!invoiceId) {
+                console.error("[Webhook Mayar] Payload tidak memiliki invoice ID.");
+                return new Response(JSON.stringify({ error: "Invoice ID tidak ditemukan dalam payload" }), {
+                  status: 400,
+                  headers: { "Content-Type": "application/json" },
+                });
+              }
+
+              const mayarApiKey = process.env.MAYAR_API_KEY;
+              if (mayarApiKey) {
+                console.log(`[Webhook Mayar] Memverifikasi invoice ${invoiceId} ke API Mayar...`);
+                const checkResponse = await fetch(`https://api.mayar.id/hl/v1/invoice/${invoiceId}`, {
+                  method: "GET",
+                  headers: {
+                    Authorization: `Bearer ${mayarApiKey}`,
+                  },
+                });
+
+                if (!checkResponse.ok) {
+                  console.error(`[Webhook Mayar] Gagal menghubungi API Mayar untuk invoice ${invoiceId}`);
+                  return new Response(JSON.stringify({ error: "Gagal memverifikasi pembayaran dengan provider" }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                  });
+                }
+
+                const checkData = await checkResponse.json();
+                const verifiedStatus = checkData?.data?.status || checkData?.status;
+
+                if (verifiedStatus !== "paid") {
+                  console.error(`[Webhook Mayar] Pembayaran tidak valid. Status di Mayar: ${verifiedStatus}`);
+                  return new Response(JSON.stringify({ error: `Status pembayaran tidak valid: ${verifiedStatus}` }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                  });
+                }
+
+                console.log(`[Webhook Mayar] Invoice ${invoiceId} terverifikasi lunas (paid) via Mayar API.`);
+              } else {
+                console.warn("[Webhook Mayar] MAYAR_API_KEY tidak dikonfigurasi. Menjalankan mode simulasi tanpa verifikasi API.");
+              }
+
               // Impor supabaseAdmin secara dinamis hanya di dalam handler server
               const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

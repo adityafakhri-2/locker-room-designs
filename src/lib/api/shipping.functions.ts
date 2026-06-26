@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import rajaongkirCities from "../data/rajaongkir_cities.json";
 
 interface City {
@@ -263,6 +264,7 @@ function calculateOfflineRates(
 
 // Server function untuk menghitung tarif pengiriman JNE
 export const calculateShippingRates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(calculateShippingRatesInput)
   .handler(async ({ data }) => {
     const apiKey = process.env.RAJAONGKIR_API_KEY;
@@ -403,7 +405,9 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
     }
   });
 
-export const getStoreOrigin = createServerFn({ method: "GET" }).handler(async () => {
+export const getStoreOrigin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
   try {
     const origin = await getAdminOrigin();
     return {

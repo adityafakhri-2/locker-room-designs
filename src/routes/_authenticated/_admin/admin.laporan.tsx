@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
@@ -38,19 +38,24 @@ export const Route = createFileRoute("/_authenticated/_admin/admin/laporan")({
 function AdminReports() {
   const orders = useQuery({
     queryKey: ["report-orders"],
-    queryFn: async () =>
-      (await supabase.from("orders").select("*").order("created_at", { ascending: false })).data ??
-      [],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, order_items(*)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
   });
   const products = useQuery({
     queryKey: ["report-products"],
-    queryFn: async () =>
-      (
-        await supabase
-          .from("products")
-          .select("name, team, stock, sold_count, price")
-          .order("sold_count", { ascending: false })
-      ).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, team, stock, price");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
   const customers = useQuery({
     queryKey: ["report-customers"],
@@ -69,6 +74,39 @@ function AdminReports() {
     const k = new Date(o.created_at).toLocaleString("id-ID", { month: "short", year: "numeric" });
     monthly[k] = (monthly[k] ?? 0) + Number(o.grand_total);
   });
+
+  // Hitung jumlah terjual secara dinamis dari pesanan valid
+  const dynamicSoldCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    validOrders.forEach((o) => {
+      const items = (o as any).order_items || [];
+      items.forEach((item: any) => {
+        const key = item.product_id || item.product_name;
+        counts[key] = (counts[key] ?? 0) + (item.quantity ?? 0);
+      });
+    });
+    return counts;
+  }, [validOrders]);
+
+  // Gabungkan produk dengan jumlah terjual yang dihitung dinamis, lalu urutkan
+  const processedProducts = useMemo(() => {
+    return (products.data ?? [])
+      .map((p) => {
+        const soldCount =
+          (p.id ? dynamicSoldCounts[p.id] : 0) ||
+          (p.name ? dynamicSoldCounts[p.name] : 0) ||
+          0;
+        return {
+          id: p.id,
+          name: p.name,
+          team: p.team,
+          stock: p.stock,
+          price: p.price,
+          sold_count: soldCount,
+        };
+      })
+      .sort((a, b) => b.sold_count - a.sold_count);
+  }, [products.data, dynamicSoldCounts]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -91,12 +129,12 @@ function AdminReports() {
         revenue,
       }));
 
-      const bestSellersList = (products.data ?? [])
+      const bestSellersList = processedProducts
         .map((p) => ({
           name: p.name,
-          sold_count: p.sold_count ?? 0,
+          sold_count: p.sold_count,
           stock: p.stock ?? 0,
-          price: p.price ?? 0,
+          price: Number(p.price) ?? 0,
           team: p.team || null,
         }))
         .slice(0, 10);
@@ -425,7 +463,7 @@ function AdminReports() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => download("best-sellers.csv", toCSV(products.data ?? []))}
+            onClick={() => download("best-sellers.csv", toCSV(processedProducts))}
           >
             Ekspor CSV
           </Button>
@@ -439,7 +477,7 @@ function AdminReports() {
             </tr>
           </thead>
           <tbody>
-            {(products.data ?? []).slice(0, 10).map((p) => (
+            {processedProducts.slice(0, 10).map((p) => (
               <tr key={p.name} className="border-b border-border/50">
                 <td className="py-2">{p.name}</td>
                 <td>{p.sold_count}</td>

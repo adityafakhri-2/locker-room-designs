@@ -71,3 +71,24 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
     });
   },
 );
+
+export const requireAdminAuth = createMiddleware({ type: "function" })
+  .middleware([requireSupabaseAuth])
+  .server(async ({ next, context }) => {
+    const { supabase, userId } = context;
+
+    // Ambil role pengguna dari tabel user_roles
+    const { data: userRole, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleError || !userRole) {
+      throw new Error("Forbidden: Admin role required");
+    }
+
+    return next();
+  });
+

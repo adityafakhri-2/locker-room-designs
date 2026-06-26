@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireAdminAuth } from "@/integrations/supabase/auth-middleware";
 
 const generateDescriptionInputSchema = z.object({
   name: z.string().min(1, "Nama produk tidak boleh kosong"),
@@ -15,6 +16,7 @@ const generateDescriptionInputSchema = z.object({
 });
 
 export const generateProductDescription = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
   .validator(generateDescriptionInputSchema)
   .handler(async ({ data }) => {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -144,6 +146,7 @@ const analyzeSalesDataSchema = z.object({
 });
 
 export const analyzeSalesData = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
   .validator(analyzeSalesDataSchema)
   .handler(async ({ data }) => {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -270,6 +273,7 @@ const suggestProductPriceSchema = z.object({
 });
 
 export const suggestProductPrice = createServerFn({ method: "POST" })
+  .middleware([requireAdminAuth])
   .validator(suggestProductPriceSchema)
   .handler(async ({ data }) => {
     const apiKey = process.env.GEMINI_API_KEY;

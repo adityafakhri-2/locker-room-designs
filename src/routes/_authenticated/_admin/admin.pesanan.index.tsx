@@ -36,6 +36,7 @@ function AdminOrders() {
   const qc = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<1 | 2>(1);
   const [deleteIds, setDeleteIds] = useState<string[]>([]);
 
   const [search, setSearch] = useState("");
@@ -241,11 +242,13 @@ function AdminOrders() {
 
   function handleDeleteSingle(id: string) {
     setDeleteIds([id]);
+    setDeleteConfirmStep(1);
     setDeleteConfirmOpen(true);
   }
 
   function handleDeleteBulk() {
     setDeleteIds(selectedIds);
+    setDeleteConfirmStep(1);
     setDeleteConfirmOpen(true);
   }
 
@@ -570,26 +573,49 @@ function AdminOrders() {
         )}
       </Card>
 
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          setDeleteConfirmOpen(open);
+          if (!open) {
+            setTimeout(() => setDeleteConfirmStep(1), 150);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Konfirmasi Hapus Pesanan</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteConfirmStep === 1
+                ? "Peringatan Tahap 1: Konfirmasi Hapus Pesanan"
+                : "Peringatan Tahap 2: TINDAKAN SENSITIF & PERMANEN"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteIds.length > 1
-                ? `Apakah Anda yakin ingin menghapus ${deleteIds.length} pesanan terpilih beserta seluruh data terkait pembayaran dan pengiriman? Tindakan ini tidak dapat dibatalkan.`
-                : "Apakah Anda yakin ingin menghapus pesanan ini beserta seluruh data terkait pembayaran dan pengiriman? Tindakan ini tidak dapat dibatalkan."}
+              {deleteConfirmStep === 1 ? (
+                deleteIds.length > 1
+                  ? `Apakah Anda yakin ingin menghapus ${deleteIds.length} pesanan terpilih beserta seluruh data terkait pembayaran dan pengiriman? Lanjutkan ke verifikasi akhir?`
+                  : "Apakah Anda yakin ingin menghapus pesanan ini beserta seluruh data terkait pembayaran dan pengiriman? Lanjutkan ke verifikasi akhir?"
+              ) : (
+                "PERINGATAN AKHIR: Menghapus pesanan ini akan secara otomatis mengembalikan stok produk yang bersangkutan ke dalam inventaris toko dan mengurangi jumlah produk terjual di laporan penjualan. Data yang dihapus tidak dapat dipulihkan. Apakah Anda benar-benar yakin?"
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteConfirmStep(1)}>
+              Batal
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-              onClick={() => {
-                deleteMutation.mutate(deleteIds);
-                setDeleteConfirmOpen(false);
+              onClick={(e) => {
+                if (deleteConfirmStep === 1) {
+                  e.preventDefault();
+                  setDeleteConfirmStep(2);
+                } else {
+                  deleteMutation.mutate(deleteIds);
+                  setDeleteConfirmOpen(false);
+                }
               }}
             >
-              Hapus
+              {deleteConfirmStep === 1 ? "Lanjut" : "Ya, Hapus Permanen"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
