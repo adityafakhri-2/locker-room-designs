@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatIDR } from "@/lib/format";
 import { createMayarPayment } from "@/lib/api/payment.functions";
-import { calculateShippingRates } from "@/lib/api/shipping.functions";
+import { calculateShippingRates, getStoreOrigin } from "@/lib/api/shipping.functions";
 import { useCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +37,23 @@ function CheckoutPage() {
   const [kelurahan, setKelurahan] = useState("");
   const [rates, setRates] = useState<any[]>([]);
   const [ratesLoading, setRatesLoading] = useState(false);
+  const [originLocation, setOriginLocation] = useState<{ city: string; province: string } | null>(null);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Load store origin location on mount
+  useEffect(() => {
+    async function loadOrigin() {
+      try {
+        const res = await getStoreOrigin();
+        if (res.success) {
+          setOriginLocation({ city: res.city, province: res.province });
+        }
+      } catch (err) {
+        console.error("Failed to load store origin location:", err);
+      }
+    }
+    loadOrigin();
+  }, []);
 
   // Voucher states
   const [voucherCodeInput, setVoucherCodeInput] = useState("");
@@ -133,13 +149,13 @@ function CheckoutPage() {
     }
   }, [cart.data, cart.isLoading, navigate]);
 
-  // Perbarui tarif ongkir JNE ketika lokasi pengiriman atau isi keranjang berubah
+  // Perbarui tarif ongkir JNE ketika lokasi pengiriman (sampai tingkat kecamatan) atau isi keranjang berubah
   useEffect(() => {
     async function updateRates() {
       const currentCart = cart.data ?? [];
       const currentQty = currentCart.reduce((s, i) => s + i.quantity, 0);
 
-      if (!form.recipient_provinsi || !form.recipient_kota || currentCart.length === 0) {
+      if (!form.recipient_provinsi || !form.recipient_kota || !kecamatan || currentCart.length === 0) {
         setRates([]);
         return;
       }
@@ -155,6 +171,9 @@ function CheckoutPage() {
 
         if (result.success && result.rates) {
           setRates(result.rates);
+          if (result.originCity && result.originProvince) {
+            setOriginLocation({ city: result.originCity, province: result.originProvince });
+          }
           
           const hasReg = result.rates.find(r => r.service === "REG");
           const defaultService = hasReg ? "JNE REG" : (result.rates[0]?.name || "JNE REG");
@@ -170,7 +189,7 @@ function CheckoutPage() {
       }
     }
     updateRates();
-  }, [form.recipient_provinsi, form.recipient_kota, cart.data]);
+  }, [form.recipient_provinsi, form.recipient_kota, kecamatan, cart.data]);
 
   if (authLoading || (user && profileQuery.isLoading) || cart.isLoading) return (<><Navbar /><div className="pt-32 container-swiss">Memuat...</div></>);
   if (!user) {
@@ -440,10 +459,17 @@ function CheckoutPage() {
             </section>
 
             <section>
-              <h2 className="display-md mb-6">Kurir</h2>
-              {!form.recipient_provinsi || !form.recipient_kota ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+                <h2 className="display-md font-extrabold">Kurir</h2>
+                {originLocation && (
+                  <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
+                    Dikirim dari: <strong className="font-semibold text-foreground">{originLocation.city}, {originLocation.province}</strong>
+                  </span>
+                )}
+              </div>
+              {!form.recipient_provinsi || !form.recipient_kota || !kecamatan ? (
                 <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground rounded-lg bg-muted/20">
-                  Silakan tentukan provinsi dan kota alamat pengiriman Anda terlebih dahulu untuk melihat pilihan layanan kurir JNE.
+                  Silakan tentukan provinsi, kota, dan kecamatan alamat pengiriman Anda terlebih dahulu untuk melihat pilihan layanan kurir JNE.
                 </div>
               ) : ratesLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -574,8 +600,8 @@ function CheckoutPage() {
             <div className="border-t border-border mt-4 pt-4 flex justify-between text-base font-extrabold">
               <span>Total</span><span>{formatIDR(total)}</span>
             </div>
-            <Button type="submit" className="w-full mt-6 h-12 cursor-pointer" disabled={loading || items.length === 0}>
-              {loading ? "Memproses..." : "Buat Pesanan"}
+            <Button type="submit" className="w-full mt-6 h-12 cursor-pointer" disabled={loading || items.length === 0 || ratesLoading || !selectedRate}>
+              {loading ? "Memproses..." : ratesLoading ? "Menghitung Ongkir..." : "Buat Pesanan"}
             </Button>
           </aside>
         </form>

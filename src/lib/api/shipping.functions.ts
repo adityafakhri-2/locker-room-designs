@@ -276,6 +276,7 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
         success: true,
         rates,
         originCity: origin.city_name,
+        originProvince: origin.province,
         destCity: destination.city_name,
         weightGrams,
         isMock: false
@@ -287,9 +288,28 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
         success: true,
         rates: calculateOfflineRates(data.destinationProvinsi, weightGrams),
         originCity: origin.city_name,
+        originProvince: origin.province,
         destCity: destination.city_name,
         weightGrams,
         isMock: true
       };
     }
   });
+
+export const getStoreOrigin = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const origin = await getAdminOrigin();
+    return {
+      success: true,
+      city: origin.city_name,
+      province: origin.province
+    };
+  } catch (err) {
+    console.error("Error getting store origin:", err);
+    return {
+      success: true,
+      city: "Jakarta Selatan",
+      province: "DKI Jakarta"
+    };
+  }
+});
