@@ -50,3 +50,36 @@ export function statusLabel(s: string): string {
   };
   return map[s] ?? s;
 }
+
+export function toTitleCase(str: string): string {
+  if (!str) return "";
+  return str.toLowerCase().replace(/(?:^|\s|-)\S/g, (m) => m.toUpperCase());
+}
+
+export function parseAlamat(alamatStr: string) {
+  if (!alamatStr) return { street: "", kecamatan: "", kelurahan: "" };
+
+  const matchKecKel = alamatStr.match(/(.*?),\s*Kec\.\s*([^,]+),\s*Kel\.\s*([^,]+)$/i);
+  if (matchKecKel) {
+    return {
+      street: matchKecKel[1].trim(),
+      kecamatan: matchKecKel[2].trim(),
+      kelurahan: matchKecKel[3].trim(),
+    };
+  }
+
+  const matchKelKec = alamatStr.match(/(.*?),\s*Kel\.\s*([^,]+),\s*Kec\.\s*([^,]+)$/i);
+  if (matchKelKec) {
+    return {
+      street: matchKelKec[1].trim(),
+      kelurahan: matchKelKec[2].trim(),
+      kecamatan: matchKelKec[3].trim(),
+    };
+  }
+
+  return {
+    street: alamatStr,
+    kecamatan: "",
+    kelurahan: "",
+  };
+}

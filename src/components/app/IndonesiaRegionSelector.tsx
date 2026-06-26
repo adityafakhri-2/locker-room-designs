@@ -3,40 +3,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect } from "@/components/app/SearchableSelect";
+import { parseAlamat } from "@/lib/format";
 
 // Helper to convert ALL UPPERCASE API results to beautiful Title Case
-export function toTitleCase(str: string): string {
+function toTitleCase(str: string): string {
   if (!str) return "";
   return str.toLowerCase().replace(/(?:^|\s|-)\S/g, (m) => m.toUpperCase());
-}
-
-// Helper to parse detailed address column into street address, district, and village
-export function parseAlamat(alamatStr: string) {
-  if (!alamatStr) return { street: "", kecamatan: "", kelurahan: "" };
-
-  const matchKecKel = alamatStr.match(/(.*?),\s*Kec\.\s*([^,]+),\s*Kel\.\s*([^,]+)$/i);
-  if (matchKecKel) {
-    return {
-      street: matchKecKel[1].trim(),
-      kecamatan: matchKecKel[2].trim(),
-      kelurahan: matchKecKel[3].trim(),
-    };
-  }
-
-  const matchKelKec = alamatStr.match(/(.*?),\s*Kel\.\s*([^,]+),\s*Kec\.\s*([^,]+)$/i);
-  if (matchKelKec) {
-    return {
-      street: matchKelKec[1].trim(),
-      kelurahan: matchKelKec[2].trim(),
-      kecamatan: matchKelKec[3].trim(),
-    };
-  }
-
-  return {
-    street: alamatStr,
-    kecamatan: "",
-    kelurahan: "",
-  };
 }
 
 // Clean string comparison to strip prefixes like KOTA / KABUPATEN

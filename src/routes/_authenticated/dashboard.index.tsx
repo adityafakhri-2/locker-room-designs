@@ -5,12 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { formatIDR, statusLabel } from "@/lib/format";
 
-export const CUSTOMER_NAV = [
-  { label: "Dashboard", to: "/dashboard" },
-  { label: "Pesanan Saya", to: "/dashboard/pesanan" },
-  { label: "Wishlist", to: "/dashboard/wishlist" },
-  { label: "Profil Saya", to: "/dashboard/profil" },
-];
+import { CUSTOMER_NAV } from "@/lib/navigation";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardHome,
@@ -50,7 +45,7 @@ function DashboardHome() {
   const lastPayment = q.data?.last
     ? Array.isArray(q.data.last.payments)
       ? q.data.last.payments[0]
-      : (q.data.last.payments as any)
+      : (q.data.last.payments as unknown as { status: string } | null)
     : null;
   const lastDisplayStatus = q.data?.last
     ? q.data.last.status === "pending" && lastPayment?.status === "waiting_verification"
@@ -105,7 +100,9 @@ function DashboardHome() {
               </thead>
               <tbody>
                 {q.data.all.slice(0, 5).map((o) => {
-                  const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+                  const payment = Array.isArray(o.payments)
+                    ? o.payments[0]
+                    : (o.payments as unknown as { status: string } | null);
                   const displayStatus =
                     o.status === "pending" && payment?.status === "waiting_verification"
                       ? "waiting_verification"

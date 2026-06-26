@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navbar } from "@/components/landing/Navbar";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { IndonesiaRegionSelector, parseAlamat } from "@/components/app/IndonesiaRegionSelector";
+import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
+import { parseAlamat } from "@/lib/format";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,

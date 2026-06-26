@@ -10,11 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatIDR } from "@/lib/format";
 import { createMayarPayment } from "@/lib/api/payment.functions";
-import { calculateShippingRates, getStoreOrigin } from "@/lib/api/shipping.functions";
+import {
+  calculateShippingRates,
+  getStoreOrigin,
+  ShippingService,
+} from "@/lib/api/shipping.functions";
 import { useCart } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { IndonesiaRegionSelector, parseAlamat } from "@/components/app/IndonesiaRegionSelector";
+import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
+import { parseAlamat } from "@/lib/format";
 import { Ticket } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -22,6 +27,19 @@ export const Route = createFileRoute("/checkout/")({
   head: () => ({ meta: [{ title: "Checkout — The Locker Room" }] }),
   component: CheckoutPage,
 });
+
+interface Voucher {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  min_purchase: number | string | null;
+  max_discount?: number | string | null;
+  usage_limit?: number | null;
+  usage_count: number;
+  status: string;
+  end_date?: string | null;
+}
 
 function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
@@ -41,7 +59,7 @@ function CheckoutPage() {
   const [alamatDetail, setAlamatDetail] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
-  const [rates, setRates] = useState<any[]>([]);
+  const [rates, setRates] = useState<ShippingService[]>([]);
   const [ratesLoading, setRatesLoading] = useState(false);
   const [originLocation, setOriginLocation] = useState<{ city: string; province: string } | null>(
     null,
@@ -65,7 +83,7 @@ function CheckoutPage() {
 
   // Voucher states
   const [voucherCodeInput, setVoucherCodeInput] = useState("");
-  const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [showVoucherDrawer, setShowVoucherDrawer] = useState(false);
 
   // Fetch active vouchers
@@ -199,9 +217,12 @@ function CheckoutPage() {
           const hasReg = result.rates.find((r) => r.service === "REG");
           const defaultService = hasReg ? "JNE REG" : result.rates[0]?.name || "JNE REG";
 
-          if (!result.rates.some((r) => r.name === form.courier)) {
-            setForm((f) => ({ ...f, courier: defaultService }));
-          }
+          setForm((f) => {
+            if (!result.rates!.some((r) => r.name === f.courier)) {
+              return { ...f, courier: defaultService };
+            }
+            return f;
+          });
         }
       } catch (err) {
         console.error("[Checkout UI] Gagal memperbarui ongkos kirim:", err);
@@ -463,10 +484,6 @@ function CheckoutPage() {
 
       // ROLLBACK / COMPENSATING TRANSACTION JIKA INTEGRASI MAYAR GAGAL
       if (createdOrderId) {
-        console.log(
-          "[Checkout Cleanup] Pembayaran Mayar gagal dibuat, melakukan rollback pesanan:",
-          createdOrderId,
-        );
         try {
           // 1. Batalkan pesanan agar stok dikembalikan oleh trigger database trg_restore_stock_on_order_cancel
           await supabase
@@ -496,7 +513,6 @@ function CheckoutPage() {
                 .eq("id", selectedVoucher.id);
             }
           }
-          console.log("[Checkout Cleanup] Rollback pesanan dan voucher selesai.");
         } catch (cleanupErr) {
           console.error("[Checkout Cleanup] Gagal melakukan rollback pesanan:", cleanupErr);
         }

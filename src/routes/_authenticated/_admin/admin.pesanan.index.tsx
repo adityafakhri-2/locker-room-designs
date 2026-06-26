@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { formatIDR, formatDate, statusLabel } from "@/lib/format";
 import { Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -94,7 +94,7 @@ function AdminOrders() {
 
   const counts = useMemo(() => {
     const list = q.data ?? [];
-    let all = list.length;
+    const all = list.length;
     let pending = 0;
     let paid = 0;
     let processing = 0;
@@ -103,7 +103,9 @@ function AdminOrders() {
     let cancelled = 0;
 
     list.forEach((o) => {
-      const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+      const payment = Array.isArray(o.payments)
+        ? o.payments[0]
+        : (o.payments as unknown as { status: string } | null);
       const displayStatus =
         o.status === "pending" && payment?.status === "waiting_verification"
           ? "waiting_verification"
@@ -127,7 +129,10 @@ function AdminOrders() {
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter((o) => {
-        const profile = o.profiles as any;
+        const profile = o.profiles as {
+          nama_lengkap?: string | null;
+          email?: string | null;
+        } | null;
         return (
           o.order_number.toLowerCase().includes(s) ||
           o.recipient_name.toLowerCase().includes(s) ||
@@ -140,7 +145,9 @@ function AdminOrders() {
     // 2. Order status filter (using computed displayStatus)
     if (orderFilter !== "all") {
       list = list.filter((o) => {
-        const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+        const payment = Array.isArray(o.payments)
+          ? o.payments[0]
+          : (o.payments as unknown as { status: string } | null);
         const displayStatus =
           o.status === "pending" && payment?.status === "waiting_verification"
             ? "waiting_verification"
@@ -159,15 +166,17 @@ function AdminOrders() {
     // 3. Payment status filter
     if (paymentFilter !== "all") {
       list = list.filter((o) => {
-        const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+        const payment = Array.isArray(o.payments)
+          ? o.payments[0]
+          : (o.payments as unknown as { status: string } | null);
         return payment?.status === paymentFilter;
       });
     }
 
     // 4. Sort
     list.sort((a, b) => {
-      let valA: any = "";
-      let valB: any = "";
+      let valA: string | number = "";
+      let valB: string | number = "";
 
       if (sortField === "order_number") {
         valA = a.order_number;
@@ -179,8 +188,12 @@ function AdminOrders() {
         valA = (a.recipient_name || "").toLowerCase();
         valB = (b.recipient_name || "").toLowerCase();
       } else if (sortField === "status") {
-        const payA = Array.isArray(a.payments) ? a.payments[0] : (a.payments as any);
-        const payB = Array.isArray(b.payments) ? b.payments[0] : (b.payments as any);
+        const payA = Array.isArray(a.payments)
+          ? a.payments[0]
+          : (a.payments as unknown as { status: string } | null);
+        const payB = Array.isArray(b.payments)
+          ? b.payments[0]
+          : (b.payments as unknown as { status: string } | null);
         valA =
           a.status === "pending" && payA?.status === "waiting_verification"
             ? "waiting_verification"
@@ -190,8 +203,12 @@ function AdminOrders() {
             ? "waiting_verification"
             : b.status;
       } else if (sortField === "payment_status") {
-        const payA = Array.isArray(a.payments) ? a.payments[0] : (a.payments as any);
-        const payB = Array.isArray(b.payments) ? b.payments[0] : (b.payments as any);
+        const payA = Array.isArray(a.payments)
+          ? a.payments[0]
+          : (a.payments as unknown as { status: string } | null);
+        const payB = Array.isArray(b.payments)
+          ? b.payments[0]
+          : (b.payments as unknown as { status: string } | null);
         valA = payA?.status || "";
         valB = payB?.status || "";
       } else if (sortField === "grand_total") {
@@ -217,7 +234,7 @@ function AdminOrders() {
       setSelectedIds([]);
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast.error("Gagal menghapus pesanan: " + err.message);
     },
   });
@@ -405,8 +422,11 @@ function AdminOrders() {
                     {filteredAndSortedList.map((o) => {
                       const payment = Array.isArray(o.payments)
                         ? o.payments[0]
-                        : (o.payments as any);
-                      const profile = o.profiles as any;
+                        : (o.payments as unknown as { status: string } | null);
+                      const profile = o.profiles as {
+                        nama_lengkap?: string | null;
+                        email?: string | null;
+                      } | null;
                       const isSelected = selectedIds.includes(o.id);
 
                       const displayStatus =

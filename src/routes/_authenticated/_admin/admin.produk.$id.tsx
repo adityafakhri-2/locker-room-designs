@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { generateProductDescription, suggestProductPrice } from "@/lib/api/ai.functions";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -252,7 +252,7 @@ function ProductForm() {
       toast.success("Kondisi baru berhasil ditambahkan");
       conditionsQuery.refetch();
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast.error("Gagal menambahkan kondisi: " + err.message);
     },
   });
@@ -266,7 +266,7 @@ function ProductForm() {
       toast.success("Pilihan kondisi berhasil dihapus");
       conditionsQuery.refetch();
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast.error("Gagal menghapus kondisi: " + err.message);
     },
   });
@@ -283,7 +283,7 @@ function ProductForm() {
       toast.success("Kondisi berhasil diubah");
       conditionsQuery.refetch();
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast.error("Gagal mengubah kondisi: " + err.message);
     },
   });
@@ -334,7 +334,7 @@ function ProductForm() {
       setSizeStocks(initStocks);
     }
 
-    const loadedImages = (p.product_images ?? []).map((i: any) => ({
+    const loadedImages = ((p.product_images as { id: string; url: string }[]) ?? []).map((i) => ({
       id: i.id,
       storage_path: i.url,
       url: supabase.storage.from("product-images").getPublicUrl(i.url).data.publicUrl,
@@ -485,9 +485,9 @@ function ProductForm() {
       } else {
         toast.error("Gagal mendapatkan deskripsi dari AI.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error("Terjadi kesalahan saat menggenerasi deskripsi: " + (err.message || err));
+      toast.error("Terjadi kesalahan saat menggenerasi deskripsi: " + (err as Error).message);
     } finally {
       setIsGeneratingAI(false);
     }
@@ -534,11 +534,10 @@ function ProductForm() {
       } else {
         toast.error("Gagal mendapatkan saran harga dari AI.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.toast
-        ? toast.error("Gagal menganalisis harga pasaran: " + (err.message || err))
-        : toast.error("Gagal menganalisis harga pasaran: " + (err.message || err));
+      const errMessage = err instanceof Error ? err.message : String(err);
+      toast.error("Gagal menganalisis harga pasaran: " + errMessage);
     } finally {
       setIsSuggestingPrice(false);
     }
@@ -587,7 +586,12 @@ function ProductForm() {
         description: form.description || null,
         story: form.story || null,
         collector_score: 1,
-        authenticity_badge: form.authenticity_badge as any,
+        authenticity_badge: form.authenticity_badge as
+          | "original_verified"
+          | "match_worn"
+          | "collector_item"
+          | "limited_edition"
+          | null,
         video_url: form.video_url || null,
         cover_image_url: images[0]?.url || null,
         is_active: form.is_active,

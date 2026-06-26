@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/pelanggan")({

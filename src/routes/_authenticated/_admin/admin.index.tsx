@@ -3,19 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { formatIDR, statusLabel } from "@/lib/format";
-
-export const ADMIN_NAV = [
-  { label: "Dashboard", to: "/admin" },
-  { label: "Produk", to: "/admin/produk" },
-  { label: "Kategori", to: "/admin/kategori" },
-  { label: "Koleksi", to: "/admin/koleksi" },
-  { label: "Voucher", to: "/admin/voucher" },
-  { label: "Pesanan", to: "/admin/pesanan" },
-  { label: "Pelanggan", to: "/admin/pelanggan" },
-  { label: "Ulasan", to: "/admin/ulasan" },
-  { label: "Laporan", to: "/admin/laporan" },
-  { label: "Pengaturan Toko", to: "/admin/pengaturan" },
-];
+import { ADMIN_NAV } from "@/lib/navigation";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/")({
   component: AdminDashboard,
@@ -100,7 +88,9 @@ function AdminDashboard() {
               </thead>
               <tbody>
                 {stats.data.recent.map((o) => {
-                  const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+                  const payment = Array.isArray(o.payments)
+                    ? o.payments[0]
+                    : (o.payments as unknown as { status: string } | null);
                   const displayStatus =
                     o.status === "pending" && payment?.status === "waiting_verification"
                       ? "waiting_verification"

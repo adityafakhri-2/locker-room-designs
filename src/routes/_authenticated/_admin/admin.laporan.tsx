@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDate } from "@/lib/format";
 import { Sparkles, Loader2, Wand2, Download, Save, Trash2 } from "lucide-react";
@@ -118,9 +118,10 @@ function AdminReports() {
       } else {
         toast.error("Gagal mendapatkan analisis dari AI.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error("Gagal melakukan analisis penjualan: " + (err.message || err));
+      const errMessage = err instanceof Error ? err.message : String(err);
+      toast.error("Gagal melakukan analisis penjualan: " + errMessage);
     } finally {
       setIsAnalyzing(false);
     }

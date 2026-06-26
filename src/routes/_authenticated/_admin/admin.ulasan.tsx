@@ -3,8 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
+
+interface ReviewItem {
+  id: string;
+  rating: number;
+  body: string | null;
+  approved: boolean;
+  hidden: boolean;
+  products: { name: string } | null;
+}
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/ulasan")({
   component: AdminReviews,
@@ -42,7 +51,7 @@ function AdminReviews() {
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader eyebrow="Ulasan" title="Moderasi Ulasan" />
       {q.data?.length ? (
-        q.data.map((r: any) => (
+        q.data.map((r: ReviewItem) => (
           <Card key={r.id} className="mb-3">
             <div className="flex justify-between">
               <div>

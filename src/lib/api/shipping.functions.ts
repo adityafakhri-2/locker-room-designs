@@ -181,6 +181,13 @@ export interface ShippingService {
   etd: string; // 1-2 hari
 }
 
+interface RajaOngkirRate {
+  service: string;
+  description?: string;
+  cost: string | number;
+  etd?: string;
+}
+
 // Hitung ongkir fallback offline berdasarkan kota asal/tujuan, zona provinsi, dan berat
 function calculateOfflineRates(
   destProvince: string,
@@ -349,9 +356,9 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
       }
 
       // Map hasil dari RajaOngkir V2 ke format kita (hanya JNE REG dan YES)
-      const rates: ShippingService[] = results
-        .filter((c: any) => c.service === "REG" || c.service === "YES")
-        .map((c: any) => {
+      const rates: ShippingService[] = (results as RajaOngkirRate[])
+        .filter((c: RajaOngkirRate) => c.service === "REG" || c.service === "YES")
+        .map((c: RajaOngkirRate) => {
           // Bersihkan format etd (misal mengganti "day" dengan "hari")
           let etdClean = c.etd || "-";
           etdClean = etdClean.replace(/days?/gi, "hari").trim();

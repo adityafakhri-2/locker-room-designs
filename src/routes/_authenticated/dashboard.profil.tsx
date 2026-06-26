@@ -5,13 +5,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { CUSTOMER_NAV } from "./dashboard.index";
+import { CUSTOMER_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { IndonesiaRegionSelector, parseAlamat } from "@/components/app/IndonesiaRegionSelector";
+import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
+import { parseAlamat } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard/profil")({
   component: ProfilePage,
@@ -55,7 +56,6 @@ function ProfilePage() {
   });
 
   useEffect(() => {
-    console.log("Profile query data fetched:", q.data);
     if (q.data) {
       const parsed = parseAlamat(q.data.alamat ?? "");
       setForm({
@@ -87,8 +87,6 @@ function ProfilePage() {
       alamat: finalAlamat,
     };
 
-    console.log("Attempting to update profile payload:", updatedPayload);
-
     // 1. Try updating first
     const { data, error } = await supabase
       .from("profiles")
@@ -104,7 +102,6 @@ function ProfilePage() {
 
     // 2. Fall back to upsert if update modified 0 rows (missing row or RLS filter)
     if (!data || data.length === 0) {
-      console.log("No rows updated. Profile row might not exist. Attempting upsert fallback...");
       const { data: upsertData, error: upsertError } = await supabase
         .from("profiles")
         .upsert({ id: user!.id, ...updatedPayload }, { onConflict: "id" })
@@ -123,11 +120,8 @@ function ProfilePage() {
           "Gagal menyimpan profil: Akses ditolak oleh aturan database (RLS Policy)",
         );
       }
-
-      console.log("Upsert fallback success response:", upsertData);
     } else {
       setSaving(false);
-      console.log("Update success response:", data);
     }
 
     toast.success("Profil disimpan");

@@ -54,7 +54,7 @@ The description must adhere to the following strict guidelines:
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
     let response: Response | null = null;
-    let attempts = 3;
+    const attempts = 3;
     let delay = 1000;
 
     for (let i = 0; i < attempts; i++) {
@@ -193,7 +193,7 @@ Format respons Anda harus bersih, rapi, dan mudah dibaca:
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
     let response: Response | null = null;
-    let attempts = 3;
+    const attempts = 3;
     let delay = 1000;
 
     for (let i = 0; i < attempts; i++) {
@@ -307,7 +307,7 @@ ATURAN FORMAT RESPONS:
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
     let response: Response | null = null;
-    let attempts = 3;
+    const attempts = 3;
     let delay = 1000;
 
     for (let i = 0; i < attempts; i++) {

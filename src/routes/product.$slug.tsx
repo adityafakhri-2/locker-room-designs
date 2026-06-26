@@ -33,7 +33,10 @@ export const Route = createFileRoute("/product/$slug")({
   component: ProductDetail,
 });
 
-const BADGE_MAP: Record<string, { label: string; icon: any }> = {
+const BADGE_MAP: Record<
+  string,
+  { label: string; icon: React.ComponentType<{ className?: string }> }
+> = {
   original_verified: { label: "Original Terverifikasi", icon: ShieldCheck },
   match_worn: { label: "Jersey Pertandingan (Match Worn)", icon: Shirt },
   collector_item: { label: "Barang Koleksi (Collector Item)", icon: Gem },
@@ -181,7 +184,11 @@ function ProductDetail() {
     ? reviewsQ.data.reduce((s, r) => s + r.rating, 0) / reviewsQ.data.length
     : 0;
 
-  const sizeStockMap = ((p as any).size_stock as Record<string, number> | null) ?? {};
+  const sizeStockMap =
+    ((p as unknown as { size_stock: Record<string, number> | null }).size_stock as Record<
+      string,
+      number
+    > | null) ?? {};
   const isSizeOutOfStock = (s: string) => {
     if (s in sizeStockMap) {
       return sizeStockMap[s] <= 0;

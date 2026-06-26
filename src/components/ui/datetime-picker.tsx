@@ -39,7 +39,7 @@ export function DateTimePicker({
       };
     }
 
-    let hour24 = dateVal.getHours();
+    const hour24 = dateVal.getHours();
     const minuteStr = String(dateVal.getMinutes()).padStart(2, "0");
     const period = hour24 >= 12 ? "PM" : "AM";
 

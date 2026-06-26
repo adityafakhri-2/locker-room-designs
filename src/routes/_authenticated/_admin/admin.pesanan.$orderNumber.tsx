@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,7 +33,38 @@ export const Route = createFileRoute("/_authenticated/_admin/admin/pesanan/$orde
   component: AdminOrderDetail,
 });
 
-function buildTimeline(order: any, payment: any, proofUploadedAt: string | null) {
+interface TimelineEvent {
+  status: string;
+  at: string;
+}
+
+interface OrderTimelineData {
+  created_at: string;
+  updated_at: string;
+  timeline?: any;
+  status: string;
+}
+
+interface PaymentTimelineData {
+  status: string;
+  updated_at: string;
+  verified_at?: string | null;
+}
+
+interface AdminPaymentInfo {
+  id: string;
+  status: string;
+  updated_at: string;
+  verified_at?: string | null;
+  reject_reason?: string | null;
+  bank?: string | null;
+}
+
+function buildTimeline(
+  order: OrderTimelineData,
+  payment: PaymentTimelineData | null | undefined,
+  proofUploadedAt: string | null,
+) {
   const events: Array<{ status: string; at: string }> = [];
 
   // 1. Menunggu Pembayaran (always first)
@@ -57,8 +88,8 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 4. Sedang Diproses (Dikemas)
-  const dbTimeline = Array.isArray(order.timeline) ? order.timeline : [];
-  const processingEvent = dbTimeline.find((t: any) => t.status === "processing");
+  const dbTimeline = Array.isArray(order.timeline) ? (order.timeline as TimelineEvent[]) : [];
+  const processingEvent = dbTimeline.find((t) => t.status === "processing");
   if (processingEvent) {
     events.push({ status: "processing", at: processingEvent.at });
   } else if (["processing", "shipped", "delivered"].includes(order.status)) {
@@ -66,7 +97,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 5. Dikirim
-  const shippedEvent = dbTimeline.find((t: any) => t.status === "shipped");
+  const shippedEvent = dbTimeline.find((t) => t.status === "shipped");
   if (shippedEvent) {
     events.push({ status: "shipped", at: shippedEvent.at });
   } else if (["shipped", "delivered"].includes(order.status)) {
@@ -74,7 +105,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 6. Selesai
-  const deliveredEvent = dbTimeline.find((t: any) => t.status === "delivered");
+  const deliveredEvent = dbTimeline.find((t) => t.status === "delivered");
   if (deliveredEvent) {
     events.push({ status: "delivered", at: deliveredEvent.at });
   } else if (order.status === "delivered") {
@@ -82,7 +113,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 7. Dibatalkan
-  const cancelledEvent = dbTimeline.find((t: any) => t.status === "cancelled");
+  const cancelledEvent = dbTimeline.find((t) => t.status === "cancelled");
   if (cancelledEvent) {
     events.push({ status: "cancelled", at: cancelledEvent.at });
   } else if (order.status === "cancelled") {
@@ -119,7 +150,9 @@ function AdminOrderDetail() {
         .eq("order_number", orderNumber)
         .maybeSingle();
       if (!data) return null;
-      const payment = (Array.isArray(data.payments) ? data.payments[0] : data.payments) as any;
+      const payment = (Array.isArray(data.payments) ? data.payments[0] : data.payments) as
+        | AdminPaymentInfo
+        | undefined;
       let proofUrl = "";
       let proofUploadedAt = null;
       if (payment) {
@@ -147,6 +180,7 @@ function AdminOrderDetail() {
   const { order, payment, proofUrl, proofUploadedAt } = q.data;
 
   async function approve() {
+    if (!payment) return toast.error("Data pembayaran tidak ditemukan");
     await supabase
       .from("payments")
       .update({ status: "approved", verified_at: new Date().toISOString() })
@@ -155,6 +189,7 @@ function AdminOrderDetail() {
     qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
   }
   async function reject() {
+    if (!payment) return toast.error("Data pembayaran tidak ditemukan");
     if (!rejectReason) return toast.error("Beri alasan penolakan");
     await supabase
       .from("payments")

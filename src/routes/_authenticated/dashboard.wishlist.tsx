@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Heart, Trash2 } from "lucide-react";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { CUSTOMER_NAV } from "./dashboard.index";
+import { CUSTOMER_NAV } from "@/lib/navigation";
 import { useWishlist, useToggleWishlist, useAddToCart } from "@/hooks/use-commerce";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";

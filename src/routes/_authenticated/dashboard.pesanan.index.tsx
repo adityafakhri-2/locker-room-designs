@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { CUSTOMER_NAV } from "./dashboard.index";
+import { CUSTOMER_NAV } from "@/lib/navigation";
 import { formatIDR, formatDate, statusLabel } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Shirt } from "lucide-react";
@@ -37,7 +37,7 @@ function OrdersPage() {
 
   const counts = useMemo(() => {
     const list = q.data ?? [];
-    let all = list.length;
+    const all = list.length;
     let pending = 0;
     let paid = 0;
     let processing = 0;
@@ -46,7 +46,9 @@ function OrdersPage() {
     let cancelled = 0;
 
     list.forEach((o) => {
-      const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+      const payment = Array.isArray(o.payments)
+        ? o.payments[0]
+        : (o.payments as unknown as { status: string } | null);
       const displayStatus =
         o.status === "pending" && payment?.status === "waiting_verification"
           ? "waiting_verification"
@@ -68,7 +70,9 @@ function OrdersPage() {
 
     if (orderFilter !== "all") {
       list = list.filter((o) => {
-        const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+        const payment = Array.isArray(o.payments)
+          ? o.payments[0]
+          : (o.payments as unknown as { status: string } | null);
         const displayStatus =
           o.status === "pending" && payment?.status === "waiting_verification"
             ? "waiting_verification"
@@ -132,7 +136,9 @@ function OrdersPage() {
         filteredOrders.length ? (
           <div className="space-y-4">
             {filteredOrders.map((o) => {
-              const payment = Array.isArray(o.payments) ? o.payments[0] : (o.payments as any);
+              const payment = Array.isArray(o.payments)
+                ? o.payments[0]
+                : (o.payments as unknown as { status: string } | null);
               const displayStatus =
                 o.status === "pending" && payment?.status === "waiting_verification"
                   ? "waiting_verification"

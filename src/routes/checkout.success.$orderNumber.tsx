@@ -1,6 +1,6 @@
 import { createFileRoute, useParams, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +26,14 @@ import {
 export const Route = createFileRoute("/checkout/success/$orderNumber")({
   component: PaymentPage,
 });
+
+interface CheckoutSuccessPaymentInfo {
+  id: string;
+  status: string;
+  bank: string | null;
+  method: string;
+  reject_reason: string | null;
+}
 
 function PaymentPage() {
   const { orderNumber } = useParams({ from: "/checkout/success/$orderNumber" });
@@ -53,7 +61,9 @@ function PaymentPage() {
       if (error) throw error;
       if (!order) return null;
 
-      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as any);
+      const payment = Array.isArray(order.payments)
+        ? order.payments[0]
+        : (order.payments as unknown as CheckoutSuccessPaymentInfo | null);
 
       // Jika pembayaran menggunakan Mayar, statusnya masih menunggu, dan ada ID invoice, cek ke Mayar API
       if (
@@ -63,10 +73,6 @@ function PaymentPage() {
         payment.reject_reason
       ) {
         try {
-          console.log(
-            "[Checkout Success] Memeriksa status pembayaran Mayar secara langsung untuk invoice:",
-            payment.reject_reason,
-          );
           await checkMayarPaymentStatus({
             data: {
               paymentId: payment.id,
@@ -109,19 +115,15 @@ function PaymentPage() {
   const payment = order
     ? ((Array.isArray(order.payments)
         ? order.payments[0]
-        : (order.payments as Record<string, any> | null)) as {
-        id: string;
-        status: string;
-        bank: string | null;
-        method: string;
-        reject_reason: string | null;
-      } | null)
+        : (order.payments as unknown)) as CheckoutSuccessPaymentInfo | null)
     : null;
   const isMayar = payment?.method === "mayar";
   const bank = !isMayar && payment ? BANKS.find((b) => b.code === payment.bank) : null;
 
-  const createdAt = order ? new Date(order.created_at) : null;
-  const deadline = createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
+  const deadline = useMemo(() => {
+    const createdAt = order ? new Date(order.created_at) : null;
+    return createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
+  }, [order]);
 
   useEffect(() => {
     if (

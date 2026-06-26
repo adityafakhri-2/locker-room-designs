@@ -1,11 +1,11 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { CUSTOMER_NAV } from "./dashboard.index";
+import { CUSTOMER_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDateTime, statusLabel, BANKS } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
@@ -34,7 +34,39 @@ export const Route = createFileRoute("/_authenticated/dashboard/pesanan/$orderNu
   component: OrderDetail,
 });
 
-function buildTimeline(order: any, payment: any, proofUploadedAt: string | null) {
+interface TimelineEvent {
+  status: string;
+  at: string;
+}
+
+interface OrderTimelineData {
+  created_at: string;
+  updated_at: string;
+  timeline?: any;
+  status: string;
+}
+
+interface PaymentTimelineData {
+  status: string;
+  updated_at: string;
+  verified_at?: string | null;
+}
+
+interface DashboardPaymentInfo {
+  id: string;
+  status: string;
+  bank: string | null;
+  method: string;
+  reject_reason: string | null;
+  updated_at: string;
+  verified_at?: string | null;
+}
+
+function buildTimeline(
+  order: OrderTimelineData,
+  payment: PaymentTimelineData | null | undefined,
+  proofUploadedAt: string | null,
+) {
   const events: Array<{ status: string; at: string }> = [];
 
   // 1. Menunggu Pembayaran (always first)
@@ -58,8 +90,8 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 4. Sedang Diproses (Dikemas)
-  const dbTimeline = Array.isArray(order.timeline) ? order.timeline : [];
-  const processingEvent = dbTimeline.find((t: any) => t.status === "processing");
+  const dbTimeline = Array.isArray(order.timeline) ? (order.timeline as TimelineEvent[]) : [];
+  const processingEvent = dbTimeline.find((t) => t.status === "processing");
   if (processingEvent) {
     events.push({ status: "processing", at: processingEvent.at });
   } else if (["processing", "shipped", "delivered"].includes(order.status)) {
@@ -67,7 +99,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 5. Dikirim
-  const shippedEvent = dbTimeline.find((t: any) => t.status === "shipped");
+  const shippedEvent = dbTimeline.find((t) => t.status === "shipped");
   if (shippedEvent) {
     events.push({ status: "shipped", at: shippedEvent.at });
   } else if (["shipped", "delivered"].includes(order.status)) {
@@ -75,7 +107,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 6. Selesai
-  const deliveredEvent = dbTimeline.find((t: any) => t.status === "delivered");
+  const deliveredEvent = dbTimeline.find((t) => t.status === "delivered");
   if (deliveredEvent) {
     events.push({ status: "delivered", at: deliveredEvent.at });
   } else if (order.status === "delivered") {
@@ -83,7 +115,7 @@ function buildTimeline(order: any, payment: any, proofUploadedAt: string | null)
   }
 
   // 7. Dibatalkan
-  const cancelledEvent = dbTimeline.find((t: any) => t.status === "cancelled");
+  const cancelledEvent = dbTimeline.find((t) => t.status === "cancelled");
   if (cancelledEvent) {
     events.push({ status: "cancelled", at: cancelledEvent.at });
   } else if (order.status === "cancelled") {
@@ -129,7 +161,9 @@ function OrderDetail() {
         .maybeSingle();
       if (!order) return null;
 
-      const payment = Array.isArray(order.payments) ? order.payments[0] : (order.payments as any);
+      const payment = Array.isArray(order.payments)
+        ? order.payments[0]
+        : (order.payments as DashboardPaymentInfo | undefined);
 
       // Jika menggunakan Mayar dan masih menunggu pembayaran, cek langsung statusnya ke API Mayar
       if (
@@ -139,10 +173,6 @@ function OrderDetail() {
         payment.reject_reason
       ) {
         try {
-          console.log(
-            "[Dashboard Pesanan] Memeriksa status pembayaran Mayar secara langsung untuk invoice:",
-            payment.reject_reason,
-          );
           const { checkMayarPaymentStatus } = await import("@/lib/api/payment.functions");
           await checkMayarPaymentStatus({
             data: {
@@ -188,20 +218,15 @@ function OrderDetail() {
   const payment = order
     ? ((Array.isArray(order.payments)
         ? order.payments[0]
-        : (order.payments as Record<string, any> | null)) as {
-        id: string;
-        status: string;
-        bank: string | null;
-        method: string;
-        reject_reason: string | null;
-        updated_at: string;
-      } | null)
+        : (order.payments as unknown)) as DashboardPaymentInfo | null)
     : null;
   const isMayar = payment?.method === "mayar";
   const bank = !isMayar && payment ? BANKS.find((b) => b.code === payment.bank) : null;
 
-  const createdAt = order ? new Date(order.created_at) : null;
-  const deadline = createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
+  const deadline = useMemo(() => {
+    const createdAt = order ? new Date(order.created_at) : null;
+    return createdAt ? new Date(createdAt.getTime() + 24 * 60 * 60 * 1000) : null;
+  }, [order]);
 
   useEffect(() => {
     if (

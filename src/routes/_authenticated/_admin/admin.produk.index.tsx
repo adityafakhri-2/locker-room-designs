@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
-import { ADMIN_NAV } from "./admin.index";
+import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 import { Plus, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, X, Image } from "lucide-react";
@@ -120,8 +120,8 @@ function AdminProducts() {
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (!sortField) return 0;
 
-    let valA: any = "";
-    let valB: any = "";
+    let valA: string | number = "";
+    let valB: string | number = "";
 
     if (sortField === "name") {
       valA = a.name.toLowerCase();
