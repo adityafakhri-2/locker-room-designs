@@ -165,6 +165,7 @@ function CheckoutPage() {
           data: {
             destinationProvinsi: form.recipient_provinsi,
             destinationKota: form.recipient_kota,
+            destinationKecamatan: kecamatan,
             totalQuantity: currentQty
           }
         });
