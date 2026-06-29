@@ -59,6 +59,16 @@ export const Route = createFileRoute("/api/webhook")({
 
                 console.log(`[Webhook Mayar] Invoice ${invoiceId} terverifikasi lunas (paid) via Mayar API.`);
               } else {
+                if (process.env.NODE_ENV === "production") {
+                  console.error("[Webhook Mayar] ERROR: MAYAR_API_KEY tidak dikonfigurasi di lingkungan produksi!");
+                  return new Response(
+                    JSON.stringify({ error: "Konfigurasi API Key tidak lengkap untuk memproses pembayaran." }),
+                    {
+                      status: 500,
+                      headers: { "Content-Type": "application/json" },
+                    }
+                  );
+                }
                 console.warn("[Webhook Mayar] MAYAR_API_KEY tidak dikonfigurasi. Menjalankan mode simulasi tanpa verifikasi API.");
               }
 
