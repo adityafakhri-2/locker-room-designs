@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminAuth } from "@/integrations/supabase/auth-middleware";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
 
 const generateDescriptionInputSchema = z.object({
   name: z.string().min(1, "Nama produk tidak boleh kosong"),
@@ -53,7 +55,7 @@ The description must adhere to the following strict guidelines:
 5. Length: Keep it concise but premium (approximately 100-150 words).
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
     let response: Response | null = null;
     const attempts = 3;
@@ -193,7 +195,7 @@ Format respons Anda harus bersih, rapi, dan mudah dibaca:
    - Saran Strategi Bisnis Konkret: Berikan 3-4 rekomendasi bisnis yang praktis dan bisa langsung dijalankan (misalnya pengelolaan stok jersey terpopuler, promosi khusus di daerah dengan penjualan tinggi, taktik bundling, atau strategi retensi pelanggan).
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
     let response: Response | null = null;
     const attempts = 3;
@@ -308,7 +310,7 @@ ATURAN FORMAT RESPONS:
 4. Nilai harga yang disarankan harus realistis dan pantas untuk jersey sepak bola (misalnya berkisar antara ratusan ribu hingga beberapa juta rupiah tergantung kelangkaan merek, tim, tahun rilis, kondisi, dan status koleksinya).
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
     let response: Response | null = null;
     const attempts = 3;
