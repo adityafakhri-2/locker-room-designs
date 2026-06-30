@@ -17,13 +17,13 @@ export const Route = createFileRoute("/about")({
       <Navbar />
       <main
         id="main-content"
-        className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen max-w-3xl"
+        className="pt-28 md:pt-36 pb-20 container-swiss min-h-screen max-w-5xl"
       >
         <span className="eyebrow text-muted-foreground">N° 09 — About</span>
         <h1 className="display-lg mt-3">
           Jersey Asli, <em className="italic font-light">Gaya Sejati.</em>
         </h1>
-        <div className="mt-10 space-y-6 text-lg leading-relaxed text-foreground/80">
+        <div className="mt-10 space-y-6 text-lg leading-relaxed text-foreground/80 max-w-3xl">
           <p>
             AA Jersey adalah destinasi premium untuk kolektor jersey sepak bola di Indonesia.
             Kami percaya setiap jersey adalah artefak sejarah — saksi gol-gol bersejarah, momen

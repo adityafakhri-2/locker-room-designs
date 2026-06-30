@@ -174,11 +174,11 @@ function ShopPage() {
             <div className="grid lg:grid-cols-[200px_minmax(0,1fr)] gap-10">
               <aside className="min-w-0 w-full lg:space-y-2">
                 <div className="eyebrow text-muted-foreground mb-3 hidden lg:block">Kategori</div>
-                <nav className="flex lg:flex-col gap-1.5 overflow-x-auto w-full -mx-5 px-5 lg:mx-0 lg:px-0 scrollbar-none pb-3 lg:pb-0">
+                <nav className="flex lg:flex-col items-start lg:items-stretch gap-1.5 overflow-x-auto w-full -mx-5 px-5 lg:mx-0 lg:px-0 scrollbar-none pb-3 lg:pb-0">
                   <button
                     onClick={() => setCategory("all")}
                     className={cn(
-                      "px-4 py-2.5 lg:px-3 lg:py-2 text-sm border-b-2 lg:border-b-0 lg:border-l-2 cursor-pointer whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-primary",
+                      "px-4 py-2.5 lg:px-3 lg:py-2 text-sm text-left border-b-2 lg:border-b-0 lg:border-l-2 cursor-pointer whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-primary",
                       category === "all"
                         ? "border-primary font-semibold text-foreground bg-accent/20 lg:bg-transparent"
                         : "border-transparent text-muted-foreground hover:text-foreground",
@@ -191,7 +191,7 @@ function ShopPage() {
                       key={c.id}
                       onClick={() => setCategory(c.slug)}
                       className={cn(
-                        "px-4 py-2.5 lg:px-3 lg:py-2 text-sm border-b-2 lg:border-b-0 lg:border-l-2 cursor-pointer whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-primary",
+                        "px-4 py-2.5 lg:px-3 lg:py-2 text-sm text-left border-b-2 lg:border-b-0 lg:border-l-2 cursor-pointer whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-primary",
                         category === c.slug
                           ? "border-primary font-semibold text-foreground bg-accent/20 lg:bg-transparent"
                           : "border-transparent text-muted-foreground hover:text-foreground",
