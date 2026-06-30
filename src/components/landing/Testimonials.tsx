@@ -6,7 +6,7 @@ import t3 from "@/assets/testimonial-3.jpg";
 const REVIEWS = [
   {
     quote:
-      "Sulit menemukan jersey vintage original yang terpercaya. The Locker Room menjadi tempat favorit saya untuk berburu koleksi langka.",
+      "Sulit menemukan jersey vintage original yang terpercaya. AA Jersey menjadi tempat favorit saya untuk berburu koleksi langka.",
     name: "Rizky Pratama",
     city: "Jakarta",
     img: t1,

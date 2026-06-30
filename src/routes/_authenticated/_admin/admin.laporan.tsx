@@ -221,7 +221,7 @@ function AdminReports() {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Laporan Analisis Penjualan - The Locker Room</title>
+            <title>Laporan Analisis Penjualan - AA Jersey</title>
             <style>
               @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
               body {
@@ -280,13 +280,13 @@ function AdminReports() {
           </head>
           <body>
             <div class="header">
-              <div class="logo">THE LOCKER ROOM</div>
+              <div class="logo">AA JERSEY</div>
               <div class="title">Laporan Analisis Strategi Penjualan AI</div>
               <div class="meta">Diproduksi pada: ${formattedDate}</div>
             </div>
             <div class="content">${analysis}</div>
             <div class="footer">
-              Laporan ini dibuat otomatis oleh Asisten Penjualan AI Locker Room. Hak Cipta Dilindungi Undang-Undang.
+              Laporan ini dibuat otomatis oleh Asisten Penjualan AI AA Jersey. Hak Cipta Dilindungi Undang-Undang.
             </div>
             <script>
               window.onload = function() {

@@ -67,7 +67,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
         >
           <span className="inline-block size-2.5 bg-primary" aria-hidden="true" />
           <span className="font-display font-extrabold tracking-tight text-base md:text-lg uppercase whitespace-nowrap">
-            The Locker Room
+            AA Jersey
           </span>
         </Link>
 

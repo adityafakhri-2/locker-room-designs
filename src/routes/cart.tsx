@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Keranjang — The Locker Room" }] }),
+  head: () => ({ meta: [{ title: "Keranjang — AA Jersey" }] }),
   component: CartPage,
 });
 

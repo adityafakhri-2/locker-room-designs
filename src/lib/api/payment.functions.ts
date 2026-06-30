@@ -106,7 +106,7 @@ export const createMayarPayment = createServerFn({ method: "POST" })
         mobile: data.customerMobile,
         amount: verifiedAmount,
         redirectUrl: data.redirectUrl,
-        description: `Pembayaran Pesanan #${data.orderNumber} - The Locker Room`,
+        description: `Pembayaran Pesanan #${data.orderNumber} - AA Jersey`,
         items: [
           {
             quantity: 1,

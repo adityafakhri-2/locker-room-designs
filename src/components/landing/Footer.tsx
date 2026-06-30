@@ -6,7 +6,7 @@ const COLS = [
   { title: "Social", links: ["Instagram", "TikTok", "YouTube"] },
   {
     title: "Contact",
-    links: ["hello@thelockerroom.id", "WhatsApp +62 812 0000 0000", "Jakarta, Indonesia"],
+    links: ["hello@jerseyaa.com", "WhatsApp +62 812 0000 0000", "Jakarta, Indonesia"],
   },
 ];
 
@@ -19,11 +19,11 @@ export function Footer() {
             <div className="flex items-center gap-2">
               <span className="inline-block size-2.5 bg-primary" aria-hidden />
               <span className="font-display font-extrabold uppercase tracking-tight text-lg">
-                The Locker Room
+              AA Jersey
               </span>
             </div>
             <p className="mt-6 display-md max-w-md">
-              Where football <span className="italic font-light">memories</span> live.
+              Jersey Asli, <span className="italic font-light">Gaya Sejati.</span>
             </p>
             <div className="mt-10 flex items-center gap-4 text-background/80">
               <a href="#" aria-label="Instagram" className="hover:text-primary transition-colors">
@@ -65,7 +65,7 @@ export function Footer() {
 
         <div className="mt-20 pt-6 border-t border-background/15 grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-baseline">
           <p className="text-xs text-background/60">
-            © 2026 The Locker Room. Where Football Memories Live.
+            © 2026 AA Jersey. Jersey Asli, Gaya Sejati.
           </p>
           <p className="eyebrow text-background/60 hidden sm:block">Jakarta · ID</p>
         </div>

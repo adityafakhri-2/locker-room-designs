@@ -133,7 +133,7 @@ function AdminStoreSettings() {
                 disabled={!isEditing}
                 value={form.nama_lengkap}
                 onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
-                placeholder="Contoh: The Locker Room"
+                placeholder="Contoh: AA Jersey"
               />
             </div>
             <div className="sm:col-span-2">

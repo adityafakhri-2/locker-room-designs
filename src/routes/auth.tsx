@@ -14,7 +14,7 @@ import { parseAlamat } from "@/lib/format";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Login / Daftar — The Locker Room" }] }),
+  head: () => ({ meta: [{ title: "Login / Daftar — AA Jersey" }] }),
   component: AuthPage,
 });
 
@@ -370,8 +370,8 @@ function AuthPage() {
           <Link to="/" className="eyebrow text-muted-foreground">
             ← Kembali ke beranda
           </Link>
-          <h1 className="display-md mt-4">The Locker Room</h1>
-          <p className="text-sm text-muted-foreground mt-2">Where Football Memories Live.</p>
+          <h1 className="display-md mt-4">AA Jersey</h1>
+          <p className="text-sm text-muted-foreground mt-2">Jersey Asli, Gaya Sejati.</p>
 
           <Tabs defaultValue="login" className="mt-8">
             <TabsList className="grid grid-cols-2 w-full">

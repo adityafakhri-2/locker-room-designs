@@ -24,7 +24,7 @@ import { Ticket } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/checkout/")({
-  head: () => ({ meta: [{ title: "Checkout — The Locker Room" }] }),
+  head: () => ({ meta: [{ title: "Checkout — AA Jersey" }] }),
   component: CheckoutPage,
 });
 

@@ -516,7 +516,7 @@ function OrderDetail() {
                 <CheckCircle2 className="size-10 text-emerald-500 mx-auto animate-bounce" />
                 <h4 className="font-extrabold text-base text-emerald-700">Pesanan Selesai!</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Terima kasih banyak telah berbelanja di <strong>The Locker Room</strong>. Kami
+                  Terima kasih banyak telah berbelanja di <strong>AA Jersey</strong>. Kami
                   harap Anda menyukai produk kami!
                 </p>
               </div>

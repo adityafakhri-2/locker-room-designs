@@ -5,7 +5,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 
 export const Route = createFileRoute("/collections")({
-  head: () => ({ meta: [{ title: "Collections — The Locker Room" }] }),
+  head: () => ({ meta: [{ title: "Collections — AA Jersey" }] }),
   component: CollectionsPage,
 });
 

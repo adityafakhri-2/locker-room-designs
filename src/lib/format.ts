@@ -30,9 +30,9 @@ export const SHIPPING_RATES: Record<string, number> = {
 };
 
 export const BANKS = [
-  { code: "BCA", name: "Bank BCA", account: "1234567890", holder: "PT The Locker Room" },
-  { code: "BRI", name: "Bank BRI", account: "0987654321", holder: "PT The Locker Room" },
-  { code: "Mandiri", name: "Bank Mandiri", account: "1122334455", holder: "PT The Locker Room" },
+  { code: "BCA", name: "Bank BCA", account: "1234567890", holder: "AA Jersey" },
+  { code: "BRI", name: "Bank BRI", account: "0987654321", holder: "AA Jersey" },
+  { code: "Mandiri", name: "Bank Mandiri", account: "1122334455", holder: "AA Jersey" },
 ];
 
 export function statusLabel(s: string): string {

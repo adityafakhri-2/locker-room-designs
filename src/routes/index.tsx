@@ -18,13 +18,13 @@ import { Footer } from "@/components/landing/Footer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "The Locker Room — Where Football Memories Live" },
+      { title: "AA Jersey — Jersey Asli, Gaya Sejati" },
       {
         name: "description",
         content:
           "Toko jersey sepak bola premium di Indonesia. Original, vintage, retro, dan edisi langka — terverifikasi keasliannya untuk fans dan kolektor sejati.",
       },
-      { property: "og:title", content: "The Locker Room — Where Football Memories Live" },
+      { property: "og:title", content: "AA Jersey — Jersey Asli, Gaya Sejati" },
       {
         property: "og:description",
         content:

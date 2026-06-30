@@ -6,7 +6,7 @@ export function FootballMemories() {
       <div className="absolute inset-0">
         <img
           src={img}
-          alt="Empty locker room at night with jerseys hanging in cubbies"
+          alt="Jersey tersusun rapi di showroom sepak bola"
           loading="lazy"
           width={1920}
           height={1080}

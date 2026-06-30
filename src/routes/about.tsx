@@ -5,7 +5,7 @@ import { Footer } from "@/components/landing/Footer";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — The Locker Room" },
+      { title: "About — AA Jersey" },
       {
         name: "description",
         content: "Toko jersey original, vintage, dan limited edition terpercaya di Indonesia.",
@@ -21,11 +21,11 @@ export const Route = createFileRoute("/about")({
       >
         <span className="eyebrow text-muted-foreground">N° 09 — About</span>
         <h1 className="display-lg mt-3">
-          Where Football <em className="italic font-light">Memories Live.</em>
+          Jersey Asli, <em className="italic font-light">Gaya Sejati.</em>
         </h1>
         <div className="mt-10 space-y-6 text-lg leading-relaxed text-foreground/80">
           <p>
-            The Locker Room adalah destinasi premium untuk kolektor jersey sepak bola di Indonesia.
+            AA Jersey adalah destinasi premium untuk kolektor jersey sepak bola di Indonesia.
             Kami percaya setiap jersey adalah artefak sejarah — saksi gol-gol bersejarah, momen
             juara, dan generasi pemain yang membentuk olahraga ini.
           </p>

@@ -19,10 +19,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "Shop — The Locker Room" },
+      { title: "Shop — AA Jersey" },
       {
         name: "description",
-        content: "Katalog jersey original, vintage, retro, dan limited edition di The Locker Room.",
+        content: "Katalog jersey original, vintage, retro, dan limited edition di AA Jersey.",
       },
     ],
   }),

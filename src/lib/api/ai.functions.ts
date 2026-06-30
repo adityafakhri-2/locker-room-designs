@@ -168,7 +168,7 @@ export const analyzeSalesData = createServerFn({ method: "POST" })
     const cityText = data.cityDistribution.map((c) => `- ${c.city}: ${c.count} pesanan`).join("\n");
 
     const promptText = `
-Anda adalah seorang asisten penjualan pintar dan analis data profesional untuk "The Locker Room", sebuah toko online yang menjual jersey sepak bola premium dan klasik.
+Anda adalah seorang asisten penjualan pintar dan analis data profesional untuk "AA Jersey", sebuah toko online yang menjual jersey sepak bola premium dan klasik.
 Tolong analisis data penjualan berikut dan berikan laporan strategi bisnis serta rekomendasi konkret untuk masa depan.
 
 DATA LAPORAN PENJUALAN:
@@ -284,7 +284,7 @@ export const suggestProductPrice = createServerFn({ method: "POST" })
     }
 
     const promptText = `
-Anda adalah seorang ahli penaksir harga barang antik (appraiser) dan analis pasar jersey sepak bola vintage/klasik untuk "The Locker Room".
+Anda adalah seorang ahli penaksir harga barang antik (appraiser) dan analis pasar jersey sepak bola vintage/klasik untuk "AA Jersey".
 Tugas Anda adalah menganalisis nilai pasar wajar (fair market value) dari jersey berikut di pasar Indonesia dan internasional:
 
 - Nama Produk: ${data.name}

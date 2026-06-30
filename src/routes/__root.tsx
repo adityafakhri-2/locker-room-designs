@@ -74,14 +74,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "The Locker Room — Where Football Memories Live" },
+      { title: "AA Jersey — Jersey Asli, Gaya Sejati" },
       {
         name: "description",
         content:
           "Toko jersey sepak bola premium di Indonesia. Original, vintage, retro, dan edisi langka — terverifikasi keasliannya untuk fans dan kolektor sejati.",
       },
-      { name: "author", content: "The Locker Room" },
-      { property: "og:title", content: "The Locker Room — Where Football Memories Live" },
+      { name: "author", content: "AA Jersey" },
+      { property: "og:title", content: "AA Jersey — Jersey Asli, Gaya Sejati" },
       {
         property: "og:description",
         content:
@@ -89,22 +89,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@thelockerroom" },
-      { name: "twitter:title", content: "The Locker Room — Where Football Memories Live" },
+      { name: "twitter:site", content: "@aajersey" },
+      { name: "twitter:title", content: "AA Jersey — Jersey Asli, Gaya Sejati" },
       {
         name: "description",
         content:
-          "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits.",
+          "AA Jersey adalah toko jersey sepak bola premium yang menawarkan jersey original, vintage, dan edisi kolektor.",
       },
       {
         property: "og:description",
         content:
-          "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits.",
+          "AA Jersey adalah toko jersey sepak bola premium yang menawarkan jersey original, vintage, dan edisi kolektor.",
       },
       {
         name: "twitter:description",
         content:
-          "The Locker Room is a premium football jersey store offering authentic, vintage, and collector's edition kits.",
+          "AA Jersey adalah toko jersey sepak bola premium yang menawarkan jersey original, vintage, dan edisi kolektor.",
       },
       { property: "og:image", content: "/og-image.png" },
       { name: "twitter:image", content: "/og-image.png" },
