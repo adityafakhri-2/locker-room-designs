@@ -27,32 +27,32 @@ export const generateProductDescription = createServerFn({ method: "POST" })
     }
 
     const promptText = `
-You are an expert copywriter for premium international sports brands and vintage football jersey retailers.
-Write a professional, highly engaging, and sales-oriented product description in English for the following jersey:
+Anda adalah seorang copywriter ahli untuk toko jersey sepak bola premium, vintage, dan Grade Ori / Original di Indonesia.
+Tuliskan deskripsi produk yang sangat menarik, profesional, elegan, dan persuasif (menjual) dalam BAHASA INDONESIA untuk produk jersey berikut:
 
-- Product Name: ${data.name}
+- Nama Produk: ${data.name}
 ${data.brand ? `- Brand: ${data.brand}` : ""}
-${data.categories ? `- Category: ${data.categories}` : ""}
-${data.price ? `- Price: Rp ${data.price}` : ""}
-${data.team ? `- Team: ${data.team}` : ""}
-${data.league ? `- League: ${data.league}` : ""}
-${data.country ? `- Country of Team/League: ${data.country}` : ""}
-${data.release_year ? `- Release Year: ${data.release_year}` : ""}
-${data.condition ? `- Condition: ${data.condition}` : ""}
-${data.authenticity_badge ? `- Authenticity Status: ${data.authenticity_badge}` : ""}
+${data.categories ? `- Kategori: ${data.categories}` : ""}
+${data.price ? `- Harga: Rp ${data.price}` : ""}
+${data.team ? `- Tim / Klub / Negara: ${data.team}` : ""}
+${data.league ? `- Liga / Kompetisi: ${data.league}` : ""}
+${data.country ? `- Negara: ${data.country}` : ""}
+${data.release_year ? `- Tahun Rilis / Musim: ${data.release_year}` : ""}
+${data.condition ? `- Kondisi Produk: ${data.condition}` : ""}
+${data.authenticity_badge ? `- Grade / Keaslian: ${data.authenticity_badge}` : ""}
 
-The description must adhere to the following strict guidelines:
-1. Tone: Professional, premium, exciting, and highly persuasive (selling).
-2. Language: English only (do not use Indonesian or other languages).
-3. Format & Styling: 
-   - Output ONLY plain text in normal paragraphs.
-   - Do NOT use any markdown formatting, asterisks (*), hashtags (#), or bold text (**). Write pure, clean paragraphs.
-   - Do NOT include any bulleted lists, specification lists, or repeat key-value parameters (like Brand: Nike, Team: Arsenal) at the end of the text. Focus entirely on the narrative description.
-4. Structure:
-   - A captivating opening highlighting the jersey's heritage, team history, season significance, or vintage appeal.
-   - A descriptive body mentioning its premium brand craftsmanship, design elements, superb condition (${data.condition || "excellent"}), and verified authenticity.
-   - A strong, urging closing call-to-action for football fans and jersey collectors.
-5. Length: Keep it concise but premium (approximately 100-150 words).
+Panduan ketat penulisan deskripsi:
+1. Bahasa: WAJIB BAHASA INDONESIA yang rapi, mengalir, dan berkelas.
+2. Gaya Bahasa & Tone: Antusias, terpercaya, profesional, dan membangkitkan kebanggaan suporter serta kolektor jersey.
+3. Format & Tampilan:
+   - Tuliskan HANYA dalam bentuk paragraf teks biasa yang bersih dan rapi.
+   - JANGAN gunakan format markdown seperti bintang (*), pagar (#), atau teks tebal (**). Tulis teks polos tanpa simbol markdown.
+   - JANGAN membuat daftar poin (bullet points) atau mengulang daftar spesifikasi kaku di akhir teks. Fokus pada narasi deskripsi yang mengalir indah.
+4. Struktur Deskripsi:
+   - Pembuka yang memikat tentang sejarah kejayaan tim, momen ikonik musim tersebut, atau daya tarik desain jersey.
+   - Bagian isi yang menjelaskan detail keunggulan bahan (kualitas kain yang adem, jahitan rapi, detail sablon & bordir presisi, kenyamanan dipakai), kondisi barang (${data.condition || "sangat bagus"}), dan grade kualitasnya.
+   - Penutup ajakan bertindak (Call to Action) yang kuat untuk segera mengamankan jersey impian sebelum stok habis.
+5. Panjang teks: Ringkas dan padat (sekitar 100-150 kata).
     `;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;

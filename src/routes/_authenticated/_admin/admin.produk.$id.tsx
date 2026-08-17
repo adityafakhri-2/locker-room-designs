@@ -189,6 +189,7 @@ function ProductForm() {
     {
       id?: string;
       url: string;
+      previewUrl?: string;
       storage_path?: string;
       originalSize?: number;
       compressedSize?: number;
@@ -361,6 +362,7 @@ function ProductForm() {
       const newImages: {
         storage_path: string;
         url: string;
+        previewUrl?: string;
         originalSize: number;
         compressedSize: number;
       }[] = [];
@@ -375,14 +377,16 @@ function ProductForm() {
           );
 
           const path = `${Date.now()}-${compressedFile.name}`;
-          await uploadFile("product-images", path, compressedFile);
+          const uploadedPath = await uploadFile("product-images", path, compressedFile);
 
-          const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+          const { data } = supabase.storage.from("product-images").getPublicUrl(uploadedPath);
           const url = data.publicUrl;
+          const localPreview = URL.createObjectURL(compressedFile);
 
           newImages.push({
-            storage_path: path,
-            url,
+            storage_path: uploadedPath,
+            url: url || localPreview,
+            previewUrl: localPreview,
             originalSize: result.originalSize,
             compressedSize: result.compressedSize,
           });
@@ -566,7 +570,10 @@ function ProductForm() {
         filteredSizeStock[s] = sizeStocks[s] ?? 0;
       });
 
-      const payload = {
+      const firstImage = images[0];
+      const coverUrl = firstImage?.url || (firstImage?.storage_path ? supabase.storage.from("product-images").getPublicUrl(firstImage.storage_path).data.publicUrl : null);
+
+      const payload: any = {
         slug:
           form.slug ||
           form.name
@@ -592,23 +599,66 @@ function ProductForm() {
         collector_score: 1,
         authenticity_badge: (form.authenticity_badge || null) as any,
         video_url: form.video_url || null,
-        cover_image_url: images[0]?.url || null,
+        cover_image_url: coverUrl,
         is_active: form.is_active,
       };
 
       let productId = isNew ? null : id;
+      let currentPayload = { ...payload };
+
       if (isNew) {
-        const { data, error } = await supabase
+        let res = await supabase
           .from("products")
-          .insert(payload)
+          .insert(currentPayload)
           .select("id")
           .single();
-        if (error) throw error;
-        productId = data.id;
+
+        // 1. Fallback retry if authenticity_badge enum rejects custom value like 'grade_ori'
+        if (res.error && res.error.message.includes("authenticity_badge")) {
+          console.warn("Retrying product insert without custom authenticity_badge enum...");
+          currentPayload = { ...currentPayload, authenticity_badge: null };
+          res = await supabase
+            .from("products")
+            .insert(currentPayload)
+            .select("id")
+            .single();
+        }
+
+        // 2. Fallback retry if cost_price column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("cost_price") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product insert without cost_price...");
+          const { cost_price, ...restPayload } = currentPayload;
+          currentPayload = restPayload as any;
+          res = await supabase
+            .from("products")
+            .insert(currentPayload)
+            .select("id")
+            .single();
+        }
+
+        if (res.error) throw res.error;
+        productId = res.data!.id;
       } else {
-        const { error } = await supabase.from("products").update(payload).eq("id", id);
-        if (error) throw error;
+        let res = await supabase.from("products").update(currentPayload).eq("id", id);
+
+        // 1. Fallback retry if authenticity_badge enum rejects custom value like 'grade_ori'
+        if (res.error && res.error.message.includes("authenticity_badge")) {
+          console.warn("Retrying product update without custom authenticity_badge enum...");
+          currentPayload = { ...currentPayload, authenticity_badge: null };
+          res = await supabase.from("products").update(currentPayload).eq("id", id);
+        }
+
+        // 2. Fallback retry if cost_price column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("cost_price") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product update without cost_price...");
+          const { cost_price, ...restPayload } = currentPayload;
+          currentPayload = restPayload as any;
+          res = await supabase.from("products").update(currentPayload).eq("id", id);
+        }
+
+        if (res.error) throw res.error;
       }
+
       // Sync images: insert any without id
       const newOnes = images
         .filter((i) => !i.id && i.storage_path)
@@ -1290,7 +1340,7 @@ function ProductForm() {
                 className="relative flex flex-col bg-muted border border-border overflow-hidden rounded-md shadow-sm"
               >
                 <div className="relative aspect-square w-full">
-                  <img src={img.url} alt="" className="size-full object-cover" />
+                  <img src={img.previewUrl || img.url} alt="" className="size-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleDeleteImage(i)}
