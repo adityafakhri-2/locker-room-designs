@@ -30,6 +30,10 @@ import {
   Gem,
   Sparkles,
   Loader2,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+  Star,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -548,6 +552,58 @@ function ProductForm() {
     } finally {
       setIsSuggestingPrice(false);
     }
+  }
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  function handleDragStart(e: React.DragEvent, index: number) {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent, targetIndex: number) {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    setImages((prev) => {
+      const updated = [...prev];
+      const [movedItem] = updated.splice(draggedIndex, 1);
+      updated.splice(targetIndex, 0, movedItem);
+      return updated;
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    toast.success("Urutan gambar berhasil diperbarui");
+  }
+
+  function handleDragEnd() {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }
+
+  function moveImage(from: number, to: number) {
+    if (to < 0 || to >= images.length) return;
+    setImages((prev) => {
+      const updated = [...prev];
+      const [movedItem] = updated.splice(from, 1);
+      updated.splice(to, 0, movedItem);
+      return updated;
+    });
   }
 
   function handleDeleteImage(index: number) {
@@ -1331,48 +1387,138 @@ function ProductForm() {
           </div>
         </Card>
 
-        <Card>
-          <Label>Gambar Produk (gambar pertama menjadi cover)</Label>
-          <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-3">
-            {images.map((img, i) => (
-              <div
-                key={i}
-                className="relative flex flex-col bg-muted border border-border overflow-hidden rounded-md shadow-sm"
-              >
-                <div className="relative aspect-square w-full">
-                  <img src={img.previewUrl || img.url} alt="" className="size-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteImage(i)}
-                    className="absolute top-1 right-1 bg-background/90 p-1 rounded hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </div>
-                {img.originalSize && img.compressedSize && (
-                  <div className="p-1.5 text-[10px] text-muted-foreground font-mono bg-background/50 border-t border-border flex flex-col items-center justify-center">
-                    <div className="truncate w-full text-center">
-                      {formatBytes(img.originalSize)} → {formatBytes(img.compressedSize)}
+        <Card className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold">Gambar Produk</Label>
+              <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground font-medium">
+                {images.length} Gambar
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Tarik & lepas (drag & drop) atau gunakan panah untuk mengatur urutan. Gambar pertama otomatis menjadi <span className="font-semibold text-primary">Foto Sampul (Cover)</span>.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            {images.map((img, i) => {
+              const isCover = i === 0;
+              const isDragging = draggedIndex === i;
+              const isOver = dragOverIndex === i && draggedIndex !== i;
+
+              return (
+                <div
+                  key={img.storage_path || img.id || i}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, i)}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDragEnd={handleDragEnd}
+                  onDrop={(e) => handleDrop(e, i)}
+                  className={cn(
+                    "group relative flex flex-col bg-muted/50 border rounded-lg overflow-hidden transition-all duration-200 select-none cursor-grab active:cursor-grabbing",
+                    isCover ? "border-primary/60 shadow-sm" : "border-border",
+                    isDragging && "opacity-40 scale-95 border-dashed border-primary",
+                    isOver && "border-primary ring-2 ring-primary/50 scale-[1.02] shadow-md",
+                  )}
+                >
+                  {/* Cover Badge */}
+                  {isCover && (
+                    <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+                      <Star className="size-2.5 fill-current text-amber-300" />
+                      <span>Cover</span>
                     </div>
-                    <div className="text-green-500 font-bold mt-0.5">
-                      WebP (-{Math.round((1 - img.compressedSize / img.originalSize) * 100)}%)
+                  )}
+
+                  {/* Drag Grip Indicator & Order Number */}
+                  <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(i)}
+                      title="Hapus gambar"
+                      className="bg-background/90 p-1 rounded-md text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer shadow-sm"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
+
+                  {/* Image Preview Container */}
+                  <div className="relative aspect-square w-full bg-background overflow-hidden">
+                    <img
+                      src={img.previewUrl || img.url}
+                      alt={`Foto produk ${i + 1}`}
+                      className="size-full object-cover pointer-events-none transition-transform duration-300 group-hover:scale-105"
+                    />
+
+                    {/* Quick Move Left / Right Controls on Hover */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-1.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          disabled={i === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveImage(i, i - 1);
+                          }}
+                          title="Geser ke kiri"
+                          className="p-1 rounded bg-black/60 text-white hover:bg-primary disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        >
+                          <ChevronLeft className="size-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={i === images.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveImage(i, i + 1);
+                          }}
+                          title="Geser ke kanan"
+                          className="p-1 rounded bg-black/60 text-white hover:bg-primary disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                        >
+                          <ChevronRight className="size-3" />
+                        </button>
+                      </div>
+
+                      <span className="text-[10px] text-white/90 font-mono font-medium flex items-center gap-0.5">
+                        <GripVertical className="size-2.5 opacity-70" />
+                        #{i + 1}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Compression Info Footer */}
+                  {img.originalSize && img.compressedSize ? (
+                    <div className="p-1 text-[9px] font-mono bg-background border-t border-border flex flex-col items-center justify-center">
+                      <div className="truncate w-full text-center text-muted-foreground">
+                        {formatBytes(img.originalSize)} → {formatBytes(img.compressedSize)}
+                      </div>
+                      <div className="text-green-500 font-semibold">
+                        WebP (-{Math.round((1 - img.compressedSize / img.originalSize) * 100)}%)
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-1 text-[9px] text-muted-foreground text-center font-mono bg-background border-t border-border">
+                      Foto #{i + 1}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Upload Button Tile */}
             {imageUploading ? (
-              <div className="aspect-square border-2 border-dashed border-border grid place-items-center text-xs text-muted-foreground bg-muted/30">
+              <div className="aspect-square border-2 border-dashed border-border rounded-lg grid place-items-center text-xs text-muted-foreground bg-muted/30">
                 <div className="flex flex-col items-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-[10px] text-center px-1">Mengunggah...</span>
+                  <span className="text-[10px] text-center px-1">Mengompres...</span>
                 </div>
               </div>
             ) : (
-              <label className="aspect-square border-2 border-dashed border-border grid place-items-center text-xs text-muted-foreground cursor-pointer hover:border-primary transition-colors">
-                <div className="flex flex-col items-center gap-1">
-                  <Plus className="h-4 w-4" />
-                  <span>Upload</span>
+              <label className="aspect-square border-2 border-dashed border-border rounded-lg grid place-items-center text-xs text-muted-foreground cursor-pointer hover:border-primary hover:bg-muted/40 transition-colors">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="p-2 rounded-full bg-muted border border-border/80">
+                    <Plus className="h-4 w-4 text-foreground" />
+                  </div>
+                  <span className="font-medium text-xs">Tambah Foto</span>
                 </div>
                 <input
                   type="file"
