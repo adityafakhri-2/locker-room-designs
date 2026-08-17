@@ -419,7 +419,7 @@ function AuthPage() {
           id="main-content"
           className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12"
         >
-          <div className="w-full max-w-lg bg-background border border-border p-8 md:p-10 shadow-sm">
+          <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
             <div className="inline-flex p-2.5 bg-primary/10 text-primary rounded-xl mb-4">
               <KeyRound className="size-5" />
             </div>
@@ -496,7 +496,7 @@ function AuthPage() {
       <>
         <Navbar />
         <div className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12">
-          <div className="w-full max-w-xl md:max-w-2xl bg-background border border-border p-8 md:p-10 shadow-sm">
+          <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
             <h1 className="display-md">Lengkapi Profil</h1>
             <p className="text-sm text-muted-foreground mt-2">
               Silakan lengkapi data profil Anda untuk melanjutkan transaksi dan mengakses dashboard.
@@ -560,7 +560,7 @@ function AuthPage() {
         id="main-content"
         className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12"
       >
-        <div className="w-full max-w-xl md:max-w-2xl bg-background border border-border p-8 md:p-10 shadow-sm">
+        <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
           <Link to="/" className="eyebrow text-muted-foreground">
             ← Kembali ke beranda
           </Link>
@@ -582,9 +582,6 @@ function AuthPage() {
               </button>
 
               <div className="space-y-1 mb-6">
-                {/* <div className="inline-flex p-2 bg-primary/10 text-primary rounded-lg mb-2">
-                  <Mail className="size-4" />
-                </div> */}
                 <h2 className="text-xl font-bold tracking-tight">Reset Password</h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Masukkan email yang terdaftar pada akun Anda. Kami akan mengirimkan tautan untuk mengatur ulang kata sandi.

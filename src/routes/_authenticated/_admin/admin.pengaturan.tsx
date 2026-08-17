@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
 import { parseAlamat } from "@/lib/format";
+import { UserCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/pengaturan")({
   component: AdminStoreSettings,
@@ -117,7 +118,18 @@ function AdminStoreSettings() {
 
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
-      <PageHeader eyebrow="Pengaturan" title="Pengaturan Toko" />
+      <PageHeader
+        eyebrow="Pengaturan"
+        title="Pengaturan Toko"
+        action={
+          <Link to="/admin/profil">
+            <Button variant="outline" className="cursor-pointer gap-2">
+              <UserCheck className="size-4" />
+              Profil & Keamanan Admin
+            </Button>
+          </Link>
+        }
+      />
       <Card>
         <div className="max-w-2xl">
           <p className="text-sm text-muted-foreground mb-6">

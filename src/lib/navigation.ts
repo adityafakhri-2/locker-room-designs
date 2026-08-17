@@ -9,6 +9,7 @@ export const ADMIN_NAV = [
   { label: "Ulasan", to: "/admin/ulasan" },
   { label: "Laporan", to: "/admin/laporan" },
   { label: "Pengaturan Toko", to: "/admin/pengaturan" },
+  { label: "Profil Admin", to: "/admin/profil" },
 ];
 
 export const CUSTOMER_NAV = [
