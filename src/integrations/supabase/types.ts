@@ -935,6 +935,12 @@ export type Database = {
         };
         Returns: unknown;
       };
+      admin_delete_customers: {
+        Args: {
+          customer_ids: string[];
+        };
+        Returns: unknown;
+      };
     };
     Enums: {
       app_role: "admin" | "customer";
