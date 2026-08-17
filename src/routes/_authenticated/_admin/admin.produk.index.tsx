@@ -23,6 +23,7 @@ import {
   Shirt,
   Layers,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -440,6 +441,7 @@ function AdminProducts() {
                         )}
                       </div>
                     </th>
+                    <th className="py-2 pr-4 text-center">Spotlight ⭐</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -449,15 +451,19 @@ function AdminProducts() {
                     const sell = Number(p.price ?? 0);
                     const profit = sell - cost;
                     const margin = sell > 0 ? (profit / sell) * 100 : 0;
+                    const isSpotlight = (p as any).is_spotlight === true;
 
                     return (
                       <tr
                         key={p.id}
-                        className="border-b border-border/50 hover:bg-muted/10 transition-colors"
+                        className={cn(
+                          "border-b border-border/50 hover:bg-muted/10 transition-colors",
+                          isSpotlight && "bg-amber-500/5",
+                        )}
                       >
                         <td className="py-3 pr-4">
                           <div className="flex items-center gap-3">
-                            <div className="size-10 bg-muted rounded border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            <div className="size-10 bg-muted rounded border border-border overflow-hidden flex-shrink-0 flex items-center justify-center relative">
                               {p.cover_image_url ? (
                                 <img
                                   src={p.cover_image_url}
@@ -466,6 +472,11 @@ function AdminProducts() {
                                 />
                               ) : (
                                 <Image className="size-5 text-muted-foreground/50" />
+                              )}
+                              {isSpotlight && (
+                                <div className="absolute top-0 right-0 bg-amber-500 text-black p-0.5 rounded-bl shadow">
+                                  <Star className="size-2.5 fill-current" />
+                                </div>
                               )}
                             </div>
                             <div className="min-w-0">
@@ -529,6 +540,38 @@ function AdminProducts() {
                           </div>
                         </td>
                         <td className="text-xs pr-4">{p.is_active ? "✓" : "—"}</td>
+                        <td className="text-xs pr-4 text-center">
+                          <button
+                            type="button"
+                            title={isSpotlight ? "Jersey Spotlight Utama saat ini" : "Jadikan Jersey Spotlight di Halaman Depan"}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              try {
+                                if (!isSpotlight) {
+                                  await supabase.from("products").update({ is_spotlight: false } as any).neq("id", p.id);
+                                  await supabase.from("products").update({ is_spotlight: true } as any).eq("id", p.id);
+                                  toast.success(`"${p.name}" sekarang menjadi Spotlight di Beranda!`);
+                                } else {
+                                  await supabase.from("products").update({ is_spotlight: false } as any).eq("id", p.id);
+                                  toast.info(`Spotlight "${p.name}" dinonaktifkan.`);
+                                }
+                                qc.invalidateQueries({ queryKey: ["admin-products"] });
+                                qc.invalidateQueries({ queryKey: ["homepage-spotlight-product"] });
+                              } catch (err: any) {
+                                toast.error("Gagal mengubah spotlight: " + err.message);
+                              }
+                            }}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition-all cursor-pointer",
+                              isSpotlight
+                                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shadow-sm"
+                                : "text-muted-foreground/60 hover:text-foreground hover:bg-muted border border-transparent",
+                            )}
+                          >
+                            <Star className={cn("size-3.5", isSpotlight ? "fill-amber-500 text-amber-500" : "fill-none")} />
+                            <span>{isSpotlight ? "Utama" : "Pilih"}</span>
+                          </button>
+                        </td>
                         <td>
                           <button
                             onClick={() => handleDeleteSingle(p.id)}

@@ -139,6 +139,7 @@ interface PFormState {
   authenticity_badge: string;
   video_url: string;
   is_active: boolean;
+  is_spotlight: boolean;
 }
 
 function formatThousand(val: string | number): string {
@@ -166,6 +167,7 @@ const emptyForm: PFormState = {
   authenticity_badge: "",
   video_url: "",
   is_active: true,
+  is_spotlight: false,
 };
 
 const BADGES = [
@@ -332,6 +334,7 @@ function ProductForm() {
       authenticity_badge: p.authenticity_badge ?? "",
       video_url: p.video_url ?? "",
       is_active: p.is_active,
+      is_spotlight: (p as any).is_spotlight ?? false,
     });
 
     if (p.size_stock) {
@@ -670,6 +673,7 @@ function ProductForm() {
         video_url: form.video_url || null,
         cover_image_url: coverUrl,
         is_active: form.is_active,
+        is_spotlight: form.is_spotlight,
       };
 
       let productId = isNew ? null : id;
@@ -693,10 +697,10 @@ function ProductForm() {
             .single();
         }
 
-        // 2. Fallback retry if cost_price / original_price column is not yet in Supabase schema cache
-        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.code === "PGRST204")) {
-          console.warn("Retrying product insert without cost_price/original_price...");
-          const { cost_price, original_price, ...restPayload } = currentPayload;
+        // 2. Fallback retry if cost_price / original_price / is_spotlight column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.message.includes("is_spotlight") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product insert without cost_price/original_price/is_spotlight...");
+          const { cost_price, original_price, is_spotlight, ...restPayload } = currentPayload;
           currentPayload = restPayload as any;
           res = await supabase
             .from("products")
@@ -717,15 +721,24 @@ function ProductForm() {
           res = await supabase.from("products").update(currentPayload).eq("id", id);
         }
 
-        // 2. Fallback retry if cost_price / original_price column is not yet in Supabase schema cache
-        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.code === "PGRST204")) {
-          console.warn("Retrying product update without cost_price/original_price...");
-          const { cost_price, original_price, ...restPayload } = currentPayload;
+        // 2. Fallback retry if cost_price / original_price / is_spotlight column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.message.includes("is_spotlight") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product update without cost_price/original_price/is_spotlight...");
+          const { cost_price, original_price, is_spotlight, ...restPayload } = currentPayload;
           currentPayload = restPayload as any;
           res = await supabase.from("products").update(currentPayload).eq("id", id);
         }
 
         if (res.error) throw res.error;
+      }
+
+      // If marked as spotlight, unmark any other spotlight products so only ONE is active
+      if (form.is_spotlight && productId) {
+        try {
+          await supabase.from("products").update({ is_spotlight: false } as any).neq("id", productId);
+        } catch (err) {
+          console.warn("Could not unmark previous spotlight products:", err);
+        }
       }
 
       // Sync images: insert any without id
@@ -1463,6 +1476,27 @@ function ProductForm() {
                 checked={form.is_active}
                 onCheckedChange={(val) => set("is_active", val)}
                 className="scale-125 data-[state=checked]:bg-primary"
+              />
+            </div>
+
+            {/* Spotlight of the Week Toggle */}
+            <div className="sm:col-span-2 flex items-center justify-between p-4 rounded-lg border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+              <div className="space-y-0.5 pr-4">
+                <div className="flex items-center gap-2">
+                  <Star className="size-4 text-amber-500 fill-amber-500" />
+                  <Label htmlFor="ispotlight" className="text-base font-semibold cursor-pointer text-foreground">
+                    Jadikan Jersey Pilihan Utama (Spotlight di Beranda)
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Tampilkan jersey ini secara eksklusif di bagian <span className="font-semibold text-foreground">"Spotlight of the Week / Rekomendasi Spesial"</span> di halaman utama website. (Menggantikan spotlight sebelumnya).
+                </p>
+              </div>
+              <Switch
+                id="ispotlight"
+                checked={form.is_spotlight}
+                onCheckedChange={(val) => set("is_spotlight", val)}
+                className="scale-125 data-[state=checked]:bg-amber-500"
               />
             </div>
           </div>

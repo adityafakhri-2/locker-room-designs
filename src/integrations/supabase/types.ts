@@ -558,6 +558,7 @@ export type Database = {
           id: string;
           is_active: boolean;
           is_best_seller: boolean;
+          is_spotlight: boolean;
           league: string | null;
           name: string;
           original_price: number | null;
@@ -588,6 +589,7 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           is_best_seller?: boolean;
+          is_spotlight?: boolean;
           league?: string | null;
           name: string;
           original_price?: number | null;
@@ -618,6 +620,7 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           is_best_seller?: boolean;
+          is_spotlight?: boolean;
           league?: string | null;
           name?: string;
           original_price?: number | null;
