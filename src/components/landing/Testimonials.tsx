@@ -6,21 +6,21 @@ import t3 from "@/assets/testimonial-3.jpg";
 const REVIEWS = [
   {
     quote:
-      "Sulit menemukan jersey vintage original yang terpercaya. AA Jersey menjadi tempat favorit saya untuk berburu koleksi langka.",
+      "Kualitas jersey Grade Ori Thailand-nya juara banget! Detail bordir dan bahannya 1:1 mirip official, adem dan nyaman dipakai main futsal.",
     name: "Rizky Pratama",
     city: "Jakarta",
     img: t1,
   },
   {
     quote:
-      "Detailnya luar biasa. Kemasan museum-grade, sertifikat keaslian rapi, dan pelayanannya seperti membeli karya seni.",
+      "Pilihan jersey klub dan retro-nya lengkap. Pengiriman cepat, packing rapi, dan pelayanan adminnya sangat ramah.",
     name: "Bagas Setiawan",
     city: "Bandung",
     img: t2,
   },
   {
     quote:
-      "Beli jersey vintage Italia untuk hadiah suami. Dia langsung bisa bercerita momennya — itulah nilai yang tidak bisa dibeli di tempat lain.",
+      "Beli jersey buat hadiah suami, bahannya premium dan ukurannya pas sesuai size chart. Puas banget belanja di AA Jersey.",
     name: "Anindya Larasati",
     city: "Surabaya",
     img: t3,
@@ -29,12 +29,12 @@ const REVIEWS = [
 
 export function Testimonials() {
   return (
-    <Section eyebrow="N° 09 — Testimonials" number="Kata Kolektor">
+    <Section eyebrow="N° 08 — Testimoni" number="Kata Pelanggan">
       <div className="grid lg:grid-cols-12 gap-10 mb-14">
         <h2 className="lg:col-span-8 display-lg">
           Apa kata para
           <br />
-          <span className="italic font-light">kolektor?</span>
+          <span className="italic font-light">pelanggan kami?</span>
         </h2>
       </div>
 

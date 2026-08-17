@@ -1,47 +1,47 @@
-import { BadgeCheck, Archive, BookOpen, UserCheck, Sparkles, Lock } from "lucide-react";
+import { Shirt, Archive, Sparkles, CheckCircle2, PackageCheck, ShieldAlert } from "lucide-react";
 import { Section } from "./Section";
 
 const ITEMS = [
   {
-    icon: BadgeCheck,
-    title: "Fokus Jersey Original",
-    desc: "Tidak ada KW. Tidak ada kompromi. Hanya produk resmi.",
+    icon: Shirt,
+    title: "Kualitas Grade Ori Terbaik",
+    desc: "Bahan adem dan tahan lama, nyaman dipakai bermain bola, futsal, ataupun outfit kasual harian.",
   },
   {
     icon: Archive,
-    title: "Koleksi Vintage Langka",
-    desc: "Arsip terus diperbarui dengan jersey edisi langka dari berbagai era.",
-  },
-  {
-    icon: BookOpen,
-    title: "Story di Balik Jersey",
-    desc: "Setiap produk hadir dengan konteks sejarah dan momen pentingnya.",
-  },
-  {
-    icon: UserCheck,
-    title: "Kurasi Kolektor",
-    desc: "Dipilih dan diverifikasi langsung oleh kolektor berpengalaman.",
+    title: "Koleksi Klub & Negara Lengkap",
+    desc: "Dari jersey musim terbaru hingga jersey retro klasik berbagai klub dan tim nasional dunia.",
   },
   {
     icon: Sparkles,
-    title: "Pengalaman Premium",
-    desc: "Kemasan museum-grade dan layanan personal di setiap pesanan.",
+    title: "Harga Jujur & Terjangkau",
+    desc: "Dapatkan jersey impian dengan kualitas bintang 5 tanpa perlu merogoh kocek terlalu dalam.",
   },
   {
-    icon: Lock,
-    title: "Keamanan Transaksi",
-    desc: "Pembayaran terenkripsi dan garansi pengembalian dana.",
+    icon: CheckCircle2,
+    title: "Detail & Sablon Presisi",
+    desc: "Bordir apparel rapi dan sablon sponsor berstandar tinggi yang awet tidak mudah mengelupas.",
+  },
+  {
+    icon: PackageCheck,
+    title: "Pengemasan Rapi & Cepat",
+    desc: "Setiap pesanan dipacking aman dan rapi agar sampai di tangan Anda dalam kondisi prima.",
+  },
+  {
+    icon: ShieldAlert,
+    title: "Transaksi Aman & Bergaransi",
+    desc: "Layanan customer service responsif dan garansi retur jika barang yang diterima cacat produksi.",
   },
 ];
 
 export function WhyChooseUs() {
   return (
-    <Section eyebrow="N° 08 — Why Us" number="Editorial">
+    <Section eyebrow="N° 07 — Keunggulan" number="Mengapa Kami">
       <div className="grid lg:grid-cols-12 gap-10 mb-14">
         <h2 className="lg:col-span-8 display-lg">
           Lebih dari sekadar
           <br />
-          <span className="italic font-light">toko jersey.</span>
+          <span className="italic font-light">toko jersey biasa.</span>
         </h2>
       </div>
 

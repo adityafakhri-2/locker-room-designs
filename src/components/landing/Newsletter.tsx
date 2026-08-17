@@ -17,17 +17,17 @@ export function Newsletter() {
   };
 
   return (
-    <Section eyebrow="N° 11 — Newsletter" number="Subscribe">
+    <Section eyebrow="N° 10 — Buletin" number="Berlangganan">
       <div className="grid lg:grid-cols-12 gap-10 items-end">
         <div className="lg:col-span-7">
           <h2 className="display-lg">
-            Jangan lewatkan koleksi
+            Jangan lewatkan rilis jersey
             <br />
-            <span className="italic font-light">langka berikutnya.</span>
+            <span className="italic font-light">dan promo menarik.</span>
           </h2>
           <p className="mt-6 text-muted-foreground max-w-xl">
-            Dapatkan informasi jersey terbaru, koleksi vintage, dan promo eksklusif langsung ke
-            email Anda.
+            Dapatkan informasi rilis jersey terbaru, koleksi retro favorit, dan voucher diskon
+            eksklusif langsung ke email Anda.
           </p>
         </div>
 

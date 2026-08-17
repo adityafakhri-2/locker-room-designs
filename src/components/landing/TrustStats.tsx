@@ -1,15 +1,15 @@
 import { Section } from "./Section";
 
 const STATS = [
-  { value: "5.000+", label: "Football Fans" },
-  { value: "1.500+", label: "Jersey Terjual" },
-  { value: "4.9/5", label: "Customer Rating" },
-  { value: "100%", label: "Original Guarantee" },
+  { value: "5.000+", label: "Penggemar Sepak Bola" },
+  { value: "1.500+", label: "Jersey Terkirim" },
+  { value: "4.9/5", label: "Penilaian Pembeli" },
+  { value: "100%", label: "Jaminan Kualitas" },
 ];
 
 export function TrustStats() {
   return (
-    <Section eyebrow="N° 02 — Trust" number="Social Proof">
+    <Section eyebrow="N° 02 — Kepercayaan" number="Bukti Nyata">
       <div className="grid lg:grid-cols-12 gap-10">
         <h2 className="lg:col-span-5 display-lg">
           Dipercaya oleh ribuan

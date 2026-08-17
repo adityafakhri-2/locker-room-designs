@@ -8,10 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 const NAV = [
-  { label: "Shop", to: "/shop" },
-  { label: "Collections", to: "/collections" },
-  { label: "About", to: "/about" },
-  { label: "Contact", to: "/contact" },
+  { label: "Produk", to: "/shop" },
+  { label: "Tentang Kami", to: "/about" },
+  { label: "Kontak", to: "/contact" },
 ];
 
 interface NavbarProps {

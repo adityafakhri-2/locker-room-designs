@@ -2,7 +2,6 @@ export const ADMIN_NAV = [
   { label: "Dashboard", to: "/admin" },
   { label: "Produk", to: "/admin/produk" },
   { label: "Kategori", to: "/admin/kategori" },
-  { label: "Koleksi", to: "/admin/koleksi" },
   { label: "Voucher", to: "/admin/voucher" },
   { label: "Pesanan", to: "/admin/pesanan" },
   { label: "Pelanggan", to: "/admin/pelanggan" },

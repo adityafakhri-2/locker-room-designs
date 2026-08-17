@@ -1,35 +1,35 @@
-import { ShieldCheck, ScrollText, Eye } from "lucide-react";
+import { ShieldCheck, Layers, Sparkles } from "lucide-react";
 import { Section } from "./Section";
 
 const FEATURES = [
   {
     n: "01",
-    icon: ShieldCheck,
-    title: "Original Verified",
-    desc: "Setiap jersey diverifikasi melalui pengecekan tag, jahitan, material, dan kode produksi resmi.",
+    icon: Sparkles,
+    title: "Grade Ori Import 1:1",
+    desc: "Jersey Grade Ori dibuat dengan bahan polyester dry-fit premium, motif, dan detail apparel yang presisi mirip rilisan resmi.",
   },
   {
     n: "02",
-    icon: ScrollText,
-    title: "Certificate of Authenticity",
-    desc: "Jersey vintage dan limited edition dilengkapi sertifikat keaslian bernomor seri.",
+    icon: Layers,
+    title: "Transparansi Grade Produk",
+    desc: "Setiap jersey di katalog kami cantumkan label kategori jelas (Grade Ori atau Original) agar Anda berbelanja dengan tenang.",
   },
   {
     n: "03",
-    icon: Eye,
-    title: "Collector Inspection",
-    desc: "Diperiksa langsung oleh tim kurator kolektor berpengalaman lebih dari 10 tahun.",
+    icon: ShieldCheck,
+    title: "Quality Control Teliti",
+    desc: "Setiap jahitan, patch sponsor, bordir logo klub, dan ukuran diperiksa langsung oleh tim kami sebelum dikemas dan dikirim.",
   },
 ];
 
 export function AuthenticityPromise() {
   return (
-    <Section id="about" eyebrow="N° 07 — Authenticity" number="Promise">
+    <Section id="about" eyebrow="N° 06 — Standar Kualitas" number="Komitmen Kami">
       <div className="grid lg:grid-cols-12 gap-10 mb-14">
         <h2 className="lg:col-span-8 display-lg">
-          Jaminan keaslian
+          Standar kualitas
           <br />
-          <span className="italic font-light">setiap jersey.</span>
+          <span className="italic font-light">di setiap helai jersey.</span>
         </h2>
       </div>
 

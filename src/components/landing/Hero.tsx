@@ -2,9 +2,9 @@ import { ArrowUpRight, Check } from "lucide-react";
 import hero from "@/assets/hero-jersey.jpg";
 
 const TRUST = [
-  "100% Original",
-  "Keaslian Terverifikasi",
-  "Kolektor Terpercaya",
+  "Grade Ori Thailand 1:1",
+  "Bahan Dry-Fit Premium",
+  "Bordir & Sablon Presisi",
   "Pengiriman Seluruh Indonesia",
 ];
 
@@ -26,19 +26,19 @@ export function Hero() {
       <div className="relative container-swiss pt-32 md:pt-40 lg:pt-48 pb-16 md:pb-24">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 mb-12 md:mb-20">
           <span className="eyebrow text-white/70">N° 01 — Utama</span>
-          <span className="eyebrow text-white/70 hidden sm:block">Est. Jakarta · Indonesia</span>
+          <span className="eyebrow text-white/70 hidden sm:block">Jakarta · Indonesia</span>
         </div>
 
         <h1 className="display-xl text-white">
-          Jersey Original.
+          Jersey Grade Ori & Original.
           <br />
-          <span className="italic font-light tracking-tight">Memori Klasik.</span>
+          <span className="italic font-light tracking-tight">Gaya Juara di Lapangan.</span>
         </h1>
 
         <div className="mt-12 grid lg:grid-cols-12 gap-10 lg:gap-16 items-end">
           <p className="lg:col-span-6 text-base md:text-lg leading-relaxed text-white/80 max-w-xl">
-            Temukan koleksi jersey sepak bola original, vintage, retro, dan edisi langka yang telah
-            menjadi bagian dari sejarah sepak bola dunia.
+            Temukan koleksi jersey sepak bola Grade Ori import Thailand kualitas 1:1 dan pilihan jersey
+            original terlengkap. Bahan adem, detail presisi, siap dukung tim kebanggaanmu.
           </p>
 
           <div className="lg:col-span-6 lg:col-start-7 flex gap-2.5 sm:gap-3 w-full sm:w-auto">
@@ -46,7 +46,7 @@ export function Hero() {
               href="#new-arrivals"
               className="group flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-3.5 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold tracking-wide hover:bg-secondary transition-colors text-center"
             >
-              <span className="whitespace-nowrap">Belanja Sekarang</span>
+              <span className="whitespace-nowrap">Lihat Produk</span>
               <ArrowUpRight className="size-3.5 sm:size-4 shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </a>
             <a
@@ -54,7 +54,7 @@ export function Hero() {
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 border border-white/30 text-white px-4 py-3.5 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold tracking-wide hover:bg-white hover:text-foreground transition-colors text-center"
             >
               <span className="whitespace-nowrap">
-                <span className="hidden sm:inline">Jelajahi </span>Koleksi Vintage
+                <span className="hidden sm:inline">Koleksi </span>Vintage & Retro
               </span>
             </a>
           </div>

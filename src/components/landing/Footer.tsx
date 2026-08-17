@@ -1,11 +1,11 @@
 import { Instagram, Youtube } from "lucide-react";
 
 const COLS = [
-  { title: "Shop", links: ["Collections", "Vintage", "Retro", "Limited Edition", "About"] },
-  { title: "Customer Service", links: ["FAQ", "Contact", "Shipping", "Returns", "Size Guide"] },
-  { title: "Social", links: ["Instagram", "TikTok", "YouTube"] },
+  { title: "Produk", links: ["Semua Jersey", "Jersey Terbaru", "Jersey Retro", "Paling Laris"] },
+  { title: "Layanan Pelanggan", links: ["FAQ", "Kontak", "Panduan Ukuran", "Konfirmasi Pembayaran"] },
+  { title: "Media Sosial", links: ["Instagram", "TikTok", "YouTube"] },
   {
-    title: "Contact",
+    title: "Kontak & Alamat",
     links: ["hello@jerseyaa.com", "WhatsApp +62 812 0000 0000", "Jakarta, Indonesia"],
   },
 ];
@@ -23,7 +23,7 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-6 display-md max-w-md">
-              Jersey Asli, <span className="italic font-light">Gaya Sejati.</span>
+              Jersey Kualitas Juara, <span className="italic font-light">Gaya Sejati.</span>
             </p>
             <div className="mt-10 flex items-center gap-4 text-background/80">
               <a href="#" aria-label="Instagram" className="hover:text-primary transition-colors">
@@ -65,7 +65,7 @@ export function Footer() {
 
         <div className="mt-20 pt-6 border-t border-background/15 grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-baseline">
           <p className="text-xs text-background/60">
-            © 2026 AA Jersey. Jersey Asli, Gaya Sejati.
+            © 2026 AA Jersey. Jersey Berkualitas, Gaya Sejati.
           </p>
           <p className="eyebrow text-background/60 hidden sm:block">Jakarta · ID</p>
         </div>

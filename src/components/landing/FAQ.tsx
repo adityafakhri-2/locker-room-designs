@@ -8,30 +8,30 @@ import {
 
 const ITEMS = [
   {
-    q: "Apakah semua jersey original?",
-    a: "Ya. Kami hanya menjual jersey original. Setiap produk melalui pemeriksaan tag, jahitan, dan kode produksi sebelum masuk ke katalog.",
+    q: "Apa yang dimaksud dengan jersey Grade Ori / GO Thailand?",
+    a: "Jersey Grade Ori (Import Thailand) adalah jersey replika dengan standar kualitas tertinggi dan tingkat kemiripan 1:1 terhadap rilisan resmi. Menggunakan bahan polyester dry-fit premium yang adem, bordir logo rapi, tag apparel lengkap, dan sangat nyaman dipakai.",
   },
   {
-    q: "Bagaimana proses verifikasi keaslian?",
-    a: "Tim kurator kami memeriksa material, label, hologram, dan menyandingkan dengan database referensi. Jersey vintage dan limited edition juga dilengkapi sertifikat keaslian bernomor seri.",
+    q: "Apakah AA Jersey juga menyediakan jersey original?",
+    a: "Ya, kami juga menyediakan pilihan jersey Original terkurasi. Setiap produk di katalog kami beri label penanda grade yang jelas (Grade Ori atau Original) agar Anda dapat berbelanja secara transparan.",
   },
   {
-    q: "Apakah tersedia size guide?",
-    a: "Setiap halaman produk memiliki size guide lengkap dengan tabel ukuran dada, panjang badan, dan rekomendasi fit (slim / regular / loose).",
+    q: "Bagaimana cara memilih ukuran jersey yang pas?",
+    a: "Setiap halaman produk dilengkapi Size Chart (panduan ukuran) yang memuat panjang dan lebar dada dalam centimeter. Kami menyarankan untuk mengukur kaos/jersey yang biasa Anda kenakan sebagai acuan.",
   },
   {
-    q: "Bisakah mengembalikan barang?",
-    a: "Bisa dalam 7 hari setelah barang diterima, selama dalam kondisi asli dan tag belum dilepas. Khusus item limited edition berlaku ketentuan tambahan.",
+    q: "Berapa lama estimasi pengiriman dan dari mana dikirim?",
+    a: "Seluruh pesanan diproses dan dikirim langsung dari Jakarta. Untuk area Jabodetabek dan pulau Jawa estimasi 1-3 hari kerja, sedangkan luar pulau Jawa 2-5 hari kerja tergantung ekspedisi pilihan Anda.",
   },
   {
-    q: "Bagaimana cara pembayaran?",
-    a: "Transfer bank, e-wallet (GoPay, OVO, Dana, ShopeePay), kartu kredit, dan cicilan 0% via bank rekanan.",
+    q: "Metode pembayaran apa saja yang didukung?",
+    a: "Kami menerima transfer bank, QRIS instan (GoPay, OVO, DANA, ShopeePay), dan kartu kredit dengan verifikasi pembayaran otomatis yang aman.",
   },
 ];
 
 export function FAQ() {
   return (
-    <Section eyebrow="N° 12 — FAQ" number="Bantuan">
+    <Section eyebrow="N° 11 — FAQ" number="Tanya Jawab">
       <div className="grid lg:grid-cols-12 gap-10">
         <h2 className="lg:col-span-5 display-lg">
           Pertanyaan

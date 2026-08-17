@@ -19,10 +19,11 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "Shop — AA Jersey" },
+      { title: "Katalog Produk — AA Jersey" },
       {
         name: "description",
-        content: "Katalog jersey original, vintage, retro, dan limited edition di AA Jersey.",
+        content:
+          "Katalog jersey sepak bola Grade Ori Thailand kualitas 1:1, retro klasik, dan jersey original pilihan terlengkap.",
       },
     ],
   }),
@@ -144,11 +145,11 @@ function ShopPage() {
           <div className="container-swiss">
             <div className="grid lg:grid-cols-12 gap-10 mb-12">
               <div className="lg:col-span-7">
-                <span className="eyebrow text-muted-foreground">N° 01 — Catalog</span>
+                <span className="eyebrow text-muted-foreground">N° 01 — Katalog Produk</span>
                 <h1 className="display-lg mt-3">{heading}</h1>
                 <p className="text-muted-foreground mt-4 max-w-xl">
-                  Setiap jersey diverifikasi keasliannya. Telusuri katalog lengkap original,
-                  vintage, retro, dan koleksi limited edition.
+                  Telusuri katalog lengkap jersey sepak bola Grade Ori import Thailand kualitas 1:1,
+                  jersey retro legendaris, dan jersey original pilihan terbaik.
                 </p>
               </div>
               <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 self-end">

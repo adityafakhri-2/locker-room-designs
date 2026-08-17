@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { TrustStats } from "@/components/landing/TrustStats";
-import { FeaturedCollections } from "@/components/landing/FeaturedCollections";
 import { NewArrivals, BestSellers } from "@/components/landing/ProductGrid";
 import { VintageSpotlight } from "@/components/landing/VintageSpotlight";
 import { AuthenticityPromise } from "@/components/landing/AuthenticityPromise";
@@ -18,17 +17,20 @@ import { Footer } from "@/components/landing/Footer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AA Jersey — Jersey Asli, Gaya Sejati" },
+      { title: "AA Jersey — Spesialis Jersey Grade Ori Thailand & Original" },
       {
         name: "description",
         content:
-          "Toko jersey sepak bola premium di Indonesia. Original, vintage, retro, dan edisi langka — terverifikasi keasliannya untuk fans dan kolektor sejati.",
+          "Pusat jersey sepak bola Grade Ori import Thailand 1:1 dan jersey original terlengkap di Indonesia. Bahan dry-fit premium, detail presisi, dan harga terbaik.",
       },
-      { property: "og:title", content: "AA Jersey — Jersey Asli, Gaya Sejati" },
+      {
+        property: "og:title",
+        content: "AA Jersey — Spesialis Jersey Grade Ori Thailand & Original",
+      },
       {
         property: "og:description",
         content:
-          "Original. Vintage. Retro. Limited edition. Jersey sepak bola yang telah menjadi bagian dari sejarah.",
+          "Koleksi jersey Grade Ori Thailand 1:1, retro legendaris, dan original pilihan untuk fans sejati.",
       },
     ],
   }),
@@ -41,7 +43,6 @@ function Index() {
       <Navbar overHero />
       <Hero />
       <TrustStats />
-      <FeaturedCollections />
       <NewArrivals />
       <BestSellers />
       <VintageSpotlight />

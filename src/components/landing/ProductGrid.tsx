@@ -54,29 +54,33 @@ export function NewArrivals() {
   });
 
   return (
-    <Section id="new-arrivals" eyebrow="N° 04 — New Arrivals" number="Koleksi Terbaru">
+    <Section id="new-arrivals" eyebrow="N° 03 — Produk Terbaru" number="Rilisan Baru">
       <div className="grid lg:grid-cols-12 gap-10 mb-14">
         <h2 className="lg:col-span-7 display-lg">
           Koleksi <span className="italic font-light">terbaru.</span>
         </h2>
-        <p className="lg:col-span-4 lg:col-start-9 text-muted-foreground self-end max-w-md">
-          Drop terbaru. Setiap kit telah melalui pemeriksaan keaslian sebelum masuk ke katalog.
-        </p>
+        <div className="lg:col-span-5 flex lg:justify-end items-end">
+          <Link
+            to="/shop"
+            className="text-sm font-semibold hover:opacity-60 transition-opacity border-b-2 border-foreground pb-1"
+          >
+            Lihat Semua Produk →
+          </Link>
+        </div>
       </div>
+
       {q.isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <ProductCardSkeleton key={i} />
           ))}
         </div>
-      ) : q.data && q.data.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
-          {q.data.map((p) => (
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {q.data?.map((p) => (
             <ProductCard key={p.id} p={p} />
           ))}
         </div>
-      ) : (
-        <EmptyCatalog />
       )}
     </Section>
   );
@@ -103,16 +107,22 @@ export function BestSellers() {
 
   if (q.isLoading) {
     return (
-      <Section eyebrow="N° 05 — Best Sellers" number="Paling Dicari">
+      <Section eyebrow="N° 04 — Produk Terlaris" number="Paling Diminati">
         <div className="grid lg:grid-cols-12 gap-10 mb-14">
           <h2 className="lg:col-span-7 display-lg">
-            Paling dicari <span className="italic font-light">minggu ini.</span>
+            Paling diminati <span className="italic font-light">saat ini.</span>
           </h2>
-          <p className="lg:col-span-4 lg:col-start-9 text-muted-foreground self-end max-w-md">
-            Stok terbatas dan terus berkurang. Klik dua kali untuk amankan sebelum kehabisan.
-          </p>
+          <div className="lg:col-span-5 flex lg:justify-end items-end">
+            <Link
+              to="/shop"
+              search={{ sort: "best" }}
+              className="text-sm font-semibold hover:opacity-60 transition-opacity border-b-2 border-foreground pb-1"
+            >
+              Lihat Semua Terlaris →
+            </Link>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <ProductCardSkeleton key={i} />
           ))}
@@ -124,16 +134,22 @@ export function BestSellers() {
   if (!hasSales) return null;
 
   return (
-    <Section eyebrow="N° 05 — Best Sellers" number="Paling Dicari">
+    <Section eyebrow="N° 04 — Produk Terlaris" number="Paling Diminati">
       <div className="grid lg:grid-cols-12 gap-10 mb-14">
         <h2 className="lg:col-span-7 display-lg">
-          Paling dicari <span className="italic font-light">minggu ini.</span>
+          Paling diminati <span className="italic font-light">saat ini.</span>
         </h2>
-        <p className="lg:col-span-4 lg:col-start-9 text-muted-foreground self-end max-w-md">
-          Stok terbatas dan terus berkurang. Klik dua kali untuk amankan sebelum kehabisan.
-        </p>
+        <div className="lg:col-span-5 flex lg:justify-end items-end">
+          <Link
+            to="/shop"
+            search={{ sort: "best" }}
+            className="text-sm font-semibold hover:opacity-60 transition-opacity border-b-2 border-foreground pb-1"
+          >
+            Lihat Semua Terlaris →
+          </Link>
+        </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {q.data!.map((p) => (
           <ProductCard
             key={p.id}

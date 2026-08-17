@@ -17,8 +17,8 @@ export function FootballMemories() {
 
       <div className="relative container-swiss py-28 md:py-40 lg:py-48">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 mb-12">
-          <span className="eyebrow text-white/70">N° 10 — Memories</span>
-          <span className="eyebrow text-white/70">Editorial</span>
+          <span className="eyebrow text-white/70">N° 09 — Memori Sepak Bola</span>
+          <span className="eyebrow text-white/70">Sejarah & Semangat</span>
         </div>
 
         <h2 className="display-xl text-white max-w-5xl">

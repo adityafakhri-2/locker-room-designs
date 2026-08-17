@@ -96,8 +96,8 @@ export function VintageSpotlight() {
     <section id="vintage" className="bg-foreground text-background border-t border-foreground">
       <div className="container-swiss py-20 md:py-28 lg:py-36">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 mb-12 md:mb-16">
-          <span className="eyebrow text-white/70">N° 06 — Vintage Spotlight</span>
-          <span className="eyebrow text-white/70">Museum Piece</span>
+          <span className="eyebrow text-white/70">N° 05 — Vintage Spotlight</span>
+          <span className="eyebrow text-white/70">Koleksi Klasik</span>
         </div>
 
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-start">
