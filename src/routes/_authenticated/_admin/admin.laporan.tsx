@@ -7,6 +7,7 @@ import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShel
 import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Sparkles, Loader2, Wand2, Download, Save, Trash2 } from "lucide-react";
 import { analyzeSalesData } from "@/lib/api/ai.functions";
 
@@ -52,7 +53,7 @@ function AdminReports() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, team, stock, price");
+        .select("id, name, team, stock, price, cost_price");
       if (error) throw error;
       return data ?? [];
     },
@@ -66,29 +67,65 @@ function AdminReports() {
   const validOrders = (orders.data ?? []).filter((o) =>
     ["paid", "processing", "shipped", "delivered"].includes(o.status),
   );
-  const totalRevenue = validOrders.reduce((s, o) => s + Number(o.grand_total), 0);
+  const totalRevenue = validOrders.reduce(
+    (s, o) => s + Math.max(0, Number(o.subtotal || o.grand_total) - Number((o as any).discount_amount || 0)),
+    0,
+  );
 
-  // monthly revenue
-  const monthly: Record<string, number> = {};
-  validOrders.forEach((o) => {
-    const k = new Date(o.created_at).toLocaleString("id-ID", { month: "short", year: "numeric" });
-    monthly[k] = (monthly[k] ?? 0) + Number(o.grand_total);
+  // Map product cost lookup
+  const productCostMap: Record<string, number> = {};
+  (products.data ?? []).forEach((p) => {
+    productCostMap[p.id] = Number((p as any).cost_price ?? 0);
   });
 
-  // Hitung jumlah terjual secara dinamis dari pesanan valid
-  const dynamicSoldCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    validOrders.forEach((o) => {
-      const items = (o as any).order_items || [];
-      items.forEach((item: any) => {
-        const key = item.product_id || item.product_name;
-        counts[key] = (counts[key] ?? 0) + (item.quantity ?? 0);
-      });
-    });
-    return counts;
-  }, [validOrders]);
+  // Calculate total COGS and items sold from valid orders
+  let totalCost = 0;
+  let totalItemsSold = 0;
+  const dynamicSoldCounts: Record<string, number> = {};
 
-  // Gabungkan produk dengan jumlah terjual yang dihitung dinamis, lalu urutkan
+  validOrders.forEach((o) => {
+    const items = (o as any).order_items || [];
+    items.forEach((item: any) => {
+      const qty = Number(item.quantity) || 1;
+      const key = item.product_id || item.product_name;
+      dynamicSoldCounts[key] = (dynamicSoldCounts[key] ?? 0) + qty;
+      totalItemsSold += qty;
+
+      const unitCost =
+        Number(item.cost_price) > 0
+          ? Number(item.cost_price)
+          : productCostMap[item.product_id] || 0;
+      totalCost += unitCost * qty;
+    });
+  });
+
+  const totalProfit = totalRevenue - totalCost;
+  const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+  // monthly revenue and monthly profit
+  const monthly: Record<string, { revenue: number; cost: number; profit: number }> = {};
+  validOrders.forEach((o) => {
+    const k = new Date(o.created_at).toLocaleString("id-ID", { month: "short", year: "numeric" });
+    if (!monthly[k]) monthly[k] = { revenue: 0, cost: 0, profit: 0 };
+    
+    const rev = Math.max(0, Number(o.subtotal || o.grand_total) - Number((o as any).discount_amount || 0));
+    monthly[k].revenue += rev;
+
+    const items = (o as any).order_items || [];
+    let orderCost = 0;
+    items.forEach((item: any) => {
+      const qty = Number(item.quantity) || 1;
+      const unitCost =
+        Number(item.cost_price) > 0
+          ? Number(item.cost_price)
+          : productCostMap[item.product_id] || 0;
+      orderCost += unitCost * qty;
+    });
+    monthly[k].cost += orderCost;
+    monthly[k].profit += (rev - orderCost);
+  });
+
+  // Gabungkan produk dengan jumlah terjual, modal, omset, dan profit
   const processedProducts = useMemo(() => {
     return (products.data ?? [])
       .map((p) => {
@@ -96,16 +133,30 @@ function AdminReports() {
           (p.id ? dynamicSoldCounts[p.id] : 0) ||
           (p.name ? dynamicSoldCounts[p.name] : 0) ||
           0;
+        const unitCost = Number((p as any).cost_price ?? 0);
+        const unitSell = Number(p.price ?? 0);
+        const totalOmset = soldCount * unitSell;
+        const totalModal = soldCount * unitCost;
+        const totalLaba = totalOmset - totalModal;
+        const profitMargin = totalOmset > 0 ? (totalLaba / totalOmset) * 100 : 0;
+        const profitPerPcs = unitSell - unitCost;
+
         return {
           id: p.id,
           name: p.name,
-          team: p.team,
+          team: p.team || "—",
           stock: p.stock,
-          price: p.price,
+          cost_price: unitCost,
+          price: unitSell,
           sold_count: soldCount,
+          profit_per_pcs: profitPerPcs,
+          total_omset: totalOmset,
+          total_modal: totalModal,
+          total_laba: totalLaba,
+          profit_margin: profitMargin,
         };
       })
-      .sort((a, b) => b.sold_count - a.sold_count);
+      .sort((a, b) => b.total_laba - a.total_laba || b.sold_count - a.sold_count);
   }, [products.data, dynamicSoldCounts]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -124,9 +175,9 @@ function AdminReports() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      const monthlyList = Object.entries(monthly).map(([month, revenue]) => ({
+      const monthlyList = Object.entries(monthly).map(([month, val]) => ({
         month,
-        revenue,
+        revenue: val.revenue,
       }));
 
       const bestSellersList = processedProducts
@@ -309,28 +360,187 @@ function AdminReports() {
 
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
-      <PageHeader eyebrow="Laporan" title="Laporan & Ekspor" />
+      <PageHeader eyebrow="Laporan" title="Laporan Finansial & Penjualan" />
 
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <div className="eyebrow text-muted-foreground">Total Revenue</div>
-          <div className="display-md mt-2">{formatIDR(totalRevenue)}</div>
+      {/* 4 Financial KPI Cards */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="border-border">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow text-muted-foreground">Total Omset</span>
+            <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+              Lunas
+            </span>
+          </div>
+          <div className="display-md mt-2 text-2xl font-bold">{formatIDR(totalRevenue)}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Dari {validOrders.length} pesanan berhasil
+          </p>
         </Card>
-        <Card>
-          <div className="eyebrow text-muted-foreground">Pesanan Valid</div>
-          <div className="display-md mt-2">{validOrders.length}</div>
+
+        <Card className="border-border">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow text-muted-foreground">Total Modal (COGS)</span>
+            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              Modal Terjual
+            </span>
+          </div>
+          <div className="display-md mt-2 text-2xl font-bold text-muted-foreground">
+            {formatIDR(totalCost)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Total biaya pokok dari {totalItemsSold} pcs
+          </p>
         </Card>
-        <Card>
-          <div className="eyebrow text-muted-foreground">Pelanggan</div>
-          <div className="display-md mt-2">{customers.data?.length ?? 0}</div>
+
+        <Card className="border-border border-emerald-500/20 bg-emerald-500/[0.02]">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow text-emerald-600 dark:text-emerald-400 font-bold">
+              Total Keuntungan Bersih
+            </span>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              Margin {avgMargin.toFixed(1)}%
+            </span>
+          </div>
+          <div className="display-md mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {formatIDR(totalProfit)}
+          </div>
+          <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1 font-medium">
+            Laba kotor jersey yang sudah terjual
+          </p>
+        </Card>
+
+        <Card className="border-border">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow text-muted-foreground">Volume & Pelanggan</span>
+            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              Pcs
+            </span>
+          </div>
+          <div className="display-md mt-2 text-2xl font-bold">
+            {totalItemsSold} <span className="text-sm font-normal text-muted-foreground">pcs</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {customers.data?.length ?? 0} pelanggan terdaftar
+          </p>
         </Card>
       </div>
+
+      {/* Tabel Analisis Profitabilitas per Produk */}
+      <Card className="mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <div>
+            <h3 className="font-extrabold text-base">Analisis Keuntungan per Produk</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Rincian modal, omset, dan laba bersih dari setiap produk jersey yang terjual
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              download(
+                "analisis-profit-produk.csv",
+                toCSV(
+                  processedProducts.map((p) => ({
+                    "Nama Produk": p.name,
+                    Tim: p.team,
+                    "Terjual (Pcs)": p.sold_count,
+                    "Sisa Stok": p.stock,
+                    "Modal / Pcs (Rp)": p.cost_price,
+                    "Harga Jual (Rp)": p.price,
+                    "Keuntungan / Pcs (Rp)": p.profit_per_pcs,
+                    "Total Omset (Rp)": p.total_omset,
+                    "Total Modal (Rp)": p.total_modal,
+                    "Total Keuntungan (Rp)": p.total_laba,
+                    "Margin (%)": `${p.profit_margin.toFixed(1)}%`,
+                  })),
+                ),
+              )
+            }
+            className="shrink-0"
+          >
+            <Download className="size-3.5 mr-1.5" /> Ekspor Analisis Profit (CSV)
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[750px]">
+            <thead>
+              <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+                <th className="py-2.5">Produk</th>
+                <th>Terjual</th>
+                <th className="text-right">Modal/Pcs</th>
+                <th className="text-right">Harga Jual</th>
+                <th className="text-right">Total Omset</th>
+                <th className="text-right">Total Modal</th>
+                <th className="text-right">Total Keuntungan</th>
+                <th className="text-right">Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {processedProducts.map((p) => (
+                <tr key={p.id} className="border-b border-border/50 hover:bg-muted/10">
+                  <td className="py-3 pr-3">
+                    <div className="font-semibold text-xs sm:text-sm">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground">{p.team}</div>
+                  </td>
+                  <td className="text-xs">
+                    <span className="font-bold">{p.sold_count}</span>
+                    <span className="text-muted-foreground text-[11px]"> ({p.stock} sisa)</span>
+                  </td>
+                  <td className="text-right tabular-nums text-xs text-muted-foreground">
+                    {formatIDR(p.cost_price)}
+                  </td>
+                  <td className="text-right tabular-nums text-xs font-medium">
+                    {formatIDR(p.price)}
+                  </td>
+                  <td className="text-right tabular-nums text-xs font-semibold">
+                    {formatIDR(p.total_omset)}
+                  </td>
+                  <td className="text-right tabular-nums text-xs text-muted-foreground">
+                    {formatIDR(p.total_modal)}
+                  </td>
+                  <td className="text-right tabular-nums text-xs font-bold">
+                    <span
+                      className={
+                        p.total_laba > 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : p.total_laba < 0
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-muted-foreground"
+                      }
+                    >
+                      {formatIDR(p.total_laba)}
+                    </span>
+                  </td>
+                  <td className="text-right tabular-nums text-xs">
+                    {p.sold_count > 0 ? (
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.5 rounded text-[10px] font-bold",
+                          p.profit_margin > 0
+                            ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {p.profit_margin.toFixed(0)}%
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <Card className="mb-6 border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles className="size-5 text-primary" />
-            <h3 className="font-extrabold text-base">Asisten Penjualan AI</h3>
+            <h3 className="font-extrabold text-base">Asisten Penjualan & Finansial AI</h3>
           </div>
           <Button
             size="sm"
@@ -429,16 +639,28 @@ function AdminReports() {
         </Card>
       )}
 
+      {/* Ringkasan Omset & Profit per Bulan */}
       <Card className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-extrabold">Revenue per Bulan</h3>
+          <div>
+            <h3 className="font-extrabold">Omset & Profit per Bulan</h3>
+            <p className="text-xs text-muted-foreground">Rekap pendapatan, beban modal, dan laba per periode bulanan</p>
+          </div>
           <Button
             size="sm"
             variant="outline"
             onClick={() =>
               download(
-                "revenue.csv",
-                toCSV(Object.entries(monthly).map(([k, v]) => ({ bulan: k, revenue: v }))),
+                "profit-bulanan.csv",
+                toCSV(
+                  Object.entries(monthly).map(([k, v]) => ({
+                    bulan: k,
+                    omset: v.revenue,
+                    modal_cogs: v.cost,
+                    profit_bersih: v.profit,
+                    margin_persen: v.revenue > 0 ? `${((v.profit / v.revenue) * 100).toFixed(1)}%` : "0%",
+                  })),
+                ),
               )
             }
           >
@@ -446,44 +668,34 @@ function AdminReports() {
           </Button>
         </div>
         <table className="w-full text-sm">
-          <tbody>
-            {Object.entries(monthly).map(([k, v]) => (
-              <tr key={k} className="border-b border-border/50">
-                <td className="py-2">{k}</td>
-                <td className="text-right tabular-nums">{formatIDR(v)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-
-      <Card className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-extrabold">Best Sellers</h3>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => download("best-sellers.csv", toCSV(processedProducts))}
-          >
-            Ekspor CSV
-          </Button>
-        </div>
-        <table className="w-full text-sm">
           <thead>
             <tr className="text-left eyebrow text-muted-foreground border-b border-border">
-              <th className="py-2">Produk</th>
-              <th>Terjual</th>
-              <th>Stok</th>
+              <th className="py-2">Bulan</th>
+              <th className="text-right">Omset</th>
+              <th className="text-right">Modal</th>
+              <th className="text-right">Keuntungan</th>
+              <th className="text-right">Margin</th>
             </tr>
           </thead>
           <tbody>
-            {processedProducts.slice(0, 10).map((p) => (
-              <tr key={p.name} className="border-b border-border/50">
-                <td className="py-2">{p.name}</td>
-                <td>{p.sold_count}</td>
-                <td>{p.stock}</td>
-              </tr>
-            ))}
+            {Object.entries(monthly).map(([k, v]) => {
+              const mMargin = v.revenue > 0 ? (v.profit / v.revenue) * 100 : 0;
+              return (
+                <tr key={k} className="border-b border-border/50">
+                  <td className="py-2 font-medium">{k}</td>
+                  <td className="text-right tabular-nums">{formatIDR(v.revenue)}</td>
+                  <td className="text-right tabular-nums text-muted-foreground">{formatIDR(v.cost)}</td>
+                  <td className="text-right tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatIDR(v.profit)}
+                  </td>
+                  <td className="text-right tabular-nums text-xs">
+                    <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-semibold">
+                      {mMargin.toFixed(0)}%
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </Card>

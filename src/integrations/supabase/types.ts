@@ -236,6 +236,7 @@ export type Database = {
       };
       order_items: {
         Row: {
+          cost_price: number;
           created_at: string;
           id: string;
           image_url: string | null;
@@ -249,6 +250,7 @@ export type Database = {
           unit_price: number;
         };
         Insert: {
+          cost_price?: number;
           created_at?: string;
           id?: string;
           image_url?: string | null;
@@ -262,6 +264,7 @@ export type Database = {
           unit_price: number;
         };
         Update: {
+          cost_price?: number;
           created_at?: string;
           id?: string;
           image_url?: string | null;
@@ -547,6 +550,7 @@ export type Database = {
           category_ids: string[];
           collector_score: number;
           condition: string | null;
+          cost_price: number;
           country: string | null;
           cover_image_url: string | null;
           created_at: string;
@@ -575,6 +579,7 @@ export type Database = {
           category_ids?: string[];
           collector_score?: number;
           condition?: string | null;
+          cost_price?: number;
           country?: string | null;
           cover_image_url?: string | null;
           created_at?: string;
@@ -603,6 +608,7 @@ export type Database = {
           category_ids?: string[];
           collector_score?: number;
           condition?: string | null;
+          cost_price?: number;
           country?: string | null;
           cover_image_url?: string | null;
           created_at?: string;

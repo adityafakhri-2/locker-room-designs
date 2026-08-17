@@ -7,6 +7,7 @@ import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShel
 import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Plus, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, X, Image } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -280,12 +281,13 @@ function AdminProducts() {
                         )}
                       </div>
                     </th>
+                    <th className="py-2 pr-4">Modal (HPP)</th>
                     <th
                       className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
                       onClick={() => handleSort("price")}
                     >
                       <div className="flex items-center gap-1">
-                        Harga
+                        Harga Jual
                         {sortField === "price" ? (
                           sortAsc ? (
                             <ArrowUp className="size-3 text-primary" />
@@ -297,6 +299,7 @@ function AdminProducts() {
                         )}
                       </div>
                     </th>
+                    <th className="py-2 pr-4">Keuntungan / Pcs</th>
                     <th
                       className="py-2 pr-4 cursor-pointer hover:text-foreground select-none group"
                       onClick={() => handleSort("is_active")}
@@ -318,57 +321,90 @@ function AdminProducts() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedProducts.map((p) => (
-                    <tr
-                      key={p.id}
-                      className="border-b border-border/50 hover:bg-muted/10 transition-colors"
-                    >
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 bg-muted rounded border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
-                            {p.cover_image_url ? (
-                              <img
-                                src={p.cover_image_url}
-                                alt=""
-                                className="size-full object-cover"
-                              />
-                            ) : (
-                              <Image className="size-5 text-muted-foreground/50" />
+                  {sortedProducts.map((p) => {
+                    const cost = Number(p.cost_price ?? 0);
+                    const sell = Number(p.price ?? 0);
+                    const profit = sell - cost;
+                    const margin = sell > 0 ? (profit / sell) * 100 : 0;
+
+                    return (
+                      <tr
+                        key={p.id}
+                        className="border-b border-border/50 hover:bg-muted/10 transition-colors"
+                      >
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-3">
+                            <div className="size-10 bg-muted rounded border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              {p.cover_image_url ? (
+                                <img
+                                  src={p.cover_image_url}
+                                  alt=""
+                                  className="size-full object-cover"
+                                />
+                              ) : (
+                                <Image className="size-5 text-muted-foreground/50" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <Link
+                                to="/admin/produk/$id"
+                                params={{ id: p.id }}
+                                className="font-semibold hover:underline block truncate max-w-[240px]"
+                              >
+                                {p.name}
+                              </Link>
+                              <div className="text-xs text-muted-foreground">{p.team || "—"}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-xs pr-4 max-w-[130px] truncate">
+                          {Array.isArray(p.category_ids) && p.category_ids.length > 0
+                            ? categoriesQuery.data
+                                ?.filter((c) => p.category_ids.includes(c.id))
+                                .map((c) => c.name)
+                                .join(", ") || "—"
+                            : (p.categories?.name ?? "—")}
+                        </td>
+                        <td className="text-xs pr-4 font-medium">{p.stock}</td>
+                        <td className="tabular-nums text-xs text-muted-foreground pr-4">
+                          {formatIDR(cost)}
+                        </td>
+                        <td className="tabular-nums text-xs font-semibold pr-4">
+                          {formatIDR(sell)}
+                        </td>
+                        <td className="tabular-nums pr-4">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "text-xs font-bold",
+                                profit > 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : profit < 0
+                                    ? "text-rose-600 dark:text-rose-400"
+                                    : "text-muted-foreground",
+                              )}
+                            >
+                              {formatIDR(profit)}
+                            </span>
+                            {profit > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 font-semibold border border-emerald-500/20">
+                                {margin.toFixed(0)}%
+                              </span>
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <Link
-                              to="/admin/produk/$id"
-                              params={{ id: p.id }}
-                              className="font-semibold hover:underline block truncate max-w-[280px]"
-                            >
-                              {p.name}
-                            </Link>
-                            <div className="text-xs text-muted-foreground">{p.team || "—"}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="text-xs pr-4 max-w-[150px] truncate">
-                        {Array.isArray(p.category_ids) && p.category_ids.length > 0
-                          ? categoriesQuery.data
-                              ?.filter((c) => p.category_ids.includes(c.id))
-                              .map((c) => c.name)
-                              .join(", ") || "—"
-                          : (p.categories?.name ?? "—")}
-                      </td>
-                      <td className="text-xs pr-4">{p.stock}</td>
-                      <td className="tabular-nums pr-4">{formatIDR(p.price)}</td>
-                      <td className="text-xs pr-4">{p.is_active ? "✓" : "—"}</td>
-                      <td>
-                        <button
-                          onClick={() => handleDeleteSingle(p.id)}
-                          className="text-destructive hover:opacity-70 cursor-pointer"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="text-xs pr-4">{p.is_active ? "✓" : "—"}</td>
+                        <td>
+                          <button
+                            onClick={() => handleDeleteSingle(p.id)}
+                            className="text-destructive hover:opacity-70 cursor-pointer"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

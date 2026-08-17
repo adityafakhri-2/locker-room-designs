@@ -114,9 +114,12 @@ function compressAndConvertToWebp(
   });
 }
 
+import { formatIDR } from "@/lib/format";
+
 interface PFormState {
   slug: string;
   name: string;
+  cost_price: string;
   price: string;
   category_ids: string[];
   brand: string;
@@ -142,6 +145,7 @@ function formatThousand(val: string | number): string {
 const emptyForm: PFormState = {
   slug: "",
   name: "",
+  cost_price: "0",
   price: "0",
   category_ids: [],
   brand: "",
@@ -305,6 +309,7 @@ function ProductForm() {
     setForm({
       slug: p.slug,
       name: p.name,
+      cost_price: formatThousand((p as any).cost_price ?? 0),
       price: formatThousand(p.price),
       category_ids: p.category_ids ?? (p.category_id ? [p.category_id] : []),
       brand: p.brand ?? "",
@@ -569,6 +574,7 @@ function ProductForm() {
             .replace(/\s+/g, "-")
             .replace(/[^a-z0-9-]/g, ""),
         name: form.name,
+        cost_price: Number(form.cost_price.replace(/\D/g, "")),
         price: Number(form.price.replace(/\D/g, "")),
         stock: totalStockCalculated,
         size_stock: filteredSizeStock,
@@ -635,6 +641,13 @@ function ProductForm() {
     }
   }
 
+  const numCost = Number(form.cost_price.replace(/\D/g, "")) || 0;
+  const numPrice = Number(form.price.replace(/\D/g, "")) || 0;
+  const profitPerUnit = numPrice - numCost;
+  const profitMarginPercent = numPrice > 0 ? (profitPerUnit / numPrice) * 100 : 0;
+  const markupPercent = numCost > 0 ? (profitPerUnit / numCost) * 100 : 0;
+  const totalEstimatedProfit = profitPerUnit * totalStockCalculated;
+
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader
@@ -645,7 +658,7 @@ function ProductForm() {
         <Card>
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <Label>Nama Produk</Label>
+              <Label className="mb-1.5 block">Nama Produk</Label>
               <Input
                 required
                 value={form.name}
@@ -654,7 +667,7 @@ function ProductForm() {
               />
             </div>
             <div>
-              <Label>Slug (otomatis jika kosong)</Label>
+              <Label className="mb-1.5 block">Slug (otomatis jika kosong)</Label>
               <Input
                 value={form.slug}
                 onChange={(e) => set("slug", e.target.value)}
@@ -711,8 +724,20 @@ function ProductForm() {
               </Popover>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <Label>Harga (Rp)</Label>
+              <div className="flex items-center justify-between h-5 mb-1.5">
+                <Label>Harga Modal / HPP (Rp)</Label>
+              </div>
+              <Input
+                type="text"
+                value={form.cost_price}
+                onChange={(e) => set("cost_price", formatThousand(e.target.value))}
+                placeholder="Contoh: 120.000"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between h-5 mb-1.5">
+                <Label>Harga Jual (Rp)</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -739,11 +764,92 @@ function ProductForm() {
                 required
                 value={form.price}
                 onChange={(e) => set("price", formatThousand(e.target.value))}
-                placeholder="Contoh: 500.000"
+                placeholder="Contoh: 180.000"
               />
             </div>
+
+            {/* Live Profit Analysis Box */}
+            <div className="sm:col-span-2 rounded-lg border p-4 bg-muted/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Analisis Keuntungan (Estimasi)
+                  </span>
+                </div>
+                {profitPerUnit > 0 ? (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    Untung {profitMarginPercent.toFixed(1)}%
+                  </span>
+                ) : profitPerUnit < 0 ? (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                    Rugi {Math.abs(profitMarginPercent).toFixed(1)}%
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-500/10 text-muted-foreground">
+                    Titik Impas (0%)
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div className="p-2.5 rounded bg-background border border-border">
+                  <div className="text-[11px] text-muted-foreground">Keuntungan / Pcs</div>
+                  <div
+                    className={cn(
+                      "text-sm sm:text-base font-bold mt-0.5",
+                      profitPerUnit > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : profitPerUnit < 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-foreground",
+                    )}
+                  >
+                    {formatIDR(profitPerUnit)}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-background border border-border">
+                  <div className="text-[11px] text-muted-foreground">Profit Margin</div>
+                  <div
+                    className={cn(
+                      "text-sm sm:text-base font-bold mt-0.5",
+                      profitPerUnit > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : profitPerUnit < 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-foreground",
+                    )}
+                  >
+                    {profitMarginPercent.toFixed(1)}%
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-background border border-border">
+                  <div className="text-[11px] text-muted-foreground">Markup Modal</div>
+                  <div className="text-sm sm:text-base font-bold mt-0.5 text-foreground">
+                    {markupPercent.toFixed(1)}%
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-background border border-border">
+                  <div className="text-[11px] text-muted-foreground">Potensi Total Untung</div>
+                  <div
+                    className={cn(
+                      "text-sm sm:text-base font-bold mt-0.5",
+                      totalEstimatedProfit > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : totalEstimatedProfit < 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-foreground",
+                    )}
+                  >
+                    {formatIDR(totalEstimatedProfit)}
+                  </div>
+                </div>
+              </div>
+            </div>
             <div>
-              <Label>Stok Total (Otomatis dari ukuran)</Label>
+              <Label className="mb-1.5 block">Stok Total (Otomatis dari ukuran)</Label>
               <Input
                 type="number"
                 disabled
@@ -754,7 +860,7 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label>Brand</Label>
+              <Label className="mb-1.5 block">Brand</Label>
               <Input
                 value={form.brand}
                 onChange={(e) => set("brand", e.target.value)}
@@ -784,7 +890,7 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label>Tim</Label>
+              <Label className="mb-1.5 block">Tim</Label>
               <Input
                 value={form.team}
                 onChange={(e) => set("team", e.target.value)}
@@ -814,7 +920,7 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label>Liga</Label>
+              <Label className="mb-1.5 block">Liga</Label>
               <Input
                 value={form.league}
                 onChange={(e) => set("league", e.target.value)}
@@ -844,7 +950,7 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label>Negara</Label>
+              <Label className="mb-1.5 block">Negara</Label>
               <Input
                 value={form.country}
                 onChange={(e) => set("country", e.target.value)}
@@ -911,7 +1017,7 @@ function ProductForm() {
               </Popover>
             </div>
             <div>
-              <Label>Ukuran (pisahkan koma)</Label>
+              <Label className="mb-1.5 block">Ukuran (pisahkan koma)</Label>
               <Input
                 value={form.sizes}
                 onChange={(e) => set("sizes", e.target.value)}
