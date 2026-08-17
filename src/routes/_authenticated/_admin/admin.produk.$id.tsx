@@ -149,20 +149,18 @@ const emptyForm: PFormState = {
   league: "",
   country: "",
   release_year: "",
-  condition: "excellent",
+  condition: "",
   sizes: "S,M,L,XL",
   description: "",
   story: "",
-  authenticity_badge: "original_verified",
+  authenticity_badge: "",
   video_url: "",
   is_active: true,
 };
 
 const BADGES = [
   { value: "original_verified", label: "Original Terverifikasi", icon: ShieldCheck },
-  { value: "match_worn", label: "Jersey Pertandingan (Match Worn)", icon: Shirt },
-  { value: "collector_item", label: "Barang Koleksi (Collector Item)", icon: Gem },
-  { value: "limited_edition", label: "Edisi Terbatas (Limited Edition)", icon: Sparkles },
+  { value: "grade_ori", label: "Grade Ori", icon: Shirt },
 ];
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/produk/$id")({
@@ -314,11 +312,11 @@ function ProductForm() {
       league: p.league ?? "",
       country: p.country ?? "",
       release_year: String(p.release_year ?? ""),
-      condition: p.condition ?? "excellent",
+      condition: p.condition ?? "",
       sizes: (p.sizes ?? []).join(","),
       description: p.description ?? "",
       story: p.story ?? "",
-      authenticity_badge: p.authenticity_badge ?? "original_verified",
+      authenticity_badge: p.authenticity_badge ?? "",
       video_url: p.video_url ?? "",
       is_active: p.is_active,
     });
@@ -586,12 +584,7 @@ function ProductForm() {
         description: form.description || null,
         story: form.story || null,
         collector_score: 1,
-        authenticity_badge: form.authenticity_badge as
-          | "original_verified"
-          | "match_worn"
-          | "collector_item"
-          | "limited_edition"
-          | null,
+        authenticity_badge: (form.authenticity_badge || null) as any,
         video_url: form.video_url || null,
         cover_image_url: images[0]?.url || null,
         is_active: form.is_active,
@@ -1094,7 +1087,7 @@ function ProductForm() {
             <div>
               <Label className="mb-1.5 block">Authenticity Badge</Label>
               <Select
-                value={form.authenticity_badge}
+                value={form.authenticity_badge || undefined}
                 onValueChange={(v) => set("authenticity_badge", v)}
               >
                 <SelectTrigger>

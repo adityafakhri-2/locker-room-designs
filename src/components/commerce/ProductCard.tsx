@@ -21,6 +21,7 @@ export interface ProductCardData {
 
 const BADGE_LABEL: Record<string, string> = {
   original_verified: "Original Terverifikasi",
+  grade_ori: "Grade Ori",
   match_worn: "Jersey Pertandingan (Match Worn)",
   collector_item: "Barang Koleksi (Collector Item)",
   limited_edition: "Edisi Terbatas (Limited Edition)",

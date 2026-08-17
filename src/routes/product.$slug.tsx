@@ -38,6 +38,7 @@ const BADGE_MAP: Record<
   { label: string; icon: React.ComponentType<{ className?: string }> }
 > = {
   original_verified: { label: "Original Terverifikasi", icon: ShieldCheck },
+  grade_ori: { label: "Grade Ori", icon: Shirt },
   match_worn: { label: "Jersey Pertandingan (Match Worn)", icon: Shirt },
   collector_item: { label: "Barang Koleksi (Collector Item)", icon: Gem },
   limited_edition: { label: "Edisi Terbatas (Limited Edition)", icon: Sparkles },
