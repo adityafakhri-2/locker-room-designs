@@ -12,6 +12,7 @@ export interface ProductCardData {
   slug: string;
   name: string;
   price: number | string;
+  original_price?: number | string | null;
   cover_image_url?: string | null;
   team?: string | null;
   release_year?: number | null;
@@ -27,6 +28,11 @@ const BADGE_LABEL: Record<string, string> = {
   limited_edition: "Edisi Terbatas (Limited Edition)",
 };
 
+function formatNumber(val: number | string): string {
+  const num = Number(val) || 0;
+  return num.toLocaleString("id-ID");
+}
+
 export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -34,16 +40,33 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
   const toggle = useToggleWishlist();
   const liked = wl?.some((w) => w.product_id === p.id) ?? false;
 
+  const numPrice = Number(p.price) || 0;
+  const numOriginal = p.original_price ? Number(p.original_price) : 0;
+  const hasDiscount = numOriginal > numPrice;
+  const discountPercent = hasDiscount
+    ? Math.round(((numOriginal - numPrice) / numOriginal) * 100)
+    : 0;
+
+  const isSold =
+    p.sold_count !== undefined && p.sold_count !== null && Number(p.sold_count) >= 1;
+
   return (
-    <article className="group flex flex-col">
+    <article className="group flex flex-col h-full bg-card rounded-lg overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-md transition-all duration-300">
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+        {/* Discount Badge on Image */}
+        {hasDiscount && (
+          <div className="absolute top-2.5 left-2.5 z-10 bg-rose-600 text-white font-black text-[10px] md:text-xs px-2 py-0.5 rounded shadow-md tracking-tight uppercase animate-fade-in">
+            -{discountPercent}%
+          </div>
+        )}
+
         <Link to="/product/$slug" params={{ slug: p.slug }} className="block size-full">
           {p.cover_image_url ? (
             <img
               src={p.cover_image_url}
               alt={p.name}
               loading="lazy"
-              className="size-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+              className="size-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-105"
             />
           ) : (
             <div className="size-full grid place-items-center text-muted-foreground text-xs">
@@ -54,59 +77,98 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
       </div>
 
       {/* Detail info & interaksi di bawah gambar */}
-      <div className="pt-3 flex flex-col gap-1.5">
-        {/* Baris 1: Label Keaslian & Tombol Wishlist (Hati) */}
-        <div className="flex items-center justify-between gap-2">
-          {p.authenticity_badge ? (
-            <span
-              title={BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
-              className="inline-flex items-center gap-1 bg-muted px-2 py-0.5 eyebrow text-[9px] md:text-[10px] select-none text-muted-foreground truncate max-w-[70%]"
-            >
-              <span className="size-1 shrink-0 bg-primary rounded-full" />
-              <span className="truncate">
-                {BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
+      <div className="p-3 flex flex-col flex-1 justify-between gap-2">
+        <div>
+          {/* Baris 1: Label Keaslian & Tombol Wishlist (Hati) */}
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            {p.authenticity_badge ? (
+              <span
+                title={BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
+                className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold text-[9px] md:text-[10px] uppercase tracking-wide select-none truncate max-w-[75%]"
+              >
+                <span className="size-1.5 shrink-0 bg-primary rounded-full" />
+                <span className="truncate font-bold">
+                  {BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
+                </span>
               </span>
-            </span>
-          ) : (
-            <div />
-          )}
+            ) : (
+              <div />
+            )}
 
-          <button
-            aria-label={liked ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
-            onClick={(e) => {
-              e.preventDefault();
-              if (!user) {
-                toast.error("Silakan masuk terlebih dahulu");
-                navigate({ to: "/auth" });
-                return;
-              }
-              toggle.mutate(p.id);
-            }}
-            className="grid place-items-center size-8 md:size-9 rounded-full bg-secondary/10 hover:bg-secondary/20 text-muted-foreground hover:text-primary transition-all focus-visible:ring-2 focus-visible:ring-primary outline-none shrink-0"
+            <button
+              aria-label={liked ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!user) {
+                  toast.error("Silakan masuk terlebih dahulu");
+                  navigate({ to: "/auth" });
+                  return;
+                }
+                toggle.mutate(p.id);
+              }}
+              className="grid place-items-center size-7 md:size-8 rounded-full bg-secondary/10 hover:bg-secondary/20 text-muted-foreground hover:text-primary transition-all focus-visible:ring-2 focus-visible:ring-primary outline-none shrink-0"
+            >
+              <Heart
+                className={cn("size-3.5 md:size-4", liked && "fill-primary text-primary")}
+                strokeWidth={1.5}
+              />
+            </button>
+          </div>
+
+          {/* Baris 2: Nama Produk */}
+          <Link
+            to="/product/$slug"
+            params={{ slug: p.slug }}
+            className="block group/title"
           >
-            <Heart
-              className={cn("size-3.5 md:size-4", liked && "fill-primary text-primary")}
-              strokeWidth={1.5}
-            />
-          </button>
+            <h3 className="text-xs md:text-sm font-semibold tracking-tight text-foreground group-hover/title:text-primary transition-colors line-clamp-2 leading-snug">
+              {p.name}
+            </h3>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+              {[p.team, p.release_year].filter(Boolean).join(" · ")}
+            </p>
+          </Link>
         </div>
 
-        {/* Baris 2: Nama Produk & Harga */}
-        <Link
-          to="/product/$slug"
-          params={{ slug: p.slug }}
-          className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
-        >
-          <h3 className="text-sm md:text-base font-semibold tracking-tight truncate">{p.name}</h3>
-          <span className="text-sm font-semibold tabular-nums">{formatIDR(p.price)}</span>
-        </Link>
+        {/* Bagian Bawah: Harga Highlight & Status Terjual */}
+        <div className="pt-1 border-t border-border/40 mt-auto">
+          {/* Harga Coret & Diskon */}
+          {hasDiscount && (
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[11px] text-muted-foreground line-through tabular-nums leading-none">
+                Rp{formatNumber(numOriginal)}
+              </span>
+              <span className="text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/15 px-1 py-0.2 rounded leading-none">
+                -{discountPercent}%
+              </span>
+            </div>
+          )}
 
-        {/* Baris 3: Tim/Tahun & Custom Footer */}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3">
-          <span className="text-xs text-muted-foreground truncate">
-            {[p.team, p.release_year].filter(Boolean).join(" · ")}
-          </span>
-          {footer}
+          {/* Baris Harga Menonjol & Terjual */}
+          <div className="flex items-baseline justify-between gap-2">
+            <Link
+              to="/product/$slug"
+              params={{ slug: p.slug }}
+              className="inline-flex items-baseline text-primary hover:opacity-85 transition-opacity"
+            >
+              <span className="text-xs md:text-sm font-bold text-primary mr-0.5 tracking-tighter">
+                Rp
+              </span>
+              <span className="text-base md:text-lg lg:text-xl font-black text-primary tracking-tight tabular-nums font-mono">
+                {formatNumber(p.price)}
+              </span>
+            </Link>
+
+            <div className="text-right">
+              {footer ? (
+                footer
+              ) : isSold ? (
+                <span className="text-[10px] md:text-xs text-muted-foreground tabular-nums font-medium">
+                  {p.sold_count} terjual
+                </span>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </article>

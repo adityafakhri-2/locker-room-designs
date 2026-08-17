@@ -99,7 +99,7 @@ function ShopPage() {
       let qy = supabase
         .from("products")
         .select(
-          "id, slug, name, price, cover_image_url, team, release_year, authenticity_badge, sold_count",
+          "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count",
           { count: "exact" },
         )
         .eq("is_active", true);

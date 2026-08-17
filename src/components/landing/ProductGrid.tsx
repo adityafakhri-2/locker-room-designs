@@ -44,7 +44,7 @@ export function NewArrivals() {
         await supabase
           .from("products")
           .select(
-            "id, slug, name, price, cover_image_url, team, release_year, authenticity_badge, sold_count",
+            "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count",
           )
           .eq("is_active", true)
           .order("created_at", { ascending: false })
@@ -94,7 +94,7 @@ export function BestSellers() {
         await supabase
           .from("products")
           .select(
-            "id, slug, name, price, cover_image_url, team, release_year, authenticity_badge, sold_count",
+            "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count",
           )
           .eq("is_active", true)
           .order("sold_count", { ascending: false })

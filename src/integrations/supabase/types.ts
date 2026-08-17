@@ -560,6 +560,7 @@ export type Database = {
           is_best_seller: boolean;
           league: string | null;
           name: string;
+          original_price: number | null;
           price: number;
           release_year: number | null;
           sizes: string[];
@@ -589,6 +590,7 @@ export type Database = {
           is_best_seller?: boolean;
           league?: string | null;
           name: string;
+          original_price?: number | null;
           price?: number;
           release_year?: number | null;
           sizes?: string[];
@@ -618,6 +620,7 @@ export type Database = {
           is_best_seller?: boolean;
           league?: string | null;
           name?: string;
+          original_price?: number | null;
           price?: number;
           release_year?: number | null;
           sizes?: string[];

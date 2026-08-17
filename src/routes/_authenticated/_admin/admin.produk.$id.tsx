@@ -124,6 +124,7 @@ interface PFormState {
   slug: string;
   name: string;
   cost_price: string;
+  original_price: string;
   price: string;
   category_ids: string[];
   brand: string;
@@ -150,6 +151,7 @@ const emptyForm: PFormState = {
   slug: "",
   name: "",
   cost_price: "0",
+  original_price: "",
   price: "0",
   category_ids: [],
   brand: "",
@@ -315,6 +317,7 @@ function ProductForm() {
       slug: p.slug,
       name: p.name,
       cost_price: formatThousand((p as any).cost_price ?? 0),
+      original_price: (p as any).original_price ? formatThousand((p as any).original_price) : "",
       price: formatThousand(p.price),
       category_ids: p.category_ids ?? (p.category_id ? [p.category_id] : []),
       brand: p.brand ?? "",
@@ -619,6 +622,15 @@ function ProductForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    const numPriceVal = Number(form.price.replace(/\D/g, "")) || 0;
+    const numOriginalVal = Number(form.original_price.replace(/\D/g, "")) || 0;
+
+    if (numOriginalVal > 0 && numOriginalVal <= numPriceVal) {
+      toast.error("Harga coret (gimmick) tidak boleh kurang dari atau sama dengan harga jual!");
+      return;
+    }
+
     setLoading(true);
     try {
       const filteredSizeStock: Record<string, number> = {};
@@ -638,6 +650,7 @@ function ProductForm() {
             .replace(/[^a-z0-9-]/g, ""),
         name: form.name,
         cost_price: Number(form.cost_price.replace(/\D/g, "")),
+        original_price: form.original_price ? Number(form.original_price.replace(/\D/g, "")) : null,
         price: Number(form.price.replace(/\D/g, "")),
         stock: totalStockCalculated,
         size_stock: filteredSizeStock,
@@ -680,10 +693,10 @@ function ProductForm() {
             .single();
         }
 
-        // 2. Fallback retry if cost_price column is not yet in Supabase schema cache
-        if (res.error && (res.error.message.includes("cost_price") || res.error.code === "PGRST204")) {
-          console.warn("Retrying product insert without cost_price...");
-          const { cost_price, ...restPayload } = currentPayload;
+        // 2. Fallback retry if cost_price / original_price column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product insert without cost_price/original_price...");
+          const { cost_price, original_price, ...restPayload } = currentPayload;
           currentPayload = restPayload as any;
           res = await supabase
             .from("products")
@@ -704,10 +717,10 @@ function ProductForm() {
           res = await supabase.from("products").update(currentPayload).eq("id", id);
         }
 
-        // 2. Fallback retry if cost_price column is not yet in Supabase schema cache
-        if (res.error && (res.error.message.includes("cost_price") || res.error.code === "PGRST204")) {
-          console.warn("Retrying product update without cost_price...");
-          const { cost_price, ...restPayload } = currentPayload;
+        // 2. Fallback retry if cost_price / original_price column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product update without cost_price/original_price...");
+          const { cost_price, original_price, ...restPayload } = currentPayload;
           currentPayload = restPayload as any;
           res = await supabase.from("products").update(currentPayload).eq("id", id);
         }
@@ -748,11 +761,20 @@ function ProductForm() {
   }
 
   const numCost = Number(form.cost_price.replace(/\D/g, "")) || 0;
+  const numOriginalPrice = Number(form.original_price.replace(/\D/g, "")) || 0;
   const numPrice = Number(form.price.replace(/\D/g, "")) || 0;
   const profitPerUnit = numPrice - numCost;
   const profitMarginPercent = numPrice > 0 ? (profitPerUnit / numPrice) * 100 : 0;
   const markupPercent = numCost > 0 ? (profitPerUnit / numCost) * 100 : 0;
   const totalEstimatedProfit = profitPerUnit * totalStockCalculated;
+
+  const isOriginalPriceInvalid = numOriginalPrice > 0 && numOriginalPrice <= numPrice;
+
+  const discountPercent =
+    numOriginalPrice > numPrice && numOriginalPrice > 0
+      ? Math.round(((numOriginalPrice - numPrice) / numOriginalPrice) * 100)
+      : 0;
+  const discountNominal = numOriginalPrice > numPrice ? numOriginalPrice - numPrice : 0;
 
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
@@ -829,72 +851,131 @@ function ProductForm() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div>
-              <div className="flex items-center justify-between h-5 mb-1.5">
-                <Label>Harga Modal / HPP (Rp)</Label>
-              </div>
-              <Input
-                type="text"
-                value={form.cost_price}
-                onChange={(e) => set("cost_price", formatThousand(e.target.value))}
-                placeholder="Contoh: 120.000"
-              />
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between h-5 mb-1.5">
-                <Label>Harga Jual (Rp)</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAIPriceSuggest}
-                  disabled={isSuggestingPrice}
-                  className="h-5 text-xs text-primary hover:text-primary hover:bg-primary/5 gap-1 px-1.5 font-semibold transition-all duration-200"
-                >
-                  {isSuggestingPrice ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin" />
-                      <span>Menganalisis...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="size-3" />
-                      <span>Saran Harga AI</span>
-                    </>
+            {/* 3-Column Price Configuration: Modal, Harga Coret (Gimmick), Harga Jual */}
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-lg bg-muted/20 border border-border">
+              <div>
+                <div className="flex items-center justify-between h-5 mb-1.5">
+                  <Label className="text-xs font-semibold">Harga Modal / HPP (Rp)</Label>
+                </div>
+                <Input
+                  type="text"
+                  value={form.cost_price}
+                  onChange={(e) => set("cost_price", formatThousand(e.target.value))}
+                  placeholder="Contoh: 120.000"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Modal per pcs jersey
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between h-5 mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Label
+                      className={cn(
+                        "text-xs font-semibold",
+                        isOriginalPriceInvalid && "text-rose-600 dark:text-rose-400 font-bold",
+                      )}
+                    >
+                      Harga Coret / Awal (Rp)
+                    </Label>
+                    <span className="text-[10px] bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.2 rounded">
+                      Gimmick
+                    </span>
+                  </div>
+                </div>
+                <Input
+                  type="text"
+                  value={form.original_price}
+                  onChange={(e) => set("original_price", formatThousand(e.target.value))}
+                  placeholder="Contoh: 250.000"
+                  className={cn(
+                    isOriginalPriceInvalid &&
+                      "border-rose-500 text-rose-600 dark:text-rose-400 focus-visible:ring-rose-500 bg-rose-500/5",
                   )}
-                </Button>
+                />
+                {isOriginalPriceInvalid ? (
+                  <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1 animate-pulse">
+                    ⚠️ Harus lebih besar dari harga jual (&gt; {formatIDR(numPrice)}).
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Harga normal yg dicoret di toko (opsional)
+                  </p>
+                )}
               </div>
-              <Input
-                type="text"
-                required
-                value={form.price}
-                onChange={(e) => set("price", formatThousand(e.target.value))}
-                placeholder="Contoh: 180.000"
-              />
+
+              <div>
+                <div className="flex items-center justify-between h-5 mb-1.5">
+                  <Label className="text-xs font-semibold text-primary font-bold">Harga Jual / Promo (Rp) *</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAIPriceSuggest}
+                    disabled={isSuggestingPrice}
+                    className="h-5 text-xs text-primary hover:text-primary hover:bg-primary/5 gap-1 px-1 font-semibold transition-all duration-200"
+                  >
+                    {isSuggestingPrice ? (
+                      <>
+                        <Loader2 className="size-3 animate-spin" />
+                        <span>Menganalisis...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-3" />
+                        <span>Saran AI</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <Input
+                  type="text"
+                  required
+                  value={form.price}
+                  onChange={(e) => set("price", formatThousand(e.target.value))}
+                  placeholder="Contoh: 180.000"
+                  className="border-primary/50 focus-visible:ring-primary"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Harga bayar yang ditagih ke pembeli
+                </p>
+              </div>
             </div>
 
-            {/* Live Profit Analysis Box */}
+            {/* Live Profit Analysis Box & Gimmick Discount Info */}
             <div className="sm:col-span-2 rounded-lg border p-4 bg-muted/30 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Analisis Keuntungan (Estimasi)
+                    Analisis Keuntungan Sebenarnya
                   </span>
                 </div>
-                {profitPerUnit > 0 ? (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    Untung {profitMarginPercent.toFixed(1)}%
-                  </span>
-                ) : profitPerUnit < 0 ? (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                    Rugi {Math.abs(profitMarginPercent).toFixed(1)}%
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-500/10 text-muted-foreground">
-                    Titik Impas (0%)
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {isOriginalPriceInvalid ? (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                      ⚠️ Harga coret tidak valid
+                    </span>
+                  ) : discountPercent > 0 ? (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">
+                      Gimmick Diskon: -{discountPercent}% OFF (Hemat Rp {discountNominal.toLocaleString("id-ID")})
+                    </span>
+                  ) : null}
+                  {profitPerUnit > 0 ? (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Untung {profitMarginPercent.toFixed(1)}%
+                    </span>
+                  ) : profitPerUnit < 0 ? (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                      Rugi {Math.abs(profitMarginPercent).toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-500/10 text-muted-foreground">
+                      Titik Impas (0%)
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
@@ -902,7 +983,7 @@ function ProductForm() {
                   <div className="text-[11px] text-muted-foreground">Keuntungan / Pcs</div>
                   <div
                     className={cn(
-                      "text-sm sm:text-base font-bold mt-0.5",
+                      "text-sm sm:text-base font-bold mt-0.5 font-mono",
                       profitPerUnit > 0
                         ? "text-emerald-600 dark:text-emerald-400"
                         : profitPerUnit < 0
@@ -918,7 +999,7 @@ function ProductForm() {
                   <div className="text-[11px] text-muted-foreground">Profit Margin</div>
                   <div
                     className={cn(
-                      "text-sm sm:text-base font-bold mt-0.5",
+                      "text-sm sm:text-base font-bold mt-0.5 font-mono",
                       profitPerUnit > 0
                         ? "text-emerald-600 dark:text-emerald-400"
                         : profitPerUnit < 0
@@ -932,7 +1013,7 @@ function ProductForm() {
 
                 <div className="p-2.5 rounded bg-background border border-border">
                   <div className="text-[11px] text-muted-foreground">Markup Modal</div>
-                  <div className="text-sm sm:text-base font-bold mt-0.5 text-foreground">
+                  <div className="text-sm sm:text-base font-bold mt-0.5 text-foreground font-mono">
                     {markupPercent.toFixed(1)}%
                   </div>
                 </div>
@@ -941,7 +1022,7 @@ function ProductForm() {
                   <div className="text-[11px] text-muted-foreground">Potensi Total Untung</div>
                   <div
                     className={cn(
-                      "text-sm sm:text-base font-bold mt-0.5",
+                      "text-sm sm:text-base font-bold mt-0.5 font-mono",
                       totalEstimatedProfit > 0
                         ? "text-emerald-600 dark:text-emerald-400"
                         : totalEstimatedProfit < 0
@@ -1533,7 +1614,7 @@ function ProductForm() {
         </Card>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || isOriginalPriceInvalid}>
             {loading ? "Menyimpan..." : isNew ? "Buat Produk" : "Simpan Perubahan"}
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/produk" })}>

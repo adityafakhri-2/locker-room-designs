@@ -291,9 +291,26 @@ function ProductDetail() {
               {[p.team, p.league, p.release_year].filter(Boolean).join(" · ")}
             </p>
 
-            <div className="mt-6 flex items-baseline gap-4">
-              <span className="text-3xl font-extrabold">{formatIDR(p.price)}</span>
-              <span className="text-xs text-muted-foreground">Stok: {selectedSizeStock}</span>
+            <div className="mt-6 flex flex-col gap-1.5">
+              <div className="flex items-baseline flex-wrap gap-3">
+                <span className="text-3xl font-extrabold text-foreground">{formatIDR(p.price)}</span>
+                {p.original_price && p.original_price > p.price && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg text-muted-foreground line-through font-semibold">
+                      {formatIDR(p.original_price)}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-xs font-extrabold bg-rose-600 text-white shadow-sm">
+                      -{Math.round(((p.original_price - p.price) / p.original_price) * 100)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+              {p.original_price && p.original_price > p.price && (
+                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  Hemat {formatIDR(p.original_price - p.price)} dari harga normal!
+                </p>
+              )}
+              <span className="text-xs text-muted-foreground mt-0.5">Stok: {selectedSizeStock}</span>
             </div>
 
             {reviewsQ.data && reviewsQ.data.length > 0 && (

@@ -492,8 +492,20 @@ function AdminProducts() {
                         <td className="tabular-nums text-xs text-muted-foreground pr-4">
                           {formatIDR(cost)}
                         </td>
-                        <td className="tabular-nums text-xs font-semibold pr-4">
-                          {formatIDR(sell)}
+                        <td className="tabular-nums pr-4">
+                          <div className="flex flex-col">
+                            {p.original_price && p.original_price > p.price && (
+                              <div className="flex items-center gap-1 mb-0.5">
+                                <span className="text-[10px] text-muted-foreground line-through">
+                                  {formatIDR(p.original_price)}
+                                </span>
+                                <span className="text-[9px] text-rose-600 dark:text-rose-400 bg-rose-500/15 font-extrabold px-1 rounded leading-none py-0.5">
+                                  -{Math.round(((p.original_price - p.price) / p.original_price) * 100)}%
+                                </span>
+                              </div>
+                            )}
+                            <span className="text-xs font-semibold">{formatIDR(sell)}</span>
+                          </div>
                         </td>
                         <td className="tabular-nums pr-4">
                           <div className="flex items-center gap-1.5">
