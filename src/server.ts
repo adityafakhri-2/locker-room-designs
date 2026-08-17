@@ -95,7 +95,7 @@ function injectSecurityHeaders(response: Response): Response {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.supabase.co",
-    "connect-src 'self' wss://*.supabase.co https://*.supabase.co",
+    "connect-src 'self' wss://*.supabase.co https://*.supabase.co https://wilayah.id https://*.emsifa.com https://cdn.jsdelivr.net https://kodepos.vercel.app https://raw.githubusercontent.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
