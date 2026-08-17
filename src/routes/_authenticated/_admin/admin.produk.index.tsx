@@ -8,7 +8,22 @@ import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, X, Image } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Image,
+  Coins,
+  TrendingUp,
+  Tag,
+  Shirt,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -88,7 +103,32 @@ function AdminProducts() {
     }
   }
 
-  const filteredProducts = (q.data ?? []).filter((p) => {
+  const allProducts = q.data ?? [];
+
+  // 1. Total Modal (HPP Inventaris Keseluruhan)
+  const totalCostValue = allProducts.reduce((sum, p) => {
+    const cost = Number(p.cost_price ?? 0);
+    const qty = Number(p.stock ?? 0);
+    return sum + cost * qty;
+  }, 0);
+
+  // 2. Total Nilai Jual (Potensi Omset Keseluruhan)
+  const totalSellingValue = allProducts.reduce((sum, p) => {
+    const price = Number(p.price ?? 0);
+    const qty = Number(p.stock ?? 0);
+    return sum + price * qty;
+  }, 0);
+
+  // 3. Total Potensi Keuntungan (Laba Bersih Inventaris)
+  const totalPotentialProfit = totalSellingValue - totalCostValue;
+  const overallMarginPercent =
+    totalSellingValue > 0 ? (totalPotentialProfit / totalSellingValue) * 100 : 0;
+
+  // 4. Volume Katalog & Stok
+  const totalJerseyModels = allProducts.length;
+  const totalStockPcs = allProducts.reduce((sum, p) => sum + (Number(p.stock ?? 0) || 0), 0);
+
+  const filteredProducts = allProducts.filter((p) => {
     const term = search.toLowerCase();
     const matchesSearch =
       p.name.toLowerCase().includes(term) ||
@@ -149,17 +189,100 @@ function AdminProducts() {
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader
-        eyebrow="Produk"
+        eyebrow="Katalog Toko"
         title="Manajemen Produk"
         action={
-          <Button asChild>
+          <Button asChild className="gap-1.5 shadow-sm">
             <Link to="/admin/produk/$id" params={{ id: "baru" }}>
-              <Plus className="size-4 mr-1" />
+              <Plus className="size-4" />
               Tambah Produk
             </Link>
           </Button>
         }
       />
+
+      {/* 4 Statistik Finansial & Inventaris Produk */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Card 1: Total Modal Jersey */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Total Modal (HPP)</span>
+            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Coins className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl font-bold tracking-tight text-foreground font-mono">
+              {formatIDR(totalCostValue)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Dari seluruh <span className="font-semibold text-foreground">{totalStockPcs} pcs</span> stok jersey
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Total Nilai Jual */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Total Nilai Jual</span>
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Tag className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl font-bold tracking-tight text-foreground font-mono">
+              {formatIDR(totalSellingValue)}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Potensi pendapatan jika semua terjual
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Total Potensi Keuntungan */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-emerald-500/30 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Potensi Keuntungan</span>
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <TrendingUp className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
+                {formatIDR(totalPotentialProfit)}
+              </span>
+              {overallMarginPercent > 0 && (
+                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                  +{overallMarginPercent.toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Margin keuntungan stok inventaris
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Total Volume Katalog */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Katalog & Stok</span>
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+              <Shirt className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-xl font-bold tracking-tight text-foreground font-mono">
+              {totalJerseyModels} Model
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Total <span className="font-semibold text-foreground">{totalStockPcs} pcs</span> jersey siap jual
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Card>
         <div className="flex flex-wrap items-center gap-3 mb-6">
           <div className="relative flex-1 min-w-[240px] max-w-sm">
