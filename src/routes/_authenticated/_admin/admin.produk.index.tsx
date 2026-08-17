@@ -441,7 +441,7 @@ function AdminProducts() {
                         )}
                       </div>
                     </th>
-                    <th className="py-2 pr-4 text-center">Spotlight ⭐</th>
+                    <th className="py-2 pr-4 text-center">Spotlight</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -494,9 +494,9 @@ function AdminProducts() {
                         <td className="text-xs pr-4 max-w-[130px] truncate">
                           {Array.isArray(p.category_ids) && p.category_ids.length > 0
                             ? categoriesQuery.data
-                                ?.filter((c) => p.category_ids.includes(c.id))
-                                .map((c) => c.name)
-                                .join(", ") || "—"
+                              ?.filter((c) => p.category_ids.includes(c.id))
+                              .map((c) => c.name)
+                              .join(", ") || "—"
                             : (p.categories?.name ?? "—")}
                         </td>
                         <td className="text-xs pr-4 font-medium">{p.stock}</td>

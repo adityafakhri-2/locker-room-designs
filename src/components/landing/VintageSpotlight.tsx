@@ -6,8 +6,8 @@ import { formatIDR } from "@/lib/format";
 import img from "@/assets/vintage-spotlight.jpg";
 
 const BADGE_LABEL: Record<string, string> = {
+  original_verified: "Original Resmi 100%",
   grade_ori: "Grade Ori Import 1:1",
-  original_verified: "Original Terverifikasi",
   match_worn: "Match Worn",
   collector_item: "Collector Item",
   limited_edition: "Limited Edition",
@@ -30,12 +30,11 @@ export function VintageSpotlight() {
         return spotlightProd;
       }
 
-      // 2. Fallback: Query the latest best seller or active product
+      // 2. Fallback: Jika admin belum menandai spotlight, ambil jersey aktif yang PALING BARU ditambahkan
       const { data: fallbackProd } = await supabase
         .from("products")
         .select("*")
         .eq("is_active", true)
-        .order("is_best_seller", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
