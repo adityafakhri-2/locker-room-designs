@@ -221,12 +221,24 @@ function ProductDetail() {
 
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
           <div>
-            <div className="relative group aspect-[4/5] bg-muted overflow-hidden">
+            <div className="relative group aspect-[4/5] bg-muted overflow-hidden rounded-lg">
+              {p.stock <= 0 && (
+                <div className="absolute top-4 left-4 z-20 bg-rose-600 text-white font-extrabold text-xs px-3 py-1 rounded shadow-md uppercase tracking-wider">
+                  STOK HABIS
+                </div>
+              )}
               <div className="size-full overflow-hidden" ref={emblaRef}>
                 <div className="flex size-full">
                   {allImages.map((src, i) => (
                     <div key={i} className="flex-[0_0_100%] min-w-0 size-full relative">
-                      <img src={src} alt={p.name} className="size-full object-cover" />
+                      <img
+                        src={src}
+                        alt={p.name}
+                        className={cn(
+                          "size-full object-cover",
+                          p.stock <= 0 && "grayscale-[30%] opacity-85",
+                        )}
+                      />
                     </div>
                   ))}
                   {allImages.length === 0 && (

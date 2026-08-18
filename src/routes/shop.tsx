@@ -264,7 +264,7 @@ function ShopPage() {
       let qy = supabase
         .from("products")
         .select(
-          "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count, brand, league, sizes",
+          "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count, brand, league, sizes, stock",
           { count: "exact" },
         )
         .eq("is_active", true);
@@ -342,8 +342,15 @@ function ShopPage() {
       const { data, count, error } = await qy;
       if (error) throw error;
 
+      // Sort items so in-stock products appear first, out-of-stock appear at bottom
+      const sortedItems = (data ?? []).slice().sort((a, b) => {
+        const aInStock = (Number(a.stock) || 0) > 0 ? 1 : 0;
+        const bInStock = (Number(b.stock) || 0) > 0 ? 1 : 0;
+        return bInStock - aInStock;
+      });
+
       return {
-        items: data ?? [],
+        items: sortedItems,
         total: count ?? 0,
       };
     },

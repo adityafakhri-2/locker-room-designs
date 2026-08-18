@@ -18,6 +18,7 @@ export interface ProductCardData {
   release_year?: number | null;
   authenticity_badge?: string | null;
   sold_count?: number | null;
+  stock?: number | null;
 }
 
 const BADGE_LABEL: Record<string, string> = {
@@ -50,13 +51,28 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
   const isSold =
     p.sold_count !== undefined && p.sold_count !== null && Number(p.sold_count) >= 1;
 
+  const isOutOfStock =
+    p.stock !== undefined && p.stock !== null && Number(p.stock) <= 0;
+
   return (
     <article className="group flex flex-col h-full bg-card rounded-lg overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-md transition-all duration-300">
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
         {/* Discount Badge on Image */}
-        {hasDiscount && (
+        {hasDiscount && !isOutOfStock && (
           <div className="absolute top-2.5 left-2.5 z-10 bg-rose-600 text-white font-black text-[10px] md:text-xs px-2 py-0.5 rounded shadow-md tracking-tight uppercase animate-fade-in">
             -{discountPercent}%
+          </div>
+        )}
+
+        {/* Out of Stock Overlay on Image */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center p-3 text-center pointer-events-none">
+            <span className="px-2.5 py-1 bg-rose-600/95 text-white font-extrabold text-[11px] md:text-xs tracking-wider uppercase rounded shadow-lg">
+              STOK HABIS
+            </span>
+            <span className="text-[10px] text-zinc-200 mt-1 font-medium">
+              Lihat Detail Produk
+            </span>
           </div>
         )}
 
@@ -66,7 +82,10 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
               src={p.cover_image_url}
               alt={p.name}
               loading="lazy"
-              className="size-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-105"
+              className={cn(
+                "size-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-105",
+                isOutOfStock && "grayscale-[40%] opacity-75",
+              )}
             />
           ) : (
             <div className="size-full grid place-items-center text-muted-foreground text-xs">
