@@ -153,12 +153,8 @@ function CheckoutPage() {
   useEffect(() => {
     if (user && profileQuery.data) {
       const p = profileQuery.data;
-      if (!p.no_hp || !p.alamat) {
-        toast.error("Silakan lengkapi profil Anda terlebih dahulu!");
-        navigate({ to: "/auth" });
-        return;
-      }
-      const metadataName = user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
+      const metadataName =
+        user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
       const parsed = parseAlamat(p.alamat || "");
       setForm((f) => ({
         ...f,
@@ -169,11 +165,11 @@ function CheckoutPage() {
         recipient_provinsi: f.recipient_provinsi || p.provinsi || "",
         recipient_kode_pos: f.recipient_kode_pos || p.kode_pos || "",
       }));
-      setAlamatDetail(parsed.street);
-      setKecamatan(parsed.kecamatan);
-      setKelurahan(parsed.kelurahan);
+      if (parsed.street && !alamatDetail) setAlamatDetail(parsed.street);
+      if (parsed.kecamatan && !kecamatan) setKecamatan(parsed.kecamatan);
+      if (parsed.kelurahan && !kelurahan) setKelurahan(parsed.kelurahan);
     }
-  }, [profileQuery.data, user, navigate]);
+  }, [profileQuery.data, user]);
 
   useEffect(() => {
     if (!cart.isLoading && cart.data && cart.data.length === 0) {
@@ -428,18 +424,44 @@ function CheckoutPage() {
       if (oerr) throw oerr;
       createdOrderId = order.id;
 
+      // Update profil pembeli dengan alamat & no HP pengiriman jika profil sebelumnya belum lengkap
+      if (user) {
+        supabase
+          .from("profiles")
+          .update({
+            nama_lengkap: form.recipient_name,
+            no_hp: form.recipient_no_hp,
+            alamat: finalAlamat,
+            kota: form.recipient_kota,
+            provinsi: form.recipient_provinsi,
+            kode_pos: form.recipient_kode_pos,
+          })
+          .eq("id", user.id)
+          .then(() => {});
+      }
+
       // 2. Masukkan item pesanan (Ini memicu trigger public.decrease_stock_on_order_item)
-      const orderItems = items.map((i) => ({
-        order_id: order.id,
-        product_id: i.product_id,
-        product_name: i.products?.name ?? "",
-        product_slug: i.products?.slug ?? null,
-        image_url: i.products?.cover_image_url ?? null,
-        size: i.size,
-        unit_price: i.products?.price ?? 0,
-        quantity: i.quantity,
-        subtotal: Number(i.products?.price ?? 0) * i.quantity,
-      }));
+      const orderItems = items.map((i) => {
+        const prod = i.products as any;
+        const sizeCost = (prod?.size_cost_price as Record<string, number> | null) ?? {};
+        const unitCost =
+          i.size && sizeCost[i.size] !== undefined && Number(sizeCost[i.size]) > 0
+            ? Number(sizeCost[i.size])
+            : Number(prod?.cost_price) || 0;
+
+        return {
+          order_id: order.id,
+          product_id: i.product_id,
+          product_name: i.products?.name ?? "",
+          product_slug: i.products?.slug ?? null,
+          image_url: i.products?.cover_image_url ?? null,
+          size: i.size,
+          unit_price: i.products?.price ?? 0,
+          cost_price: unitCost,
+          quantity: i.quantity,
+          subtotal: Number(i.products?.price ?? 0) * i.quantity,
+        };
+      });
       const { error: ierr } = await supabase.from("order_items").insert(orderItems);
       if (ierr) throw ierr;
 
