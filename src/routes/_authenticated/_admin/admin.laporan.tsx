@@ -53,7 +53,7 @@ function AdminReports() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, team, stock, price, cost_price");
+        .select("id, name, team, stock, price, cost_price, size_stock");
       if (error) throw error;
       return data ?? [];
     },
@@ -72,30 +72,65 @@ function AdminReports() {
     0,
   );
 
-  // Map product cost lookup
-  const productCostMap: Record<string, number> = {};
+  // Map product cost lookup with size-specific costs
+  const productCostMap: Record<
+    string,
+    { defaultCost: number; sizeCost: Record<string, number> }
+  > = {};
   (products.data ?? []).forEach((p) => {
-    productCostMap[p.id] = Number((p as any).cost_price ?? 0);
+    const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
+    const sizeCostMap = rawStock["_cost_prices"] || (p as any).size_cost_price || {};
+    const info = {
+      defaultCost: Number((p as any).cost_price ?? 0),
+      sizeCost: sizeCostMap,
+    };
+    productCostMap[p.id] = info;
+    if (p.name) {
+      productCostMap[p.name] = info;
+    }
   });
 
-  // Calculate total COGS and items sold from valid orders
+  // Calculate total COGS, items sold, and per-product sales metrics from actual order items
   let totalCost = 0;
   let totalItemsSold = 0;
-  const dynamicSoldCounts: Record<string, number> = {};
+  const productSalesMap: Record<
+    string,
+    { soldCount: number; totalOmset: number; totalModal: number; sizesSold: Record<string, number> }
+  > = {};
 
   validOrders.forEach((o) => {
     const items = (o as any).order_items || [];
     items.forEach((item: any) => {
       const qty = Number(item.quantity) || 1;
       const key = item.product_id || item.product_name;
-      dynamicSoldCounts[key] = (dynamicSoldCounts[key] ?? 0) + qty;
-      totalItemsSold += qty;
 
+      if (!productSalesMap[key]) {
+        productSalesMap[key] = { soldCount: 0, totalOmset: 0, totalModal: 0, sizesSold: {} };
+      }
+
+      const prodInfo = productCostMap[item.product_id] || productCostMap[item.product_name];
+      const itemSizeCost = item.size && prodInfo?.sizeCost?.[item.size];
       const unitCost =
         Number(item.cost_price) > 0
           ? Number(item.cost_price)
-          : productCostMap[item.product_id] || 0;
-      totalCost += unitCost * qty;
+          : itemSizeCost !== undefined && Number(itemSizeCost) > 0
+            ? Number(itemSizeCost)
+            : prodInfo?.defaultCost || 0;
+
+      const unitSell = Number(item.unit_price) || 0;
+      const itemRevenue = Number(item.subtotal) || unitSell * qty;
+      const itemCost = unitCost * qty;
+
+      totalItemsSold += qty;
+      totalCost += itemCost;
+
+      productSalesMap[key].soldCount += qty;
+      productSalesMap[key].totalOmset += itemRevenue;
+      productSalesMap[key].totalModal += itemCost;
+      if (item.size) {
+        productSalesMap[key].sizesSold[item.size] =
+          (productSalesMap[key].sizesSold[item.size] ?? 0) + qty;
+      }
     });
   });
 
@@ -107,48 +142,66 @@ function AdminReports() {
   validOrders.forEach((o) => {
     const k = new Date(o.created_at).toLocaleString("id-ID", { month: "short", year: "numeric" });
     if (!monthly[k]) monthly[k] = { revenue: 0, cost: 0, profit: 0 };
-    
-    const rev = Math.max(0, Number(o.subtotal || o.grand_total) - Number((o as any).discount_amount || 0));
+
+    const rev = Math.max(
+      0,
+      Number(o.subtotal || o.grand_total) - Number((o as any).discount_amount || 0),
+    );
     monthly[k].revenue += rev;
 
     const items = (o as any).order_items || [];
     let orderCost = 0;
     items.forEach((item: any) => {
       const qty = Number(item.quantity) || 1;
+      const prodInfo = productCostMap[item.product_id] || productCostMap[item.product_name];
+      const itemSizeCost = item.size && prodInfo?.sizeCost?.[item.size];
       const unitCost =
         Number(item.cost_price) > 0
           ? Number(item.cost_price)
-          : productCostMap[item.product_id] || 0;
+          : itemSizeCost !== undefined && Number(itemSizeCost) > 0
+            ? Number(itemSizeCost)
+            : prodInfo?.defaultCost || 0;
       orderCost += unitCost * qty;
     });
     monthly[k].cost += orderCost;
-    monthly[k].profit += (rev - orderCost);
+    monthly[k].profit += rev - orderCost;
   });
 
-  // Gabungkan produk dengan jumlah terjual, modal, omset, dan profit
+  // Gabungkan produk dengan jumlah terjual, modal, omset, dan profit aktual
   const processedProducts = useMemo(() => {
     return (products.data ?? [])
       .map((p) => {
-        const soldCount =
-          (p.id ? dynamicSoldCounts[p.id] : 0) ||
-          (p.name ? dynamicSoldCounts[p.name] : 0) ||
-          0;
-        const unitCost = Number((p as any).cost_price ?? 0);
-        const unitSell = Number(p.price ?? 0);
-        const totalOmset = soldCount * unitSell;
-        const totalModal = soldCount * unitCost;
+        const sales = productSalesMap[p.id] || productSalesMap[p.name] || {
+          soldCount: 0,
+          totalOmset: 0,
+          totalModal: 0,
+          sizesSold: {},
+        };
+
+        const soldCount = sales.soldCount;
+        const totalOmset = sales.totalOmset || soldCount * Number(p.price || 0);
+        const totalModal = sales.totalModal || soldCount * Number((p as any).cost_price || 0);
         const totalLaba = totalOmset - totalModal;
         const profitMargin = totalOmset > 0 ? (totalLaba / totalOmset) * 100 : 0;
-        const profitPerPcs = unitSell - unitCost;
+
+        // Hitung rata-rata modal riil dari item yang benar-benar terjual
+        const avgSoldUnitCost =
+          soldCount > 0
+            ? Math.round(totalModal / soldCount)
+            : Number((p as any).cost_price ?? 0);
+        const avgSoldUnitSell =
+          soldCount > 0 ? Math.round(totalOmset / soldCount) : Number(p.price ?? 0);
+        const profitPerPcs = avgSoldUnitSell - avgSoldUnitCost;
 
         return {
           id: p.id,
           name: p.name,
           team: p.team || "—",
           stock: p.stock,
-          cost_price: unitCost,
-          price: unitSell,
+          cost_price: avgSoldUnitCost,
+          price: avgSoldUnitSell,
           sold_count: soldCount,
+          sizes_sold: sales.sizesSold,
           profit_per_pcs: profitPerPcs,
           total_omset: totalOmset,
           total_modal: totalModal,
@@ -157,7 +210,7 @@ function AdminReports() {
         };
       })
       .sort((a, b) => b.total_laba - a.total_laba || b.sold_count - a.sold_count);
-  }, [products.data, dynamicSoldCounts]);
+  }, [products.data, productSalesMap]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
