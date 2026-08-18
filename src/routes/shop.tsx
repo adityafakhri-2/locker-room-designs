@@ -167,6 +167,25 @@ function ShopPage() {
   const setQ = (val: string) => updateSearch(() => ({ q: val }));
   const setPage = (val: number) => navigate({ search: (prev) => ({ ...prev, page: val }) });
 
+  const selectedEditions = useMemo(() => {
+    if (!edition || edition === "all") return [];
+    return edition.split(",").map((s) => s.trim()).filter(Boolean);
+  }, [edition]);
+
+  const toggleEdition = (val: string) => {
+    if (val === "all") {
+      setEdition("all");
+      return;
+    }
+    let next: string[];
+    if (selectedEditions.includes(val)) {
+      next = selectedEditions.filter((e) => e !== val);
+    } else {
+      next = [...selectedEditions, val];
+    }
+    setEdition(next.length === 0 ? "all" : next.join(","));
+  };
+
   const resetAllFilters = () => {
     navigate({
       search: () => ({
@@ -232,7 +251,7 @@ function ShopPage() {
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (category !== "all") count++;
-    if (edition !== "all") count++;
+    if (selectedEditions.length > 0) count += selectedEditions.length;
     if (quality !== "all") count++;
     if (team !== "all") count++;
     if (league !== "all") count++;
@@ -241,7 +260,7 @@ function ShopPage() {
     if (minPrice !== undefined || maxPrice !== undefined) count++;
     if (q.trim()) count++;
     return count;
-  }, [category, edition, quality, team, league, brand, size, minPrice, maxPrice, q]);
+  }, [category, selectedEditions, quality, team, league, brand, size, minPrice, maxPrice, q]);
 
   // Main Products Query with Multi-Filters
   const products = useQuery({
@@ -307,17 +326,29 @@ function ShopPage() {
         qy = qy.lte("price", maxPrice);
       }
 
-      // Edition / Kit Type (Home / Away / Third / GK / Retro)
-      if (edition === "home") {
-        qy = qy.ilike("name", "%home%");
-      } else if (edition === "away") {
-        qy = qy.ilike("name", "%away%");
-      } else if (edition === "third") {
-        qy = qy.ilike("name", "%third%");
-      } else if (edition === "gk") {
-        qy = qy.or("name.ilike.%gk%,name.ilike.%goalkeeper%,name.ilike.%kiper%");
-      } else if (edition === "retro") {
-        qy = qy.or("name.ilike.%retro%,name.ilike.%classic%,name.ilike.%vintage%,name.ilike.%199%,name.ilike.%200%");
+      // Multi-Select Edition / Kit Type (Home / Away / Third / GK / Retro)
+      if (selectedEditions.length > 0) {
+        const editionFilters: string[] = [];
+        selectedEditions.forEach((ed) => {
+          if (ed === "home") editionFilters.push("name.ilike.%home%");
+          if (ed === "away") editionFilters.push("name.ilike.%away%");
+          if (ed === "third") editionFilters.push("name.ilike.%third%");
+          if (ed === "gk") {
+            editionFilters.push("name.ilike.%gk%");
+            editionFilters.push("name.ilike.%goalkeeper%");
+            editionFilters.push("name.ilike.%kiper%");
+          }
+          if (ed === "retro") {
+            editionFilters.push("name.ilike.%retro%");
+            editionFilters.push("name.ilike.%classic%");
+            editionFilters.push("name.ilike.%vintage%");
+            editionFilters.push("name.ilike.%199%");
+            editionFilters.push("name.ilike.%200%");
+          }
+        });
+        if (editionFilters.length > 0) {
+          qy = qy.or(editionFilters.join(","));
+        }
       }
 
       // Keyword Search
@@ -365,35 +396,32 @@ function ShopPage() {
   // Filter Sidebar Controls Component (Reused on Desktop & Mobile Drawer)
   const FilterControls = () => (
     <div className="space-y-6 text-sm">
-      {/* Reset Filter Button */}
-      {activeFiltersCount > 0 && (
-        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between">
-          <span className="text-xs font-bold text-primary">
-            {activeFiltersCount} Filter Diterapkan
-          </span>
-          <button
-            onClick={resetAllFilters}
-            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <RotateCcw className="size-3" />
-            Reset Semua
-          </button>
-        </div>
-      )}
-
-      {/* 1. Tipe Jersey (Home / Away / Third / GK / Retro) */}
+      {/* 1. Tipe Jersey (Home / Away / Third / GK / Retro) - Multi-Select */}
       <div className="space-y-2.5">
         <label className="eyebrow text-xs font-bold text-foreground block">
-          Tipe Jersey
+          Tipe Jersey (Bisa Pilih Banyak)
         </label>
         <div className="flex flex-wrap gap-1.5">
-          {EDITIONS.map((ed) => {
-            const active = edition === ed.value;
+          <button
+            key="all"
+            type="button"
+            onClick={() => toggleEdition("all")}
+            className={cn(
+              "px-3 py-1.5 rounded text-xs font-semibold transition-all cursor-pointer border",
+              selectedEditions.length === 0
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+            )}
+          >
+            Semua Tipe
+          </button>
+          {EDITIONS.filter((e) => e.value !== "all").map((ed) => {
+            const active = selectedEditions.includes(ed.value);
             return (
               <button
                 key={ed.value}
                 type="button"
-                onClick={() => setEdition(ed.value)}
+                onClick={() => toggleEdition(ed.value)}
                 className={cn(
                   "px-3 py-1.5 rounded text-xs font-semibold transition-all cursor-pointer border",
                   active
@@ -624,28 +652,28 @@ function ShopPage() {
               </div>
 
               {/* Search & Sort Controls */}
-              <div className="lg:col-span-6 flex flex-col sm:flex-row gap-3">
+              <div className="lg:col-span-6 flex flex-col sm:flex-row gap-3 items-stretch">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                   <Input
                     placeholder="Cari klub, pemain, tahun, jersey..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 pr-9 h-10 bg-background text-sm rounded-md border-input focus-visible:ring-1"
                   />
                   {q && (
                     <button
                       onClick={() => setQ("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                     >
                       <X className="size-4" />
                     </button>
                   )}
                 </div>
 
-                <div className="w-full sm:w-48">
+                <div className="w-full sm:w-48 shrink-0">
                   <Select value={sort} onValueChange={setSort}>
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className="h-10 bg-background text-sm rounded-md border-input">
                       <SelectValue placeholder="Urutkan" />
                     </SelectTrigger>
                     <SelectContent>
@@ -719,14 +747,14 @@ function ShopPage() {
                   </Badge>
                 )}
 
-                {edition !== "all" && (
-                  <Badge variant="secondary" className="gap-1 text-xs py-1 px-2.5">
-                    Tipe: {EDITIONS.find((e) => e.value === edition)?.label || edition}
-                    <button onClick={() => setEdition("all")} className="hover:text-primary cursor-pointer">
+                {selectedEditions.map((edVal) => (
+                  <Badge key={edVal} variant="secondary" className="gap-1 text-xs py-1 px-2.5">
+                    Tipe: {EDITIONS.find((e) => e.value === edVal)?.label || edVal}
+                    <button onClick={() => toggleEdition(edVal)} className="hover:text-primary cursor-pointer">
                       <X className="size-3" />
                     </button>
                   </Badge>
-                )}
+                ))}
 
                 {quality !== "all" && (
                   <Badge variant="secondary" className="gap-1 text-xs py-1 px-2.5">
