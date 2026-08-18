@@ -76,6 +76,8 @@ export function CreateManualOrderDialog({
   // Form State
   const [recipientName, setRecipientName] = useState("Pelanggan Toko (Walk-in)");
   const [phone, setPhone] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "qris">("cash");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -107,6 +109,91 @@ export function CreateManualOrderDialog({
     null,
   );
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+
+  // Fetch Existing Customers (from Profiles & Previous Orders)
+  const customersQuery = useQuery({
+    queryKey: ["customers-for-manual-order"],
+    enabled: isOpen,
+    queryFn: async () => {
+      const [profilesRes, ordersRes] = await Promise.all([
+        supabase.from("profiles").select("id, nama_lengkap, email, no_hp, kota, alamat"),
+        supabase
+          .from("orders")
+          .select("user_id, recipient_name, recipient_no_hp, recipient_kota, recipient_alamat")
+          .order("created_at", { ascending: false })
+          .limit(200),
+      ]);
+
+      const map = new Map<
+        string,
+        {
+          id?: string;
+          name: string;
+          phone: string;
+          email?: string;
+          city?: string;
+          address?: string;
+          type: "online" | "offline";
+        }
+      >();
+
+      (profilesRes.data ?? []).forEach((p) => {
+        if (p.nama_lengkap) {
+          const key = p.nama_lengkap.trim().toLowerCase();
+          map.set(key, {
+            id: p.id,
+            name: p.nama_lengkap.trim(),
+            phone: p.no_hp || "",
+            email: p.email || "",
+            city: p.kota || "",
+            address: p.alamat || "",
+            type: "online",
+          });
+        }
+      });
+
+      (ordersRes.data ?? []).forEach((o) => {
+        if (o.recipient_name) {
+          const key = o.recipient_name.trim().toLowerCase();
+          if (!map.has(key)) {
+            map.set(key, {
+              id: o.user_id || undefined,
+              name: o.recipient_name.trim(),
+              phone: o.recipient_no_hp && o.recipient_no_hp !== "-" ? o.recipient_no_hp : "",
+              city: o.recipient_kota || "",
+              address: o.recipient_alamat || "",
+              type: "offline",
+            });
+          }
+        }
+      });
+
+      return Array.from(map.values());
+    },
+  });
+
+  const allCustomers = customersQuery.data ?? [];
+
+  // Filter matching customers based on typed recipientName
+  const matchingCustomers = useMemo(() => {
+    if (!recipientName.trim() || recipientName === "Pelanggan Toko (Walk-in)") return [];
+    const term = recipientName.trim().toLowerCase();
+    return allCustomers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(term) ||
+        (c.phone && c.phone.includes(term)) ||
+        (c.email && c.email.toLowerCase().includes(term)),
+    );
+  }, [allCustomers, recipientName]);
+
+  // Handle selecting an existing customer
+  const handleSelectCustomer = (c: (typeof allCustomers)[0]) => {
+    setRecipientName(c.name);
+    if (c.phone) setPhone(c.phone);
+    if (c.id) setSelectedCustomerId(c.id);
+    setCustomerSearchOpen(false);
+    toast.info(`Data pelanggan "${c.name}" diterapkan.`);
+  };
 
   // Fetch Available Products
   const productsQuery = useQuery({
@@ -248,7 +335,7 @@ export function CreateManualOrderDialog({
       // 1. Insert into orders table
       const orderPayload: any = {
         order_number: orderNumber,
-        user_id: user?.id || "00000000-0000-0000-0000-000000000000",
+        user_id: selectedCustomerId || user?.id || "00000000-0000-0000-0000-000000000000",
         recipient_name: recipientName.trim(),
         recipient_no_hp: phone.trim() || "-",
         recipient_alamat: "Outlet AA Jersey / Pembelian Langsung",
@@ -385,17 +472,94 @@ export function CreateManualOrderDialog({
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Bagian 1: Data Pembeli & Info Transaksi */}
             <div className="grid sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/20 border border-border">
-              <div>
-                <Label className="text-xs font-semibold flex items-center gap-1.5 mb-1.5">
-                  <User className="size-3.5 text-primary" />
-                  Nama Pembeli / Pelanggan *
+              <div className="relative">
+                <Label className="text-xs font-semibold flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <User className="size-3.5 text-primary" />
+                    Nama Pembeli / Pelanggan *
+                  </span>
+                  {selectedCustomerId && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      ✓ Database
+                    </span>
+                  )}
                 </Label>
-                <Input
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Contoh: Budi Santoso / Pembeli Toko"
-                  className="h-9 text-xs"
-                />
+
+                <div className="relative">
+                  <Input
+                    value={recipientName}
+                    onChange={(e) => {
+                      setRecipientName(e.target.value);
+                      setSelectedCustomerId(null);
+                      setCustomerSearchOpen(true);
+                    }}
+                    onFocus={() => {
+                      if (recipientName.trim() && matchingCustomers.length > 0) {
+                        setCustomerSearchOpen(true);
+                      }
+                    }}
+                    placeholder="Ketik nama pelanggan..."
+                    className="h-9 text-xs pr-8 bg-background"
+                  />
+                  {recipientName && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecipientName("");
+                        setSelectedCustomerId(null);
+                        setPhone("");
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Dropdown Suggestions if Matches Exist */}
+                {customerSearchOpen && matchingCustomers.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden divide-y divide-border/20 max-h-52 overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                    <div className="p-2 text-[10px] font-bold text-muted-foreground bg-muted/40 uppercase tracking-wider flex items-center justify-between">
+                      <span>Pilih Dari Database ({matchingCustomers.length})</span>
+                      <span className="text-[9px] lowercase font-normal">klik untuk terapkan</span>
+                    </div>
+                    {matchingCustomers.map((c, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSelectCustomer(c)}
+                        className="w-full text-left p-2.5 hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-foreground truncate flex items-center gap-1.5">
+                            <span>{c.name}</span>
+                            {c.type === "online" ? (
+                              <span className="text-[9px] bg-blue-500/10 text-blue-600 px-1 py-0.5 rounded border border-blue-500/20 font-semibold">
+                                Akun Web
+                              </span>
+                            ) : (
+                              <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1 py-0.5 rounded border border-emerald-500/20 font-semibold">
+                                Toko / Kasir
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {c.phone ? `WA: ${c.phone}` : c.email || c.city || "Pelanggan Terdaftar"}
+                          </div>
+                        </div>
+                        <div className="text-[10px] font-semibold text-primary shrink-0">
+                          Pilih ↵
+                        </div>
+                      </button>
+                    ))}
+                    <div
+                      className="p-2 bg-muted/20 text-[11px] text-muted-foreground hover:bg-muted cursor-pointer text-center"
+                      onClick={() => setCustomerSearchOpen(false)}
+                    >
+                      + Gunakan nama <strong>"{recipientName}"</strong> sebagai pelanggan baru
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
