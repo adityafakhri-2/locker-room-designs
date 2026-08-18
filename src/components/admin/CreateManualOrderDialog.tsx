@@ -60,6 +60,7 @@ interface OrderItemRow {
   costPrice: number;
   availableSizes: string[];
   sizeStockMap: Record<string, number>;
+  sizeCostPriceMap: Record<string, number>;
   totalStock: number;
 }
 
@@ -96,6 +97,7 @@ export function CreateManualOrderDialog({
       costPrice: 0,
       availableSizes: [],
       sizeStockMap: {},
+      sizeCostPriceMap: {},
       totalStock: 0,
     },
   ]);
@@ -207,11 +209,11 @@ export function CreateManualOrderDialog({
         )
         .eq("is_active", true)
         .order("name");
-      return data ?? [];
+      return (data ?? []) as any[];
     },
   });
 
-  const allProducts = productsQuery.data ?? [];
+  const allProducts = (productsQuery.data ?? []) as any[];
 
   // Filter products by search term
   const filteredProducts = useMemo(() => {
@@ -232,9 +234,15 @@ export function CreateManualOrderDialog({
 
     const sizes = p.sizes ?? [];
     const sizeStock = (p.size_stock as Record<string, number> | null) ?? {};
+    const sizeCost = ((p as any).size_cost_price as Record<string, number> | null) ?? {};
     // Default pick first available size or first size
     const firstAvailableSize =
-      sizes.find((s) => (sizeStock[s] ?? p.stock) > 0) || sizes[0] || "All Size";
+      sizes.find((s: string) => (sizeStock[s] ?? p.stock) > 0) || sizes[0] || "All Size";
+
+    const selectedCost =
+      sizeCost[firstAvailableSize] !== undefined
+        ? Number(sizeCost[firstAvailableSize])
+        : Number((p as any).cost_price) || 0;
 
     setItems((prev) => {
       const updated = [...prev];
@@ -246,9 +254,10 @@ export function CreateManualOrderDialog({
         size: firstAvailableSize,
         quantity: 1,
         unitPrice: Number(p.price) || 0,
-        costPrice: Number((p as any).cost_price) || 0,
+        costPrice: selectedCost,
         availableSizes: sizes,
         sizeStockMap: sizeStock,
+        sizeCostPriceMap: sizeCost,
         totalStock: p.stock ?? 0,
       };
       return updated;
@@ -266,6 +275,15 @@ export function CreateManualOrderDialog({
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: val };
+
+      // If size is changed, dynamically update the cost price for that specific size
+      if (field === "size") {
+        const sizeCostMap = updated[index].sizeCostPriceMap || {};
+        if (sizeCostMap[val as string] !== undefined && sizeCostMap[val as string] > 0) {
+          updated[index].costPrice = Number(sizeCostMap[val as string]);
+        }
+      }
+
       return updated;
     });
   };
@@ -282,6 +300,7 @@ export function CreateManualOrderDialog({
         costPrice: 0,
         availableSizes: [],
         sizeStockMap: {},
+        sizeCostPriceMap: {},
         totalStock: 0,
       },
     ]);

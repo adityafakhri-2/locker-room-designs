@@ -34,6 +34,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
+  Coins,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -185,6 +186,7 @@ function ProductForm() {
   const navigate = useNavigate();
   const [form, setForm] = useState<PFormState>(emptyForm);
   const [sizeStocks, setSizeStocks] = useState<Record<string, number | string>>({});
+  const [sizeCostPrices, setSizeCostPrices] = useState<Record<string, number | string>>({});
   const [loading, setLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
@@ -346,6 +348,23 @@ function ProductForm() {
         initStocks[s] = Math.ceil(p.stock / Math.max(szs.length, 1));
       });
       setSizeStocks(initStocks);
+    }
+
+    if ((p as any).size_cost_price) {
+      const loadedCost: Record<string, number | string> = {};
+      Object.entries((p as any).size_cost_price as Record<string, number>).forEach(
+        ([sz, val]) => {
+          loadedCost[sz] = val ? formatThousand(val) : "";
+        },
+      );
+      setSizeCostPrices(loadedCost);
+    } else {
+      const baseHpp = (p as any).cost_price ? formatThousand((p as any).cost_price) : "";
+      const initCost: Record<string, number | string> = {};
+      (p.sizes ?? []).forEach((s) => {
+        initCost[s] = baseHpp;
+      });
+      setSizeCostPrices(initCost);
     }
 
     const loadedImages = ((p.product_images as { id: string; url: string }[]) ?? []).map((i) => ({
@@ -637,9 +656,31 @@ function ProductForm() {
     setLoading(true);
     try {
       const filteredSizeStock: Record<string, number> = {};
+      const filteredSizeCostPrice: Record<string, number> = {};
+      const defaultHpp = Number(form.cost_price.replace(/\D/g, "")) || 0;
+
       currentSizes.forEach((s) => {
         filteredSizeStock[s] = Number(sizeStocks[s]) || 0;
+        const rawHpp = String(sizeCostPrices[s] ?? "").replace(/\D/g, "");
+        const numHpp = Number(rawHpp);
+        filteredSizeCostPrice[s] = !isNaN(numHpp) && numHpp > 0 ? numHpp : defaultHpp;
       });
+
+      // Calculate effective weighted cost price
+      let totalStockSum = 0;
+      let totalWeightedHpp = 0;
+      currentSizes.forEach((s) => {
+        const st = filteredSizeStock[s] || 0;
+        const hpp = filteredSizeCostPrice[s] || defaultHpp;
+        totalStockSum += st;
+        totalWeightedHpp += st * hpp;
+      });
+      const effectiveHpp =
+        defaultHpp > 0
+          ? defaultHpp
+          : totalStockSum > 0
+            ? Math.round(totalWeightedHpp / totalStockSum)
+            : filteredSizeCostPrice[currentSizes[0]] || 0;
 
       const firstImage = images[0];
       const coverUrl = firstImage?.url || (firstImage?.storage_path ? supabase.storage.from("product-images").getPublicUrl(firstImage.storage_path).data.publicUrl : null);
@@ -652,7 +693,8 @@ function ProductForm() {
             .replace(/\s+/g, "-")
             .replace(/[^a-z0-9-]/g, ""),
         name: form.name,
-        cost_price: Number(form.cost_price.replace(/\D/g, "")),
+        cost_price: effectiveHpp,
+        size_cost_price: filteredSizeCostPrice,
         original_price: form.original_price ? Number(form.original_price.replace(/\D/g, "")) : null,
         price: Number(form.price.replace(/\D/g, "")),
         stock: totalStockCalculated,
@@ -697,10 +739,10 @@ function ProductForm() {
             .single();
         }
 
-        // 2. Fallback retry if cost_price / original_price / is_spotlight column is not yet in Supabase schema cache
-        if (res.error && (res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.message.includes("is_spotlight") || res.error.code === "PGRST204")) {
-          console.warn("Retrying product insert without cost_price/original_price/is_spotlight...");
-          const { cost_price, original_price, is_spotlight, ...restPayload } = currentPayload;
+        // 2. Fallback retry if size_cost_price / cost_price column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("size_cost_price") || res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.message.includes("is_spotlight") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product insert without custom columns...");
+          const { size_cost_price, cost_price, original_price, is_spotlight, ...restPayload } = currentPayload;
           currentPayload = restPayload as any;
           res = await supabase
             .from("products")
@@ -718,6 +760,14 @@ function ProductForm() {
         if (res.error && res.error.message.includes("authenticity_badge")) {
           console.warn("Retrying product update without custom authenticity_badge enum...");
           currentPayload = { ...currentPayload, authenticity_badge: null };
+          res = await supabase.from("products").update(currentPayload).eq("id", id);
+        }
+
+        // 2. Fallback retry if size_cost_price / cost_price column is not yet in Supabase schema cache
+        if (res.error && (res.error.message.includes("size_cost_price") || res.error.message.includes("cost_price") || res.error.message.includes("original_price") || res.error.message.includes("is_spotlight") || res.error.code === "PGRST204")) {
+          console.warn("Retrying product update without custom columns...");
+          const { size_cost_price, cost_price, original_price, is_spotlight, ...restPayload } = currentPayload;
+          currentPayload = restPayload as any;
           res = await supabase.from("products").update(currentPayload).eq("id", id);
         }
 
@@ -1225,36 +1275,120 @@ function ProductForm() {
               />
             </div>
 
-            <div className="sm:col-span-2 border border-border p-4 rounded-lg bg-muted/20">
-              <span className="text-sm font-semibold block mb-2">
-                Atur Stok per Ukuran ({currentSizes.length} Ukuran)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {currentSizes.map((s) => (
-                  <div key={s} className="bg-background border border-border p-3 rounded shadow-sm">
-                    <Label className="font-semibold text-xs uppercase text-muted-foreground block mb-1">
-                      Stok Ukuran {s}
-                    </Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder="0"
-                      value={sizeStocks[s] === undefined || sizeStocks[s] === null ? "" : sizeStocks[s]}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === "") {
-                          setSizeStocks((prev) => ({ ...prev, [s]: "" }));
-                        } else {
-                          const val = Math.max(0, parseInt(raw, 10) || 0);
-                          setSizeStocks((prev) => ({ ...prev, [s]: val }));
-                        }
-                      }}
-                    />
-                  </div>
-                ))}
+            <div className="sm:col-span-2 border border-border p-4 rounded-xl bg-muted/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-sm font-bold text-foreground block">
+                    Kelola Stok & Harga Modal (HPP) per Ukuran ({currentSizes.length} Ukuran)
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Atur stok dan harga modal berbeda untuk tiap ukuran (misal Size M 65k, Size L 70k).
+                  </p>
+                </div>
+
+                {form.cost_price && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const baseHpp = form.cost_price;
+                      const newMap: Record<string, string> = {};
+                      currentSizes.forEach((s) => {
+                        newMap[s] = baseHpp;
+                      });
+                      setSizeCostPrices(newMap);
+                      toast.info(`HPP Rp ${baseHpp} diterapkan ke semua ukuran.`);
+                    }}
+                    className="text-xs h-8 gap-1.5 text-primary border-primary/30 hover:bg-primary/10 shrink-0 cursor-pointer"
+                  >
+                    <Coins className="size-3.5" />
+                    Terapkan HPP Utama ({form.cost_price}) ke Semua Size
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {currentSizes.map((s) => {
+                  const sizeStockVal =
+                    sizeStocks[s] === undefined || sizeStocks[s] === null ? "" : sizeStocks[s];
+                  const sizeCostVal =
+                    sizeCostPrices[s] === undefined || sizeCostPrices[s] === null
+                      ? ""
+                      : sizeCostPrices[s];
+                  const numCost =
+                    Number(String(sizeCostVal || form.cost_price || 0).replace(/\D/g, "")) || 0;
+                  const numPrice = Number(form.price.replace(/\D/g, "")) || 0;
+                  const sizeProfit = numPrice - numCost;
+
+                  return (
+                    <div
+                      key={s}
+                      className="bg-card border border-border p-3.5 rounded-xl shadow-sm space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
+                        <span className="font-extrabold text-xs uppercase tracking-wider text-primary">
+                          Ukuran {s}
+                        </span>
+                        {numPrice > 0 && numCost > 0 && (
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                              sizeProfit > 0
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : sizeProfit < 0
+                                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                  : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {sizeProfit > 0 ? `+${formatIDR(sizeProfit)}` : formatIDR(sizeProfit)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-muted-foreground block">
+                          Jumlah Stok (pcs)
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={sizeStockVal}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === "") {
+                              setSizeStocks((prev) => ({ ...prev, [s]: "" }));
+                            } else {
+                              const val = Math.max(0, parseInt(raw, 10) || 0);
+                              setSizeStocks((prev) => ({ ...prev, [s]: val }));
+                            }
+                          }}
+                          className="h-8 text-xs font-mono font-bold"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-semibold text-muted-foreground block">
+                          Harga Modal / HPP (Rp)
+                        </Label>
+                        <Input
+                          type="text"
+                          placeholder={form.cost_price || "Contoh: 65.000"}
+                          value={sizeCostVal}
+                          onChange={(e) => {
+                            const formatted = formatThousand(e.target.value);
+                            setSizeCostPrices((prev) => ({ ...prev, [s]: formatted }));
+                          }}
+                          className="h-8 text-xs font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
                 {currentSizes.length === 0 && (
-                  <p className="text-xs text-muted-foreground col-span-2 sm:col-span-4">
-                    Ketik ukuran terlebih dahulu di kolom Ukuran di atas.
+                  <p className="text-xs text-muted-foreground col-span-1 sm:col-span-2 lg:col-span-4 py-3 text-center">
+                    Ketik ukuran terlebih dahulu di kolom Ukuran di atas (misal: S, M, L, XL).
                   </p>
                 )}
               </div>
