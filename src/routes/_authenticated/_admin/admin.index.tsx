@@ -95,17 +95,17 @@ function AdminDashboard() {
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader eyebrow="Admin" title="Dashboard Utama" />
       
-      {/* 4 Financial & Operational Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 Financial & Operational Cards - 2 per row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-border">
           <div className="flex items-center justify-between">
-            <span className="eyebrow text-muted-foreground">Total Omset Penjualan</span>
-            <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Omset Penjualan</span>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
               Lunas
             </span>
           </div>
           <div
-            className="display-md mt-2 text-2xl sm:text-3xl lg:text-xl xl:text-3xl font-bold truncate"
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-2 truncate"
             title={formatIDR(stats.data?.totalRevenue ?? 0)}
           >
             {formatIDR(stats.data?.totalRevenue ?? 0)}
@@ -117,13 +117,13 @@ function AdminDashboard() {
 
         <Card className="border-border">
           <div className="flex items-center justify-between">
-            <span className="eyebrow text-muted-foreground">Total Modal (HPP Terjual)</span>
-            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Modal (HPP Terjual)</span>
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
               COGS
             </span>
           </div>
           <div
-            className="display-md mt-2 text-2xl sm:text-3xl lg:text-xl xl:text-3xl font-bold text-muted-foreground truncate"
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-muted-foreground mt-2 truncate"
             title={formatIDR(stats.data?.totalCost ?? 0)}
           >
             {formatIDR(stats.data?.totalCost ?? 0)}
@@ -133,9 +133,9 @@ function AdminDashboard() {
           </p>
         </Card>
 
-        <Card className="border-border border-emerald-500/20 bg-emerald-500/[0.02]">
+        <Card className="border-border border-emerald-500/30 bg-emerald-500/[0.03]">
           <div className="flex items-center justify-between">
-            <span className="eyebrow text-emerald-600 dark:text-emerald-400 font-bold">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               Total Keuntungan Bersih
             </span>
             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
@@ -143,7 +143,7 @@ function AdminDashboard() {
             </span>
           </div>
           <div
-            className="display-md mt-2 text-2xl sm:text-3xl lg:text-xl xl:text-3xl font-bold text-emerald-600 dark:text-emerald-400 truncate"
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate"
             title={formatIDR(stats.data?.totalProfit ?? 0)}
           >
             {formatIDR(stats.data?.totalProfit ?? 0)}
@@ -155,14 +155,14 @@ function AdminDashboard() {
 
         <Card className="border-border">
           <div className="flex items-center justify-between">
-            <span className="eyebrow text-muted-foreground">Volume & Katalog</span>
-            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Volume & Katalog</span>
+            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
               Stok
             </span>
           </div>
-          <div className="display-md mt-2 text-2xl sm:text-3xl lg:text-xl xl:text-3xl font-bold">
+          <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-2">
             {stats.data?.totalJerseysSold ?? 0}{" "}
-            <span className="text-sm font-normal text-muted-foreground">pcs terjual</span>
+            <span className="text-sm font-semibold text-muted-foreground">pcs terjual</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {stats.data?.productsCount ?? 0} jenis produk · {stats.data?.customersCount ?? 0} pelanggan

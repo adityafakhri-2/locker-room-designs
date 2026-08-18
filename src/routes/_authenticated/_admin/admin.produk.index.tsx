@@ -202,82 +202,84 @@ function AdminProducts() {
         }
       />
 
-      {/* 4 Statistik Finansial & Inventaris Produk */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* 4 Statistik Finansial & Inventaris Produk - 2 per baris */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Card 1: Total Modal Jersey */}
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+        <div className="p-5 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Total Modal (HPP)</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Modal (HPP)</span>
             <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Coins className="size-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-xl font-bold tracking-tight text-foreground font-mono">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatIDR(totalCostValue)}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Dari seluruh <span className="font-semibold text-foreground">{totalStockPcs} pcs</span> stok jersey
             </p>
           </div>
         </div>
 
         {/* Card 2: Total Nilai Jual */}
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+        <div className="p-5 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Total Nilai Jual</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Nilai Jual</span>
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <Tag className="size-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-xl font-bold tracking-tight text-foreground font-mono">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatIDR(totalSellingValue)}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Potensi pendapatan jika semua terjual
+            <p className="text-xs text-muted-foreground mt-1">
+              Potensi pendapatan jika seluruh stok terjual
             </p>
           </div>
         </div>
 
         {/* Card 3: Total Potensi Keuntungan */}
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-emerald-500/30 transition-colors">
+        <div className="p-5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-emerald-500/50 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Potensi Keuntungan</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              Potensi Keuntungan
+            </span>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="size-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">
                 {formatIDR(totalPotentialProfit)}
               </span>
               {overallMarginPercent > 0 && (
-                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                   +{overallMarginPercent.toFixed(1)}%
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Margin keuntungan stok inventaris
+            <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1 font-medium">
+              Margin keuntungan stok inventaris toko
             </p>
           </div>
         </div>
 
         {/* Card 4: Total Volume Katalog */}
-        <div className="p-4 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+        <div className="p-5 rounded-xl border border-border/80 bg-card/60 backdrop-blur-sm shadow-sm flex flex-col justify-between hover:border-border transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Katalog & Stok</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Katalog & Stok</span>
             <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <Shirt className="size-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-xl font-bold tracking-tight text-foreground font-mono">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {totalJerseyModels} Model
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Total <span className="font-semibold text-foreground">{totalStockPcs} pcs</span> jersey siap jual
             </p>
           </div>
