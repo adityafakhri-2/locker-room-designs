@@ -180,24 +180,48 @@ function ProductDetail() {
   const allImages = Array.from(new Set([p.cover_image_url, ...mappedUrls])).filter(
     Boolean,
   ) as string[];
+  useEffect(() => {
+    if (q.data) {
+      const prod = q.data;
+      const rawStock = (prod.size_stock as Record<string, any> | null) ?? {};
+      const szs = prod.sizes ?? [];
+      if (szs.length > 0) {
+        const firstAvail = szs.find((s) => {
+          const st = rawStock[s] !== undefined ? Number(rawStock[s]) : Number(prod.stock);
+          return st > 0;
+        });
+        setSize((prev) => prev || firstAvail || szs[0] || null);
+      }
+    }
+  }, [q.data]);
+
   const cert = p.product_certificates?.[0];
   const avgRating = reviewsQ.data?.length
     ? reviewsQ.data.reduce((s, r) => s + r.rating, 0) / reviewsQ.data.length
     : 0;
 
-  const sizeStockMap =
-    ((p as unknown as { size_stock: Record<string, number> | null }).size_stock as Record<
-      string,
-      number
-    > | null) ?? {};
+  const rawSizeStock = (p.size_stock as Record<string, any> | null) ?? {};
+  const sizeStockMap: Record<string, number> = {};
+  const sizesList = (p.sizes ?? []) as string[];
+
+  sizesList.forEach((s) => {
+    sizeStockMap[s] =
+      rawSizeStock[s] !== undefined ? Number(rawSizeStock[s]) || 0 : Number(p.stock) || 0;
+  });
+
+  const totalStockCount =
+    sizesList.length > 0
+      ? sizesList.reduce((acc, s) => acc + (sizeStockMap[s] || 0), 0)
+      : Number(p.stock) || 0;
+
+  const isProductOutOfStock = totalStockCount <= 0;
+
   const isSizeOutOfStock = (s: string) => {
-    if (s in sizeStockMap) {
-      return sizeStockMap[s] <= 0;
-    }
-    return p.stock <= 0;
+    return (sizeStockMap[s] ?? 0) <= 0;
   };
-  const selectedSizeStock = size ? (sizeStockMap[size] ?? p.stock) : p.stock;
-  const isOutOfStock = p.stock <= 0 || (size ? selectedSizeStock <= 0 : false);
+
+  const selectedSizeStock = size ? (sizeStockMap[size] ?? 0) : totalStockCount;
+  const isSelectedSizeOutOfStock = size ? selectedSizeStock <= 0 : isProductOutOfStock;
 
   return (
     <>
@@ -222,7 +246,7 @@ function ProductDetail() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
           <div>
             <div className="relative group aspect-[4/5] bg-muted overflow-hidden rounded-lg">
-              {p.stock <= 0 && (
+              {isProductOutOfStock && (
                 <div className="absolute top-4 left-4 z-20 bg-rose-600 text-white font-extrabold text-xs px-3 py-1 rounded shadow-md uppercase tracking-wider">
                   STOK HABIS
                 </div>
@@ -236,7 +260,7 @@ function ProductDetail() {
                         alt={p.name}
                         className={cn(
                           "size-full object-cover",
-                          p.stock <= 0 && "grayscale-[30%] opacity-85",
+                          isProductOutOfStock && "grayscale-[30%] opacity-85",
                         )}
                       />
                     </div>
@@ -371,7 +395,7 @@ function ProductDetail() {
             <div className="mt-8 flex gap-3">
               <Button
                 className="flex-1 h-12"
-                disabled={isOutOfStock || addToCart.isPending}
+                disabled={isSelectedSizeOutOfStock || addToCart.isPending}
                 onClick={() => {
                   if (!user) {
                     toast.error("Silakan masuk terlebih dahulu");
@@ -397,9 +421,9 @@ function ProductDetail() {
                   );
                 }}
               >
-                {p.stock <= 0
+                {isProductOutOfStock
                   ? "Stok Habis"
-                  : size && selectedSizeStock <= 0
+                  : isSelectedSizeOutOfStock
                     ? "Stok Ukuran Habis"
                     : "Tambah ke Keranjang"}
               </Button>

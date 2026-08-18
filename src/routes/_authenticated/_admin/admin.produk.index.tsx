@@ -521,7 +521,20 @@ function AdminProducts() {
                               .join(", ") || "—"
                             : (p.categories?.name ?? "—")}
                         </td>
-                        <td className="text-xs pr-4 font-medium">{p.stock}</td>
+                        <td className="text-xs pr-4 font-medium">
+                          {(() => {
+                            const stockEntries = Object.entries(rawStock).filter(([k]) => !k.startsWith("_"));
+                            const realTotalStock =
+                              stockEntries.length > 0
+                                ? stockEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0)
+                                : Number(p.stock) || 0;
+                            return realTotalStock > 0 ? (
+                              <span>{realTotalStock}</span>
+                            ) : (
+                              <span className="text-rose-600 dark:text-rose-400 font-bold">0 (Habis)</span>
+                            );
+                          })()}
+                        </td>
                         <td className="tabular-nums text-xs pr-4">
                           {hasCostVariation ? (
                             <div className="flex flex-col gap-0.5 group/cost relative cursor-help">

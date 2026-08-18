@@ -51,8 +51,17 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
   const isSold =
     p.sold_count !== undefined && p.sold_count !== null && Number(p.sold_count) >= 1;
 
-  const isOutOfStock =
-    p.stock !== undefined && p.stock !== null && Number(p.stock) <= 0;
+  const rawSizeStock = (p as any).size_stock as Record<string, any> | null;
+  let totalCalculatedStock = Number(p.stock) || 0;
+  if (rawSizeStock && typeof rawSizeStock === "object") {
+    const stockEntries = Object.entries(rawSizeStock).filter(([k]) => !k.startsWith("_"));
+    if (stockEntries.length > 0) {
+      const sum = stockEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
+      totalCalculatedStock = sum;
+    }
+  }
+
+  const isOutOfStock = totalCalculatedStock <= 0;
 
   return (
     <article className="group flex flex-col h-full bg-card rounded-lg overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-md transition-all duration-300">

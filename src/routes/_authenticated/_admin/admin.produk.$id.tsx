@@ -695,7 +695,7 @@ function ProductForm() {
         size_cost_price: filteredSizeCostPrice,
         original_price: form.original_price ? Number(form.original_price.replace(/\D/g, "")) : null,
         price: Number(form.price.replace(/\D/g, "")),
-        stock: totalStockCalculated,
+        stock: totalStockSum,
         size_stock: filteredSizeStock,
         category_ids: form.category_ids,
         category_id: form.category_ids[0] || null,
