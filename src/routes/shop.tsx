@@ -373,10 +373,21 @@ function ShopPage() {
       const { data, count, error } = await qy;
       if (error) throw error;
 
-      // Sort items so in-stock products appear first, out-of-stock appear at bottom
+      function getProductRealStock(p: any): number {
+        const raw = p.size_stock as Record<string, any> | null;
+        if (raw && typeof raw === "object") {
+          const entries = Object.entries(raw).filter(([k]) => !k.startsWith("_"));
+          if (entries.length > 0) {
+            return entries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
+          }
+        }
+        return Number(p.stock) || 0;
+      }
+
+      // Sort items so in-stock products appear first, out-of-stock appear at the bottom
       const sortedItems = (data ?? []).slice().sort((a, b) => {
-        const aInStock = (Number(a.stock) || 0) > 0 ? 1 : 0;
-        const bInStock = (Number(b.stock) || 0) > 0 ? 1 : 0;
+        const aInStock = getProductRealStock(a) > 0 ? 1 : 0;
+        const bInStock = getProductRealStock(b) > 0 ? 1 : 0;
         return bInStock - aInStock;
       });
 

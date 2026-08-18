@@ -86,6 +86,21 @@ function ProductDetail() {
     staleTime: 1000 * 10,
   });
 
+  useEffect(() => {
+    if (q.data) {
+      const prod = q.data;
+      const rawStock = (prod.size_stock as Record<string, any> | null) ?? {};
+      const szs = prod.sizes ?? [];
+      if (szs.length > 0) {
+        const firstAvail = szs.find((s) => {
+          const st = rawStock[s] !== undefined ? Number(rawStock[s]) : Number(prod.stock);
+          return st > 0;
+        });
+        setSize((prev) => (prev && szs.includes(prev) ? prev : firstAvail || szs[0] || null));
+      }
+    }
+  }, [q.data]);
+
   const reviewsQ = useQuery({
     queryKey: ["reviews", q.data?.id],
     enabled: !!q.data?.id,
@@ -180,20 +195,6 @@ function ProductDetail() {
   const allImages = Array.from(new Set([p.cover_image_url, ...mappedUrls])).filter(
     Boolean,
   ) as string[];
-  useEffect(() => {
-    if (q.data) {
-      const prod = q.data;
-      const rawStock = (prod.size_stock as Record<string, any> | null) ?? {};
-      const szs = prod.sizes ?? [];
-      if (szs.length > 0) {
-        const firstAvail = szs.find((s) => {
-          const st = rawStock[s] !== undefined ? Number(rawStock[s]) : Number(prod.stock);
-          return st > 0;
-        });
-        setSize((prev) => prev || firstAvail || szs[0] || null);
-      }
-    }
-  }, [q.data]);
 
   const cert = p.product_certificates?.[0];
   const avgRating = reviewsQ.data?.length

@@ -36,7 +36,21 @@ function ProductCardSkeleton() {
   );
 }
 
-  export function NewArrivals() {
+function sortByInStock(items: any[]) {
+  return items.slice().sort((a, b) => {
+    const aRaw = a.size_stock as Record<string, any> | null;
+    const bRaw = b.size_stock as Record<string, any> | null;
+    const aEntries = aRaw && typeof aRaw === "object" ? Object.entries(aRaw).filter(([k]) => !k.startsWith("_")) : [];
+    const bEntries = bRaw && typeof bRaw === "object" ? Object.entries(bRaw).filter(([k]) => !k.startsWith("_")) : [];
+    const aStock = aEntries.length > 0 ? aEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0) : Number(a.stock) || 0;
+    const bStock = bEntries.length > 0 ? bEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0) : Number(b.stock) || 0;
+    const aInStock = aStock > 0 ? 1 : 0;
+    const bInStock = bStock > 0 ? 1 : 0;
+    return bInStock - aInStock;
+  });
+}
+
+export function NewArrivals() {
   const q = useQuery({
     queryKey: ["new-arrivals"],
     queryFn: async () =>
@@ -77,7 +91,7 @@ function ProductCardSkeleton() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {q.data?.map((p) => (
+          {sortByInStock(q.data ?? []).map((p) => (
             <ProductCard key={p.id} p={p} />
           ))}
         </div>
@@ -150,7 +164,7 @@ export function BestSellers() {
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        {q.data!.map((p) => (
+        {sortByInStock(q.data ?? []).map((p) => (
           <ProductCard
             key={p.id}
             p={p}
