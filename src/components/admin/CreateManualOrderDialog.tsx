@@ -518,7 +518,12 @@ export function CreateManualOrderDialog({
 
                 {/* Dropdown Suggestions if Matches Exist */}
                 {customerSearchOpen && matchingCustomers.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden divide-y divide-border/20 max-h-52 overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                  <div
+                    className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden divide-y divide-border/20 max-h-52 overflow-y-auto animate-in fade-in-0 zoom-in-95 overscroll-contain"
+                    data-radix-scroll-lock-ignore="true"
+                    onWheelCapture={(e) => e.stopPropagation()}
+                    onWheel={(e) => e.stopPropagation()}
+                  >
                     <div className="p-2 text-[10px] font-bold text-muted-foreground bg-muted/40 uppercase tracking-wider flex items-center justify-between">
                       <span>Pilih Dari Database ({matchingCustomers.length})</span>
                       <span className="text-[9px] lowercase font-normal">klik untuk terapkan</span>
@@ -722,12 +727,15 @@ export function CreateManualOrderDialog({
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent
-                            className="w-[340px] sm:w-[460px] p-0 z-[100] bg-popover border border-border shadow-2xl rounded-xl"
+                            className="w-[340px] sm:w-[460px] p-0 z-[100] bg-popover border border-border shadow-2xl rounded-xl overscroll-contain"
                             align="start"
+                            data-radix-scroll-lock-ignore="true"
+                            onWheelCapture={(e) => e.stopPropagation()}
+                            onWheel={(e) => e.stopPropagation()}
                           >
                             <div className="p-3 border-b border-border bg-muted/30">
                               <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
                                 <Input
                                   autoFocus
                                   placeholder="Ketik nama klub, tim, tahun, atau jersey..."
@@ -738,7 +746,7 @@ export function CreateManualOrderDialog({
                                 {productSearchTerm && (
                                   <button
                                     onClick={() => setProductSearchTerm("")}
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                                   >
                                     <X className="size-3" />
                                   </button>
@@ -746,7 +754,12 @@ export function CreateManualOrderDialog({
                               </div>
                             </div>
 
-                            <div className="max-h-64 overflow-y-auto p-1.5 space-y-1 divide-y divide-border/20">
+                            <div
+                              className="max-h-64 overflow-y-auto p-1.5 space-y-1 divide-y divide-border/20 overscroll-contain"
+                              data-radix-scroll-lock-ignore="true"
+                              onWheelCapture={(e) => e.stopPropagation()}
+                              onWheel={(e) => e.stopPropagation()}
+                            >
                               {filteredProducts.length === 0 ? (
                                 <div className="p-4 text-center text-xs text-muted-foreground">
                                   Tidak ada jersey yang cocok dengan pencarian "{productSearchTerm}"
