@@ -28,6 +28,8 @@ import {
 import { formatIDR, formatDateTime, statusLabel } from "@/lib/format";
 import { signedUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { Printer } from "lucide-react";
+import { OrderReceiptModal } from "@/components/commerce/OrderReceiptModal";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/pesanan/$orderNumber")({
   component: AdminOrderDetail,
@@ -140,6 +142,7 @@ function AdminOrderDetail() {
   const qc = useQueryClient();
   const [tracking, setTracking] = useState("");
   const [rejectReason, setRejectReason] = useState("");
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin-order", orderNumber],
@@ -245,12 +248,24 @@ function AdminOrderDetail() {
         eyebrow={order.order_number}
         title={statusLabel(displayStatus)}
         action={
-          <Link
-            to="/admin/pesanan"
-            className="text-sm text-muted-foreground hover:underline cursor-pointer"
-          >
-            ← Kembali
-          </Link>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setReceiptModalOpen(true)}
+              className="gap-1.5 text-xs font-semibold h-9"
+            >
+              <Printer className="size-4 text-primary" />
+              Cetak Struk / Invoice
+            </Button>
+            <Link
+              to="/admin/pesanan"
+              className="text-sm text-muted-foreground hover:underline cursor-pointer"
+            >
+              ← Kembali
+            </Link>
+          </div>
         }
       />
 
@@ -473,6 +488,13 @@ function AdminOrderDetail() {
           )}
         </aside>
       </div>
+
+      {/* Modal Cetak Struk & Invoice */}
+      <OrderReceiptModal
+        order={order as any}
+        isOpen={receiptModalOpen}
+        onClose={() => setReceiptModalOpen(false)}
+      />
     </DashboardShell>
   );
 }

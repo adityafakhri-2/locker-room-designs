@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { ADMIN_NAV } from "@/lib/navigation";
 import { formatIDR, formatDate, statusLabel } from "@/lib/format";
-import { Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, ArrowUpDown, ArrowUp, ArrowDown, Plus, Printer, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CreateManualOrderDialog } from "@/components/admin/CreateManualOrderDialog";
+import { OrderReceiptModal, OrderReceiptData } from "@/components/commerce/OrderReceiptModal";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/pesanan/")({
   component: AdminOrders,
@@ -44,6 +46,13 @@ function AdminOrders() {
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [sortField, setSortField] = useState<string>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
+
+  // Manual POS Order & Receipt Modal State
+  const [posDialogOpen, setPosDialogOpen] = useState(false);
+  const [selectedOrderForReceipt, setSelectedOrderForReceipt] = useState<OrderReceiptData | null>(
+    null,
+  );
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
 
   function handleSort(field: string) {
     if (sortField === field) {
@@ -73,7 +82,7 @@ function AdminOrders() {
       const [ordersRes, profilesRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("*, payments(status)")
+          .select("*, payments(status, bank, payment_type), order_items(*)")
           .order("created_at", { ascending: false }),
         supabase.from("profiles").select("id, email, nama_lengkap"),
       ]);
@@ -274,16 +283,26 @@ function AdminOrders() {
         eyebrow="Pesanan"
         title="Manajemen Pesanan"
         action={
-          selectedIds.length > 0 && (
+          <div className="flex items-center gap-2">
             <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteBulk}
-              disabled={deleteMutation.isPending}
+              onClick={() => setPosDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 text-xs h-9 shadow-sm"
             >
-              <Trash2 className="size-4 mr-1.5" /> Hapus Terpilih ({selectedIds.length})
+              <Plus className="size-4" />
+              + Catat Transaksi Manual / POS
             </Button>
-          )
+            {selectedIds.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteBulk}
+                disabled={deleteMutation.isPending}
+                className="text-xs h-9"
+              >
+                <Trash2 className="size-4 mr-1.5" /> Hapus Terpilih ({selectedIds.length})
+              </Button>
+            )}
+          </div>
         }
       />
       <Card>
@@ -550,13 +569,28 @@ function AdminOrders() {
                             {formatIDR(o.grand_total)}
                           </td>
                           <td className="py-3 text-center">
-                            <button
-                              onClick={() => handleDeleteSingle(o.id)}
-                              className="text-destructive hover:opacity-70 transition-opacity cursor-pointer"
-                              disabled={deleteMutation.isPending}
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForReceipt(o as any);
+                                  setReceiptModalOpen(true);
+                                }}
+                                className="p-1.5 rounded hover:bg-primary/10 text-primary hover:text-primary transition-colors cursor-pointer"
+                                title="Cetak Struk / Download Invoice"
+                              >
+                                <Printer className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSingle(o.id)}
+                                className="p-1.5 rounded hover:bg-destructive/10 text-destructive hover:opacity-70 transition-opacity cursor-pointer"
+                                disabled={deleteMutation.isPending}
+                                title="Hapus Pesanan"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -572,6 +606,22 @@ function AdminOrders() {
           </div>
         )}
       </Card>
+
+      {/* Dialog Catat Transaksi Manual / POS */}
+      <CreateManualOrderDialog
+        isOpen={posDialogOpen}
+        onClose={() => setPosDialogOpen(false)}
+      />
+
+      {/* Modal Cetak Struk & Invoice */}
+      <OrderReceiptModal
+        order={selectedOrderForReceipt}
+        isOpen={receiptModalOpen}
+        onClose={() => {
+          setReceiptModalOpen(false);
+          setSelectedOrderForReceipt(null);
+        }}
+      />
 
       <AlertDialog
         open={deleteConfirmOpen}
