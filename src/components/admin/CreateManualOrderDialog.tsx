@@ -233,11 +233,11 @@ export function CreateManualOrderDialog({
     if (!p) return;
 
     const sizes = p.sizes ?? [];
-    const sizeStock = (p.size_stock as Record<string, number> | null) ?? {};
-    const sizeCost = ((p as any).size_cost_price as Record<string, number> | null) ?? {};
+    const sizeStockRaw = (p.size_stock as Record<string, any> | null) ?? {};
+    const sizeCost = sizeStockRaw["_cost_prices"] || (p as any).size_cost_price || {};
     // Default pick first available size or first size
     const firstAvailableSize =
-      sizes.find((s: string) => (sizeStock[s] ?? p.stock) > 0) || sizes[0] || "All Size";
+      sizes.find((s: string) => (sizeStockRaw[s] ?? p.stock) > 0) || sizes[0] || "All Size";
 
     const selectedCost =
       sizeCost[firstAvailableSize] !== undefined
@@ -256,7 +256,7 @@ export function CreateManualOrderDialog({
         unitPrice: Number(p.price) || 0,
         costPrice: selectedCost,
         availableSizes: sizes,
-        sizeStockMap: sizeStock,
+        sizeStockMap: sizeStockRaw,
         sizeCostPriceMap: sizeCost,
         totalStock: p.stock ?? 0,
       };

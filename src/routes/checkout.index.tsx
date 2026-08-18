@@ -443,7 +443,8 @@ function CheckoutPage() {
       // 2. Masukkan item pesanan (Ini memicu trigger public.decrease_stock_on_order_item)
       const orderItems = items.map((i) => {
         const prod = i.products as any;
-        const sizeCost = (prod?.size_cost_price as Record<string, number> | null) ?? {};
+        const stockRaw = (prod?.size_stock as Record<string, any> | null) ?? {};
+        const sizeCost = stockRaw["_cost_prices"] || prod?.size_cost_price || {};
         const unitCost =
           i.size && sizeCost[i.size] !== undefined && Number(sizeCost[i.size]) > 0
             ? Number(sizeCost[i.size])

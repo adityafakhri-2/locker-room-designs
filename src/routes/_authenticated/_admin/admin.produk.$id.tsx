@@ -340,33 +340,27 @@ function ProductForm() {
       is_spotlight: (p as any).is_spotlight ?? false,
     });
 
-    if (p.size_stock) {
-      setSizeStocks(p.size_stock as Record<string, number>);
-    } else {
-      const szs = p.sizes ?? [];
-      const initStocks: Record<string, number> = {};
-      szs.forEach((s) => {
-        initStocks[s] = Math.ceil(p.stock / Math.max(szs.length, 1));
-      });
-      setSizeStocks(initStocks);
-    }
+    const sizeStockRaw = (p.size_stock as Record<string, any> | null) ?? {};
+    const stockMap: Record<string, number> = {};
+    (p.sizes ?? []).forEach((s) => {
+      stockMap[s] = Number(sizeStockRaw[s]) || 0;
+    });
+    setSizeStocks(stockMap);
 
-    if ((p as any).size_cost_price) {
-      const loadedCost: Record<string, number | string> = {};
-      Object.entries((p as any).size_cost_price as Record<string, number>).forEach(
-        ([sz, val]) => {
-          loadedCost[sz] = val ? formatThousand(val) : "";
-        },
-      );
-      setSizeCostPrices(loadedCost);
-    } else {
-      const baseHpp = (p as any).cost_price ? formatThousand((p as any).cost_price) : "";
-      const initCost: Record<string, number | string> = {};
-      (p.sizes ?? []).forEach((s) => {
-        initCost[s] = baseHpp;
-      });
-      setSizeCostPrices(initCost);
-    }
+    const loadedCosts =
+      sizeStockRaw["_cost_prices"] ||
+      (p as any).size_cost_price ||
+      {};
+    const loadedCostMap: Record<string, string> = {};
+    const baseHppStr = (p as any).cost_price ? formatThousand((p as any).cost_price) : "";
+    (p.sizes ?? []).forEach((sz) => {
+      if (loadedCosts[sz] !== undefined && loadedCosts[sz] !== null && loadedCosts[sz] !== "") {
+        loadedCostMap[sz] = formatThousand(loadedCosts[sz]);
+      } else {
+        loadedCostMap[sz] = baseHppStr;
+      }
+    });
+    setSizeCostPrices(loadedCostMap);
 
     const loadedImages = ((p.product_images as { id: string; url: string }[]) ?? []).map((i) => ({
       id: i.id,
@@ -656,7 +650,7 @@ function ProductForm() {
 
     setLoading(true);
     try {
-      const filteredSizeStock: Record<string, number> = {};
+      const filteredSizeStock: Record<string, any> = {};
       const filteredSizeCostPrice: Record<string, number> = {};
       const defaultHpp = Number(form.cost_price.replace(/\D/g, "")) || 0;
 
@@ -671,7 +665,7 @@ function ProductForm() {
       let totalStockSum = 0;
       let totalWeightedHpp = 0;
       currentSizes.forEach((s) => {
-        const st = filteredSizeStock[s] || 0;
+        const st = Number(filteredSizeStock[s]) || 0;
         const hpp = filteredSizeCostPrice[s] || defaultHpp;
         totalStockSum += st;
         totalWeightedHpp += st * hpp;
@@ -682,6 +676,9 @@ function ProductForm() {
           : totalStockSum > 0
             ? Math.round(totalWeightedHpp / totalStockSum)
             : filteredSizeCostPrice[currentSizes[0]] || 0;
+
+      // Embed per-size cost prices in size_stock JSON column
+      filteredSizeStock["_cost_prices"] = filteredSizeCostPrice;
 
       const firstImage = images[0];
       const coverUrl = firstImage?.url || (firstImage?.storage_path ? supabase.storage.from("product-images").getPublicUrl(firstImage.storage_path).data.publicUrl : null);
