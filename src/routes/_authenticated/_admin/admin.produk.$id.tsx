@@ -151,9 +151,9 @@ function formatThousand(val: string | number): string {
 const emptyForm: PFormState = {
   slug: "",
   name: "",
-  cost_price: "0",
+  cost_price: "",
   original_price: "",
-  price: "0",
+  price: "",
   category_ids: [],
   brand: "",
   team: "",
@@ -184,7 +184,7 @@ function ProductForm() {
   const isNew = id === "baru";
   const navigate = useNavigate();
   const [form, setForm] = useState<PFormState>(emptyForm);
-  const [sizeStocks, setSizeStocks] = useState<Record<string, number>>({});
+  const [sizeStocks, setSizeStocks] = useState<Record<string, number | string>>({});
   const [loading, setLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
@@ -318,9 +318,9 @@ function ProductForm() {
     setForm({
       slug: p.slug,
       name: p.name,
-      cost_price: formatThousand((p as any).cost_price ?? 0),
+      cost_price: (p as any).cost_price ? formatThousand((p as any).cost_price) : "",
       original_price: (p as any).original_price ? formatThousand((p as any).original_price) : "",
-      price: formatThousand(p.price),
+      price: p.price ? formatThousand(p.price) : "",
       category_ids: p.category_ids ?? (p.category_id ? [p.category_id] : []),
       brand: p.brand ?? "",
       team: p.team ?? "",
@@ -424,7 +424,7 @@ function ProductForm() {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const totalStockCalculated = currentSizes.reduce((sum, s) => sum + (sizeStocks[s] ?? 0), 0);
+  const totalStockCalculated = currentSizes.reduce((sum, s) => sum + (Number(sizeStocks[s]) || 0), 0);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
 
@@ -638,7 +638,7 @@ function ProductForm() {
     try {
       const filteredSizeStock: Record<string, number> = {};
       currentSizes.forEach((s) => {
-        filteredSizeStock[s] = sizeStocks[s] ?? 0;
+        filteredSizeStock[s] = Number(sizeStocks[s]) || 0;
       });
 
       const firstImage = images[0];
@@ -1239,10 +1239,15 @@ function ProductForm() {
                       type="number"
                       min={0}
                       placeholder="0"
-                      value={sizeStocks[s] ?? 0}
+                      value={sizeStocks[s] === undefined || sizeStocks[s] === null ? "" : sizeStocks[s]}
                       onChange={(e) => {
-                        const val = Math.max(0, parseInt(e.target.value) || 0);
-                        setSizeStocks((prev) => ({ ...prev, [s]: val }));
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          setSizeStocks((prev) => ({ ...prev, [s]: "" }));
+                        } else {
+                          const val = Math.max(0, parseInt(raw, 10) || 0);
+                          setSizeStocks((prev) => ({ ...prev, [s]: val }));
+                        }
                       }}
                     />
                   </div>
