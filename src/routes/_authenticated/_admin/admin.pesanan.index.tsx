@@ -82,7 +82,7 @@ function AdminOrders() {
       const [ordersRes, profilesRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("*, payments(status, bank, payment_type), order_items(*)")
+          .select("*, payments(status, bank, method), order_items(*)")
           .order("created_at", { ascending: false }),
         supabase.from("profiles").select("id, email, nama_lengkap"),
       ]);

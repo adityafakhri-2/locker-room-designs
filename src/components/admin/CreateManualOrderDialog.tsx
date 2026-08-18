@@ -32,6 +32,9 @@ import {
   Coins,
   TrendingUp,
   CreditCard,
+  Banknote,
+  Building2,
+  QrCode,
   Calendar as CalendarIcon,
   User,
   Phone,
@@ -294,7 +297,7 @@ export function CreateManualOrderDialog({
         order_id: newOrder.id,
         amount: grandTotal,
         status: "approved",
-        payment_type: paymentMethod,
+        method: paymentMethod,
         bank: paymentBankLabel,
         verified_at: dateObj.toISOString(),
         created_at: dateObj.toISOString(),
@@ -462,13 +465,28 @@ export function CreateManualOrderDialog({
                   value={paymentMethod}
                   onValueChange={(val: any) => setPaymentMethod(val)}
                 >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
+                  <SelectTrigger className="h-9 text-xs bg-background">
+                    <SelectValue placeholder="Pilih Metode Pembayaran" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">💵 Tunai / Cash (Kasir)</SelectItem>
-                    <SelectItem value="bank_transfer">🏦 Transfer Bank (BCA/Mandiri/BRI)</SelectItem>
-                    <SelectItem value="qris">📱 QRIS / E-Wallet</SelectItem>
+                    <SelectItem value="cash">
+                      <div className="flex items-center gap-2">
+                        <Banknote className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Tunai / Cash (Kasir)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="bank_transfer">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="size-4 text-blue-600 dark:text-blue-400" />
+                        <span>Transfer Bank (BCA/Mandiri/BRI)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="qris">
+                      <div className="flex items-center gap-2">
+                        <QrCode className="size-4 text-purple-600 dark:text-purple-400" />
+                        <span>QRIS / E-Wallet</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -688,20 +706,13 @@ export function CreateManualOrderDialog({
 
                         <div>
                           <Label className="text-[11px] text-muted-foreground block mb-1">
-                            Harga Satuan (Rp)
+                            Harga Satuan (Asli)
                           </Label>
                           <Input
-                            type="number"
-                            min={0}
-                            value={item.unitPrice}
-                            onChange={(e) =>
-                              handleUpdateItem(
-                                idx,
-                                "unitPrice",
-                                Math.max(0, parseInt(e.target.value) || 0),
-                              )
-                            }
-                            className="h-8 text-xs font-mono font-semibold"
+                            type="text"
+                            disabled
+                            value={formatIDR(item.unitPrice)}
+                            className="h-8 text-xs font-mono font-bold bg-muted/60 text-muted-foreground cursor-not-allowed opacity-90"
                           />
                         </div>
 

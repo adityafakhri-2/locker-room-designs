@@ -53,7 +53,7 @@ export function OrderReceiptModal({
   const payment = Array.isArray(order.payments) ? order.payments[0] : order.payments;
   const paymentMethod =
     payment?.bank ||
-    payment?.payment_type ||
+    payment?.method ||
     (order.note?.toLowerCase().includes("cash") ? "Tunai / Cash" : "Transfer Bank");
 
   const handlePrint = () => {
