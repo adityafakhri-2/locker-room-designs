@@ -187,6 +187,7 @@ function ProductForm() {
   const [form, setForm] = useState<PFormState>(emptyForm);
   const [sizeStocks, setSizeStocks] = useState<Record<string, number | string>>({});
   const [sizeCostPrices, setSizeCostPrices] = useState<Record<string, number | string>>({});
+  const [bulkHppInput, setBulkHppInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [isSuggestingPrice, setIsSuggestingPrice] = useState(false);
@@ -823,13 +824,30 @@ function ProductForm() {
     }
   }
 
-  const numCost = Number(form.cost_price.replace(/\D/g, "")) || 0;
+  // Calculate average HPP and profit metrics dynamically from the per-size table below
+  let totalStockSum = 0;
+  let totalWeightedCost = 0;
+  currentSizes.forEach((s) => {
+    const st = Number(sizeStocks[s]) || 0;
+    const cp =
+      Number(String(sizeCostPrices[s] || form.cost_price || 0).replace(/\D/g, "")) || 0;
+    totalStockSum += st;
+    totalWeightedCost += st * cp;
+  });
+  const avgCostPerUnit =
+    totalStockSum > 0
+      ? Math.round(totalWeightedCost / totalStockSum)
+      : Number(String(sizeCostPrices[currentSizes[0]] || form.cost_price || 0).replace(/\D/g, "")) ||
+        0;
+
+  const numCost = avgCostPerUnit;
   const numOriginalPrice = Number(form.original_price.replace(/\D/g, "")) || 0;
   const numPrice = Number(form.price.replace(/\D/g, "")) || 0;
   const profitPerUnit = numPrice - numCost;
   const profitMarginPercent = numPrice > 0 ? (profitPerUnit / numPrice) * 100 : 0;
   const markupPercent = numCost > 0 ? (profitPerUnit / numCost) * 100 : 0;
-  const totalEstimatedProfit = profitPerUnit * totalStockCalculated;
+  const totalEstimatedProfit =
+    numPrice * totalStockCalculated - avgCostPerUnit * totalStockCalculated;
 
   const isOriginalPriceInvalid = numOriginalPrice > 0 && numOriginalPrice <= numPrice;
 
@@ -915,95 +933,103 @@ function ProductForm() {
               </Popover>
             </div>
 
-            {/* 3-Column Price Configuration: Modal, Harga Coret (Gimmick), Harga Jual */}
-            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-lg bg-muted/20 border border-border">
-              <div>
-                <div className="flex items-center justify-between h-5 mb-1.5">
-                  <Label className="text-xs font-semibold">Harga Modal / HPP (Rp)</Label>
+            {/* 2-Column Price Configuration: Harga Jual & Harga Coret (Gimmick) with Auto HPP Badge */}
+            <div className="sm:col-span-2 p-4 rounded-xl bg-muted/20 border border-border space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground block">
+                    Penetapan Harga Jual & Promo
+                  </span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Harga modal (HPP) diatur otomatis dan presisi pada tabel ukuran di bawah.
+                  </p>
                 </div>
-                <Input
-                  type="text"
-                  value={form.cost_price}
-                  onChange={(e) => set("cost_price", formatThousand(e.target.value))}
-                  placeholder="Contoh: 120.000"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Modal per pcs jersey
-                </p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between h-5 mb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Label
-                      className={cn(
-                        "text-xs font-semibold",
-                        isOriginalPriceInvalid && "text-rose-600 dark:text-rose-400 font-bold",
-                      )}
-                    >
-                      Harga Coret / Awal (Rp)
-                    </Label>
-                    <span className="text-[10px] bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.2 rounded">
-                      Gimmick
-                    </span>
+                {avgCostPerUnit > 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-border text-xs font-semibold text-foreground self-start sm:self-auto">
+                    <span className="text-muted-foreground font-normal text-[11px]">Rata-rata Modal:</span>
+                    <strong className="text-primary font-mono">{formatIDR(avgCostPerUnit)}</strong>
+                    <span className="text-[10px] text-muted-foreground">/ pcs</span>
                   </div>
-                </div>
-                <Input
-                  type="text"
-                  value={form.original_price}
-                  onChange={(e) => set("original_price", formatThousand(e.target.value))}
-                  placeholder="Contoh: 250.000"
-                  className={cn(
-                    isOriginalPriceInvalid &&
-                      "border-rose-500 text-rose-600 dark:text-rose-400 focus-visible:ring-rose-500 bg-rose-500/5",
-                  )}
-                />
-                {isOriginalPriceInvalid ? (
-                  <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1 animate-pulse">
-                    ⚠️ Harus lebih besar dari harga jual (&gt; {formatIDR(numPrice)}).
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Harga normal yg dicoret di toko (opsional)
-                  </p>
                 )}
               </div>
 
-              <div>
-                <div className="flex items-center justify-between h-5 mb-1.5">
-                  <Label className="text-xs font-semibold text-primary font-bold">Harga Jual / Promo (Rp) *</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleAIPriceSuggest}
-                    disabled={isSuggestingPrice}
-                    className="h-5 text-xs text-primary hover:text-primary hover:bg-primary/5 gap-1 px-1 font-semibold transition-all duration-200"
-                  >
-                    {isSuggestingPrice ? (
-                      <>
-                        <Loader2 className="size-3 animate-spin" />
-                        <span>Menganalisis...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="size-3" />
-                        <span>Saran AI</span>
-                      </>
-                    )}
-                  </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between h-5 mb-1.5">
+                    <Label className="text-xs font-semibold text-primary font-bold">
+                      Harga Jual / Promo (Rp) *
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAIPriceSuggest}
+                      disabled={isSuggestingPrice}
+                      className="h-5 text-xs text-primary hover:text-primary hover:bg-primary/5 gap-1 px-1 font-semibold transition-all duration-200"
+                    >
+                      {isSuggestingPrice ? (
+                        <>
+                          <Loader2 className="size-3 animate-spin" />
+                          <span>Menganalisis...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="size-3" />
+                          <span>Saran AI</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <Input
+                    type="text"
+                    required
+                    value={form.price}
+                    onChange={(e) => set("price", formatThousand(e.target.value))}
+                    placeholder="Contoh: 120.000"
+                    className="border-primary/50 focus-visible:ring-primary font-mono font-bold"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Harga bayar yang ditagih ke pembeli
+                  </p>
                 </div>
-                <Input
-                  type="text"
-                  required
-                  value={form.price}
-                  onChange={(e) => set("price", formatThousand(e.target.value))}
-                  placeholder="Contoh: 180.000"
-                  className="border-primary/50 focus-visible:ring-primary"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Harga bayar yang ditagih ke pembeli
-                </p>
+
+                <div>
+                  <div className="flex items-center justify-between h-5 mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Label
+                        className={cn(
+                          "text-xs font-semibold",
+                          isOriginalPriceInvalid && "text-rose-600 dark:text-rose-400 font-bold",
+                        )}
+                      >
+                        Harga Coret / Normal (Rp)
+                      </Label>
+                      <span className="text-[10px] bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold px-1.5 py-0.2 rounded">
+                        Gimmick Diskon
+                      </span>
+                    </div>
+                  </div>
+                  <Input
+                    type="text"
+                    value={form.original_price}
+                    onChange={(e) => set("original_price", formatThousand(e.target.value))}
+                    placeholder="Contoh: 200.000"
+                    className={cn(
+                      "font-mono",
+                      isOriginalPriceInvalid &&
+                        "border-rose-500 text-rose-600 dark:text-rose-400 focus-visible:ring-rose-500 bg-rose-500/5",
+                    )}
+                  />
+                  {isOriginalPriceInvalid ? (
+                    <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1 animate-pulse">
+                      ⚠️ Harus lebih besar dari harga jual (&gt; {formatIDR(numPrice)}).
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Harga awal yang dicoret di katalog web (opsional)
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1276,36 +1302,46 @@ function ProductForm() {
             </div>
 
             <div className="sm:col-span-2 border border-border p-4 rounded-xl bg-muted/20 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-sm font-bold text-foreground block">
                     Kelola Stok & Harga Modal (HPP) per Ukuran ({currentSizes.length} Ukuran)
                   </span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Atur stok dan harga modal berbeda untuk tiap ukuran (misal Size M 65k, Size L 70k).
+                    Atur stok dan modal per ukuran (misal Size M 65k, Size L 70k).
                   </p>
                 </div>
 
-                {form.cost_price && (
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="relative w-32">
+                    <Input
+                      type="text"
+                      placeholder="HPP sama..."
+                      value={bulkHppInput}
+                      onChange={(e) => setBulkHppInput(formatThousand(e.target.value))}
+                      className="h-8 text-xs font-mono font-bold bg-background"
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={!bulkHppInput.trim()}
                     onClick={() => {
-                      const baseHpp = form.cost_price;
+                      if (!bulkHppInput.trim()) return;
                       const newMap: Record<string, string> = {};
                       currentSizes.forEach((s) => {
-                        newMap[s] = baseHpp;
+                        newMap[s] = bulkHppInput;
                       });
                       setSizeCostPrices(newMap);
-                      toast.info(`HPP Rp ${baseHpp} diterapkan ke semua ukuran.`);
+                      toast.info(`HPP Rp ${bulkHppInput} diterapkan ke semua ukuran.`);
                     }}
                     className="text-xs h-8 gap-1.5 text-primary border-primary/30 hover:bg-primary/10 shrink-0 cursor-pointer"
                   >
                     <Coins className="size-3.5" />
-                    Terapkan HPP Utama ({form.cost_price}) ke Semua Size
+                    Samakan HPP
                   </Button>
-                )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
