@@ -289,7 +289,7 @@ function AdminOrders() {
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 text-xs h-9 shadow-sm"
             >
               <Plus className="size-4" />
-              + Catat Transaksi Manual / POS
+              Catat Transaksi Manual / POS
             </Button>
             {selectedIds.length > 0 && (
               <Button

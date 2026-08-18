@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatDate } from "@/lib/format";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Trash2,
@@ -28,15 +32,17 @@ import {
   Coins,
   TrendingUp,
   CreditCard,
-  Banknote,
-  QrCode,
-  Calendar,
+  Calendar as CalendarIcon,
   User,
   Phone,
   Shirt,
-  Sparkles,
+  Search,
+  Check,
+  ChevronsUpDown,
   Loader2,
+  X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { OrderReceiptModal, OrderReceiptData } from "@/components/commerce/OrderReceiptModal";
 
@@ -68,12 +74,8 @@ export function CreateManualOrderDialog({
   const [recipientName, setRecipientName] = useState("Pelanggan Toko (Walk-in)");
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "qris">("cash");
-  const [transactionDate, setTransactionDate] = useState(() => {
-    const now = new Date();
-    // Format YYYY-MM-DDTHH:mm
-    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16);
-  });
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [shippingCost, setShippingCost] = useState<number>(0);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [notes, setNotes] = useState("Transaksi Langsung di Outlet Cimahi");
@@ -93,6 +95,10 @@ export function CreateManualOrderDialog({
     },
   ]);
 
+  // Product Popover State per row
+  const [openProductPopoverIndex, setOpenProductPopoverIndex] = useState<number | null>(null);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+
   // Created Receipt Modal State
   const [createdOrderForReceipt, setCreatedOrderForReceipt] = useState<OrderReceiptData | null>(
     null,
@@ -107,7 +113,7 @@ export function CreateManualOrderDialog({
       const { data } = await supabase
         .from("products")
         .select(
-          "id, slug, name, price, cost_price, cover_image_url, sizes, size_stock, stock, is_active",
+          "id, slug, name, price, cost_price, cover_image_url, team, league, sizes, size_stock, stock, is_active",
         )
         .eq("is_active", true)
         .order("name");
@@ -117,6 +123,18 @@ export function CreateManualOrderDialog({
 
   const allProducts = productsQuery.data ?? [];
 
+  // Filter products by search term
+  const filteredProducts = useMemo(() => {
+    if (!productSearchTerm.trim()) return allProducts;
+    const term = productSearchTerm.toLowerCase().trim();
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        (p.team && p.team.toLowerCase().includes(term)) ||
+        (p.league && p.league.toLowerCase().includes(term)),
+    );
+  }, [allProducts, productSearchTerm]);
+
   // Update item row when selecting product
   const handleSelectProduct = (index: number, productId: string) => {
     const p = allProducts.find((item) => item.id === productId);
@@ -125,7 +143,8 @@ export function CreateManualOrderDialog({
     const sizes = p.sizes ?? [];
     const sizeStock = (p.size_stock as Record<string, number> | null) ?? {};
     // Default pick first available size or first size
-    const firstAvailableSize = sizes.find((s) => (sizeStock[s] ?? p.stock) > 0) || sizes[0] || "All Size";
+    const firstAvailableSize =
+      sizes.find((s) => (sizeStock[s] ?? p.stock) > 0) || sizes[0] || "All Size";
 
     setItems((prev) => {
       const updated = [...prev];
@@ -144,6 +163,9 @@ export function CreateManualOrderDialog({
       };
       return updated;
     });
+
+    setOpenProductPopoverIndex(null);
+    setProductSearchTerm("");
   };
 
   const handleUpdateItem = <K extends keyof OrderItemRow>(
@@ -199,7 +221,6 @@ export function CreateManualOrderDialog({
   // Submit Mutation
   const createOrderMutation = useMutation({
     mutationFn: async () => {
-      // Validate
       if (!recipientName.trim()) {
         throw new Error("Nama pembeli / pelanggan wajib diisi!");
       }
@@ -209,7 +230,7 @@ export function CreateManualOrderDialog({
       }
 
       // Generate Order Number: POS-YYYYMMDD-XXXX
-      const dateObj = new Date(transactionDate || Date.now());
+      const dateObj = selectedDate || new Date();
       const ymd = dateObj.toISOString().slice(0, 10).replace(/-/g, "");
       const rand = Math.floor(1000 + Math.random() * 9000);
       const orderNumber = `POS-${ymd}-${rand}`;
@@ -237,8 +258,8 @@ export function CreateManualOrderDialog({
         grand_total: grandTotal,
         status: "delivered", // Offline orders are fulfilled immediately
         note: notes.trim() || `Transaksi Manual / Kasir (${paymentBankLabel})`,
-        created_at: new Date(transactionDate).toISOString(),
-        updated_at: new Date(transactionDate).toISOString(),
+        created_at: dateObj.toISOString(),
+        updated_at: dateObj.toISOString(),
       };
 
       const { data: newOrder, error: orderError } = await supabase
@@ -275,9 +296,9 @@ export function CreateManualOrderDialog({
         status: "approved",
         payment_type: paymentMethod,
         bank: paymentBankLabel,
-        verified_at: new Date(transactionDate).toISOString(),
-        created_at: new Date(transactionDate).toISOString(),
-        updated_at: new Date(transactionDate).toISOString(),
+        verified_at: dateObj.toISOString(),
+        created_at: dateObj.toISOString(),
+        updated_at: dateObj.toISOString(),
       };
 
       const { error: paymentError } = await supabase.from("payments").insert(paymentPayload);
@@ -387,17 +408,49 @@ export function CreateManualOrderDialog({
                 />
               </div>
 
+              {/* Tanggal Transaksi (Custom Popover Calendar Matching Theme) */}
               <div>
                 <Label className="text-xs font-semibold flex items-center gap-1.5 mb-1.5">
-                  <Calendar className="size-3.5 text-primary" />
-                  Tanggal & Waktu Transaksi *
+                  <CalendarIcon className="size-3.5 text-primary" />
+                  Tanggal Transaksi *
                 </Label>
-                <Input
-                  type="datetime-local"
-                  value={transactionDate}
-                  onChange={(e) => setTransactionDate(e.target.value)}
-                  className="h-9 text-xs"
-                />
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full h-9 justify-between text-left font-normal text-xs bg-background border-input cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarIcon className="size-3.5 text-primary" />
+                        {selectedDate
+                          ? selectedDate.toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : "Pilih Tanggal"}
+                      </span>
+                      <ChevronsUpDown className="size-3 text-muted-foreground" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-0 z-[100] bg-popover border border-border shadow-xl rounded-xl"
+                    align="start"
+                  >
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedDate(date);
+                          setDatePickerOpen(false);
+                        }
+                      }}
+                      initialFocus
+                      className="rounded-lg border-0"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
@@ -421,7 +474,7 @@ export function CreateManualOrderDialog({
               </div>
             </div>
 
-            {/* Bagian 2: Daftar Jersey yang Dibeli */}
+            {/* Bagian 2: Daftar Jersey yang Dibeli (Searchable Combobox) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
@@ -433,7 +486,7 @@ export function CreateManualOrderDialog({
                   size="sm"
                   variant="outline"
                   onClick={handleAddItem}
-                  className="h-8 gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10"
+                  className="h-8 gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/10 cursor-pointer"
                 >
                   <Plus className="size-3.5" />
                   Tambah Jersey
@@ -447,27 +500,130 @@ export function CreateManualOrderDialog({
                     className="p-3.5 rounded-xl border border-border bg-card shadow-sm space-y-3"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-xs font-bold text-muted-foreground pt-1">
+                      <span className="text-xs font-bold text-muted-foreground pt-2">
                         #{idx + 1}
                       </span>
 
-                      {/* Pilih Produk */}
+                      {/* Searchable Jersey Combobox */}
                       <div className="flex-1 min-w-[200px]">
-                        <Select
-                          value={item.productId}
-                          onValueChange={(pId) => handleSelectProduct(idx, pId)}
+                        <Popover
+                          open={openProductPopoverIndex === idx}
+                          onOpenChange={(open) => {
+                            setOpenProductPopoverIndex(open ? idx : null);
+                            if (open) setProductSearchTerm("");
+                          }}
                         >
-                          <SelectTrigger className="h-9 text-xs">
-                            <SelectValue placeholder="Pilih Jersey dari Katalog..." />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-60">
-                            {allProducts.map((prod) => (
-                              <SelectItem key={prod.id} value={prod.id}>
-                                {prod.name} — {formatIDR(prod.price)} (Stok: {prod.stock} pcs)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between h-10 text-xs font-normal bg-background border-input cursor-pointer",
+                                !item.productId && "text-muted-foreground",
+                              )}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                {item.coverImage && (
+                                  <img
+                                    src={item.coverImage}
+                                    alt=""
+                                    className="size-6 rounded object-cover border border-border"
+                                  />
+                                )}
+                                <span className="truncate font-semibold text-foreground">
+                                  {item.productName
+                                    ? `${item.productName} — ${formatIDR(item.unitPrice)} (Stok: ${item.totalStock} pcs)`
+                                    : "🔍 Cari & Pilih Jersey dari Katalog..."}
+                                </span>
+                              </div>
+                              <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-[340px] sm:w-[460px] p-0 z-[100] bg-popover border border-border shadow-2xl rounded-xl"
+                            align="start"
+                          >
+                            <div className="p-3 border-b border-border bg-muted/30">
+                              <div className="relative">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                                <Input
+                                  autoFocus
+                                  placeholder="Ketik nama klub, tim, tahun, atau jersey..."
+                                  value={productSearchTerm}
+                                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                                  className="h-8 pl-8 pr-8 text-xs bg-background"
+                                />
+                                {productSearchTerm && (
+                                  <button
+                                    onClick={() => setProductSearchTerm("")}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="max-h-64 overflow-y-auto p-1.5 space-y-1 divide-y divide-border/20">
+                              {filteredProducts.length === 0 ? (
+                                <div className="p-4 text-center text-xs text-muted-foreground">
+                                  Tidak ada jersey yang cocok dengan pencarian "{productSearchTerm}"
+                                </div>
+                              ) : (
+                                filteredProducts.map((p) => {
+                                  const isSelected = item.productId === p.id;
+                                  return (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      onClick={() => handleSelectProduct(idx, p.id)}
+                                      className={cn(
+                                        "w-full text-left p-2 rounded-lg flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer",
+                                        isSelected
+                                          ? "bg-primary/10 text-primary font-bold"
+                                          : "hover:bg-muted/80 text-foreground",
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        {p.cover_image_url ? (
+                                          <img
+                                            src={p.cover_image_url}
+                                            alt=""
+                                            className="size-8 rounded object-cover border border-border shrink-0"
+                                          />
+                                        ) : (
+                                          <div className="size-8 rounded bg-muted grid place-items-center shrink-0">
+                                            <Shirt className="size-4 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                        <div className="truncate">
+                                          <div className="font-semibold truncate">{p.name}</div>
+                                          <div className="text-[10px] text-muted-foreground">
+                                            {p.team || p.league ? `${p.team || ""} · ${p.league || ""}` : "Jersey Bola"}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right shrink-0">
+                                        <div className="font-mono font-bold text-foreground">
+                                          {formatIDR(p.price)}
+                                        </div>
+                                        <div
+                                          className={cn(
+                                            "text-[10px] font-semibold",
+                                            p.stock > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500",
+                                          )}
+                                        >
+                                          {p.stock > 0 ? `Stok: ${p.stock} pcs` : "Stok Habis"}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
 
                       {/* Tombol Hapus Baris */}
@@ -477,7 +633,7 @@ export function CreateManualOrderDialog({
                         size="sm"
                         onClick={() => handleRemoveItem(idx)}
                         disabled={items.length <= 1}
-                        className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10"
+                        className="h-10 w-10 p-0 text-destructive hover:bg-destructive/10 cursor-pointer"
                         title="Hapus jersey ini"
                       >
                         <Trash2 className="size-4" />
@@ -646,7 +802,7 @@ export function CreateManualOrderDialog({
 
           {/* Footer Actions */}
           <div className="p-4 border-t border-border bg-card flex items-center justify-between gap-3">
-            <Button type="button" variant="outline" onClick={onClose} className="text-xs">
+            <Button type="button" variant="outline" onClick={onClose} className="text-xs cursor-pointer">
               Batal
             </Button>
 
@@ -654,7 +810,7 @@ export function CreateManualOrderDialog({
               type="button"
               disabled={createOrderMutation.isPending || items.length === 0}
               onClick={() => createOrderMutation.mutate()}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 text-xs"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 text-xs cursor-pointer"
             >
               {createOrderMutation.isPending ? (
                 <>
