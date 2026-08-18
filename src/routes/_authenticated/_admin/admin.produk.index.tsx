@@ -449,10 +449,30 @@ function AdminProducts() {
                 </thead>
                 <tbody>
                   {sortedProducts.map((p) => {
-                    const cost = Number(p.cost_price ?? 0);
+                    const sizes = (p.sizes ?? []) as string[];
+                    const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
+                    const sizeCostMap = rawStock["_cost_prices"] || (p as any).size_cost_price || {};
+                    const defaultCost = Number((p as any).cost_price ?? 0);
+
+                    // Extract costs per size
+                    const costsList: { size: string; cost: number }[] = sizes.map((s) => ({
+                      size: s,
+                      cost:
+                        sizeCostMap[s] !== undefined && Number(sizeCostMap[s]) > 0
+                          ? Number(sizeCostMap[s])
+                          : defaultCost,
+                    }));
+
+                    const allCosts = costsList.map((c) => c.cost).filter((c) => c > 0);
+                    const minCost = allCosts.length > 0 ? Math.min(...allCosts) : defaultCost;
+                    const maxCost = allCosts.length > 0 ? Math.max(...allCosts) : defaultCost;
+                    const hasCostVariation = minCost !== maxCost && allCosts.length > 1;
+
                     const sell = Number(p.price ?? 0);
-                    const profit = sell - cost;
-                    const margin = sell > 0 ? (profit / sell) * 100 : 0;
+                    const minProfit = sell - maxCost;
+                    const maxProfit = sell - minCost;
+                    const minMargin = sell > 0 ? (minProfit / sell) * 100 : 0;
+                    const maxMargin = sell > 0 ? (maxProfit / sell) * 100 : 0;
                     const isSpotlight = (p as any).is_spotlight === true;
 
                     return (
@@ -502,8 +522,33 @@ function AdminProducts() {
                             : (p.categories?.name ?? "—")}
                         </td>
                         <td className="text-xs pr-4 font-medium">{p.stock}</td>
-                        <td className="tabular-nums text-xs text-muted-foreground pr-4">
-                          {formatIDR(cost)}
+                        <td className="tabular-nums text-xs pr-4">
+                          {hasCostVariation ? (
+                            <div className="flex flex-col gap-0.5 group/cost relative cursor-help">
+                              <span className="font-semibold text-foreground">
+                                {formatIDR(minCost)} – {formatIDR(maxCost)}
+                              </span>
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <span className="underline decoration-dotted underline-offset-2">
+                                  {sizes.length} Size (Beda HPP)
+                                </span>
+                              </div>
+                              {/* Hover Tooltip breakdown */}
+                              <div className="hidden group-hover/cost:flex flex-col gap-1 absolute bottom-full left-0 mb-1 z-30 bg-popover text-popover-foreground border border-border px-2.5 py-1.5 rounded-lg shadow-xl text-[11px] whitespace-nowrap pointer-events-none">
+                                <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-wider">
+                                  Rincian Modal Ukuran:
+                                </span>
+                                {costsList.map((c) => (
+                                  <div key={c.size} className="flex justify-between gap-3 text-xs">
+                                    <span className="font-semibold">Size {c.size}:</span>
+                                    <span className="font-mono text-primary font-bold">{formatIDR(c.cost)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">{formatIDR(minCost || defaultCost)}</span>
+                          )}
                         </td>
                         <td className="tabular-nums pr-4">
                           <div className="flex flex-col">
@@ -521,25 +566,49 @@ function AdminProducts() {
                           </div>
                         </td>
                         <td className="tabular-nums pr-4">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={cn(
-                                "text-xs font-bold",
-                                profit > 0
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : profit < 0
-                                    ? "text-rose-600 dark:text-rose-400"
-                                    : "text-muted-foreground",
-                              )}
-                            >
-                              {formatIDR(profit)}
-                            </span>
-                            {profit > 0 && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 font-semibold border border-emerald-500/20">
-                                {margin.toFixed(0)}%
+                          {hasCostVariation ? (
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    "text-xs font-bold",
+                                    minProfit > 0
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : minProfit < 0
+                                        ? "text-rose-600 dark:text-rose-400"
+                                        : "text-muted-foreground",
+                                  )}
+                                >
+                                  {formatIDR(minProfit)} – {formatIDR(maxProfit)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 font-semibold border border-emerald-500/20">
+                                  {minMargin.toFixed(0)}% – {maxMargin.toFixed(0)}%
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={cn(
+                                  "text-xs font-bold",
+                                  maxProfit > 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : maxProfit < 0
+                                      ? "text-rose-600 dark:text-rose-400"
+                                      : "text-muted-foreground",
+                                )}
+                              >
+                                {formatIDR(maxProfit)}
                               </span>
-                            )}
-                          </div>
+                              {maxProfit > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 font-semibold border border-emerald-500/20">
+                                  {maxMargin.toFixed(0)}%
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="text-xs pr-4">{p.is_active ? "✓" : "—"}</td>
                         <td className="text-xs pr-4 text-center">
