@@ -48,6 +48,31 @@ export const Route = createFileRoute("/_authenticated/_admin/admin/produk/")({
   component: AdminProducts,
 });
 
+function calculateProductCostAndStock(p: any) {
+  const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
+  const sizeCostMap = (rawStock["_cost_prices"] || p.size_cost_price || {}) as Record<string, any>;
+  const defaultCost = Number(p.cost_price ?? 0);
+  const stockEntries = Object.entries(rawStock).filter(([k]) => !k.startsWith("_"));
+
+  if (stockEntries.length > 0) {
+    let totalStock = 0;
+    let totalCost = 0;
+    stockEntries.forEach(([sz, qtyVal]) => {
+      const qty = Number(qtyVal) || 0;
+      const szCost =
+        sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
+          ? Number(sizeCostMap[sz])
+          : defaultCost;
+      totalStock += qty;
+      totalCost += szCost * qty;
+    });
+    return { stock: totalStock, totalCost };
+  }
+
+  const stock = Number(p.stock ?? 0);
+  return { stock, totalCost: defaultCost * stock };
+}
+
 function AdminProducts() {
   const qc = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -106,17 +131,15 @@ function AdminProducts() {
 
   const allProducts = q.data ?? [];
 
-  // 1. Total Modal (HPP Inventaris Keseluruhan)
+  // 1. Total Modal (HPP Inventaris Keseluruhan - Ukuran Spesifik)
   const totalCostValue = allProducts.reduce((sum, p) => {
-    const cost = Number(p.cost_price ?? 0);
-    const qty = Number(p.stock ?? 0);
-    return sum + cost * qty;
+    return sum + calculateProductCostAndStock(p).totalCost;
   }, 0);
 
   // 2. Total Nilai Jual (Potensi Omset Keseluruhan)
   const totalSellingValue = allProducts.reduce((sum, p) => {
     const price = Number(p.price ?? 0);
-    const qty = Number(p.stock ?? 0);
+    const qty = calculateProductCostAndStock(p).stock;
     return sum + price * qty;
   }, 0);
 
@@ -127,7 +150,7 @@ function AdminProducts() {
 
   // 4. Volume Katalog & Stok
   const totalJerseyModels = allProducts.length;
-  const totalStockPcs = allProducts.reduce((sum, p) => sum + (Number(p.stock ?? 0) || 0), 0);
+  const totalStockPcs = allProducts.reduce((sum, p) => sum + calculateProductCostAndStock(p).stock, 0);
 
   const filteredProducts = allProducts.filter((p) => {
     const term = search.toLowerCase();
