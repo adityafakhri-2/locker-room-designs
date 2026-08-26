@@ -59,7 +59,7 @@ function AdminProducts() {
   const [stockFilter, setStockFilter] = useState("all");
   const [sortField, setSortField] = useState<
     "name" | "category" | "stock" | "price" | "is_active" | null
-  >(null);
+  >("name");
   const [sortAsc, setSortAsc] = useState(true);
 
   const categoriesQuery = useQuery({
@@ -74,7 +74,7 @@ function AdminProducts() {
         await supabase
           .from("products")
           .select("*, categories(name)")
-          .order("created_at", { ascending: false })
+          .order("name", { ascending: true })
       ).data ?? [],
   });
 

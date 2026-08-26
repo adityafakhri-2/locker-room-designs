@@ -74,7 +74,7 @@ export const Route = createFileRoute("/shop")({
     size: (search.size as string) || "all",
     minPrice: search.minPrice ? Number(search.minPrice) : undefined,
     maxPrice: search.maxPrice ? Number(search.maxPrice) : undefined,
-    sort: (search.sort as string) || "newest",
+    sort: (search.sort as string) || "name_asc",
     q: (search.q as string) || "",
     page: Number(search.page) || 1,
   }),
@@ -140,7 +140,7 @@ function ShopPage() {
   const size = search.size || "all";
   const minPrice = search.minPrice;
   const maxPrice = search.maxPrice;
-  const sort = search.sort || "newest";
+  const sort = search.sort || "name_asc";
   const q = search.q || "";
   const page = search.page || 1;
 
@@ -198,7 +198,7 @@ function ShopPage() {
         size: "all",
         minPrice: undefined,
         maxPrice: undefined,
-        sort: "newest",
+        sort: "name_asc",
         q: "",
         page: 1,
       }),
@@ -360,10 +360,13 @@ function ShopPage() {
       }
 
       // Sorting
-      if (sort === "price_low") qy = qy.order("price", { ascending: true });
+      if (sort === "name_asc") qy = qy.order("name", { ascending: true });
+      else if (sort === "name_desc") qy = qy.order("name", { ascending: false });
+      else if (sort === "price_low") qy = qy.order("price", { ascending: true });
       else if (sort === "price_high") qy = qy.order("price", { ascending: false });
       else if (sort === "best") qy = qy.order("sold_count", { ascending: false });
-      else qy = qy.order("created_at", { ascending: false });
+      else if (sort === "newest") qy = qy.order("created_at", { ascending: false });
+      else qy = qy.order("name", { ascending: true });
 
       // Range for pagination
       const from = (pageParam - 1) * ITEMS_PER_PAGE;
@@ -723,6 +726,8 @@ function ShopPage() {
                       <SelectValue placeholder="Urutkan" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="name_asc">A - Z (Nama)</SelectItem>
+                      <SelectItem value="name_desc">Z - A (Nama)</SelectItem>
                       <SelectItem value="newest">Terbaru</SelectItem>
                       <SelectItem value="best">Terlaris</SelectItem>
                       <SelectItem value="price_low">Harga Terendah</SelectItem>

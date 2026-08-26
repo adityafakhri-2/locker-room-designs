@@ -159,7 +159,7 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
         </div>
 
         {/* Bagian Bawah: Harga Highlight & Status Terjual */}
-        <div className="pt-1 border-t border-border/40 mt-auto">
+        <div className="pt-1 mt-auto">
           {/* Harga Coret & Diskon */}
           {hasDiscount && (
             <div className="flex items-center gap-1.5 mb-0.5">
