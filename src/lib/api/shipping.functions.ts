@@ -424,3 +424,41 @@ export const getStoreOrigin = createServerFn({ method: "GET" })
     };
   }
 });
+
+export const getPublicStoreInfo = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: userRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin")
+      .limit(1)
+      .maybeSingle();
+
+    if (userRole) {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("nama_lengkap, no_hp, kota, provinsi, alamat")
+        .eq("id", userRole.user_id)
+        .maybeSingle();
+
+      if (profile) {
+        return {
+          storeName: profile.nama_lengkap || "AA Jersey",
+          noHp: profile.no_hp || "0895-8088-60080",
+          kota: profile.kota || "Kota Cimahi",
+          provinsi: profile.provinsi || "Jawa Barat",
+        };
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching public store info:", err);
+  }
+
+  return {
+    storeName: "AA Jersey",
+    noHp: "0895-8088-60080",
+    kota: "Kota Cimahi",
+    provinsi: "Jawa Barat",
+  };
+});
