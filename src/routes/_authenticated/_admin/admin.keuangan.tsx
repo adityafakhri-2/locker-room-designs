@@ -56,6 +56,12 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/keuangan")({
   component: AdminKeuangan,
@@ -72,6 +78,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   lainnya: "Pengeluaran Lainnya",
   penjualan: "Penjualan Jersey (Otomatis)",
 };
+
+const chartConfig = {
+  masuk: {
+    label: "Dana Masuk",
+    color: "#10b981",
+  },
+  keluar: {
+    label: "Dana Keluar",
+    color: "#f43f5e",
+  },
+} satisfies ChartConfig;
 
 function formatThousand(val: string | number): string {
   const clean = String(val).replace(/\D/g, "");
@@ -499,28 +516,34 @@ function AdminKeuangan() {
           Tren Keuangan 6 Bulan Terakhir
         </h2>
         <div className="h-[280px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          <ChartContainer config={chartConfig} className="h-full w-full min-h-[250px] aspect-auto">
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                tickFormatter={(v) => (v >= 1000000 ? `${(v / 1000000).toFixed(0)}Jt` : `${v / 1000}rb`)}
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
               />
-              <Tooltip
-                formatter={(value) => [formatIDR(Number(value)), ""]}
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                }}
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                tickFormatter={(v) =>
+                  v === 0 ? "0" : v >= 1000000 ? `${(v / 1000000).toFixed(0)}Jt` : `${v / 1000}rb`
+                }
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="line" className="bg-popover border-border" />}
               />
               <Legend wrapperStyle={{ fontSize: "11px", marginTop: "10px" }} />
-              <Bar name="Dana Masuk" dataKey="masuk" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar name="Dana Keluar" dataKey="keluar" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              <Bar name="Dana Masuk" dataKey="masuk" fill="var(--color-masuk)" radius={[4, 4, 0, 0]} />
+              <Bar name="Dana Keluar" dataKey="keluar" fill="var(--color-keluar)" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </Card>
 
