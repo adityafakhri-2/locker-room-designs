@@ -22,8 +22,12 @@ export function Footer() {
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-16">
           {/* Brand & Slogan */}
           <div className="lg:col-span-5">
-            <Link to="/" className="inline-flex items-center gap-2 group">
-              <span className="inline-block size-2.5 bg-primary rounded-full group-hover:scale-125 transition-transform" aria-hidden />
+            <Link to="/" className="inline-flex items-center gap-3 group">
+              <img
+                src="/logo-aa-jersey.png"
+                alt="Logo AA Jersey"
+                className="size-9 object-contain group-hover:scale-105 transition-transform"
+              />
               <span className="font-display font-black uppercase tracking-tight text-xl text-white">
                 AA Jersey
               </span>

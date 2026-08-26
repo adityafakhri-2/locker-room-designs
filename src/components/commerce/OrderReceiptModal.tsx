@@ -143,6 +143,11 @@ Terima kasih telah berbelanja di AA Jersey!`;
             >
               {/* Logo & Store Header */}
               <div className="text-center pb-4 border-b border-dashed border-zinc-300">
+                <img
+                  src="/logo-aa-jersey.png"
+                  alt="AA Jersey"
+                  className="size-10 object-contain mx-auto mb-1.5"
+                />
                 <h2 className="font-black text-base tracking-widest text-zinc-900">
                   AA JERSEY
                 </h2>
@@ -254,19 +259,26 @@ Terima kasih telah berbelanja di AA Jersey!`;
               className="w-full bg-white text-zinc-900 p-8 rounded-lg shadow-sm border border-zinc-200 text-xs leading-relaxed print:w-full print:shadow-none print:border-none print:p-0 print:m-0"
             >
               <div className="flex justify-between items-start pb-6 border-b border-zinc-200">
-                <div>
-                  <h1 className="font-black text-xl tracking-tight text-zinc-900">
-                    AA JERSEY
-                  </h1>
-                  <p className="text-zinc-500 text-xs mt-0.5">
-                    Official Store & Football Kits Specialist
-                  </p>
-                  <p className="text-zinc-500 text-xs mt-1">
-                    Jl. KH Usman Domiri, Padasuka, Cimahi Tengah, Jawa Barat
-                  </p>
-                  <p className="text-zinc-500 text-xs">
-                    WhatsApp: 0895-8088-60080 · Email: hello@jerseyaa.com
-                  </p>
+                <div className="flex items-center gap-3.5">
+                  <img
+                    src="/logo-aa-jersey.png"
+                    alt="Logo AA Jersey"
+                    className="size-12 object-contain"
+                  />
+                  <div>
+                    <h1 className="font-black text-xl tracking-tight text-zinc-900">
+                      AA JERSEY
+                    </h1>
+                    <p className="text-zinc-500 text-xs mt-0.5">
+                      Official Store & Football Kits Specialist
+                    </p>
+                    <p className="text-zinc-500 text-xs mt-1">
+                      Jl. KH Usman Domiri, Padasuka, Cimahi Tengah, Jawa Barat
+                    </p>
+                    <p className="text-zinc-500 text-xs">
+                      WhatsApp: 0895-8088-60080 · Email: hello@jerseyaa.com
+                    </p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className="inline-block px-3 py-1 bg-zinc-900 text-white font-extrabold tracking-wider uppercase text-xs rounded">

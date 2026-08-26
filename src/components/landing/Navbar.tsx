@@ -62,9 +62,13 @@ export function Navbar({ overHero = false }: NavbarProps) {
       <div className="container-swiss grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4 h-16 md:h-20">
         <Link
           to="/"
-          className="flex items-center gap-2 min-w-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm"
+          className="flex items-center gap-2.5 min-w-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm group"
         >
-          <span className="inline-block size-2.5 bg-primary" aria-hidden="true" />
+          <img
+            src="/logo-aa-jersey.png"
+            alt="Logo AA Jersey"
+            className="size-7 md:size-8 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+          />
           <span className="font-display font-extrabold tracking-tight text-base md:text-lg uppercase whitespace-nowrap">
             AA Jersey
           </span>

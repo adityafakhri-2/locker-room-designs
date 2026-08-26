@@ -561,11 +561,17 @@ function AuthPage() {
         className="min-h-screen pt-20 md:pt-24 bg-muted/30 grid place-items-center px-5 py-12"
       >
         <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
-          <Link to="/" className="eyebrow text-muted-foreground">
-            ← Kembali ke beranda
+          <Link to="/" className="inline-flex items-center gap-2.5 group">
+            <img
+              src="/logo-aa-jersey.png"
+              alt="Logo AA Jersey"
+              className="size-8 object-contain group-hover:scale-105 transition-transform"
+            />
+            <span className="font-display font-extrabold uppercase tracking-tight text-lg">
+              AA Jersey
+            </span>
           </Link>
-          <h1 className="display-md mt-4">AA Jersey</h1>
-          <p className="text-sm text-muted-foreground mt-2">Jersey Asli, Gaya Sejati.</p>
+          <p className="text-xs text-muted-foreground mt-2">Jersey Asli, Gaya Sejati.</p>
 
           {showForgotPassword ? (
             <div className="mt-8">
