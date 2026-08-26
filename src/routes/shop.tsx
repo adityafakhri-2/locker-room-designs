@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
@@ -81,7 +81,7 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 9;
 
 const EDITIONS = [
   { value: "all", label: "Semua Tipe" },
@@ -263,9 +263,9 @@ function ShopPage() {
   }, [category, selectedEditions, quality, team, league, brand, size, minPrice, maxPrice, q]);
 
   // Main Products Query with Multi-Filters
-  const products = useQuery({
+  const productsQuery = useInfiniteQuery({
     queryKey: [
-      "products",
+      "products-infinite",
       activeCategoryId,
       edition,
       quality,
@@ -277,9 +277,9 @@ function ShopPage() {
       maxPrice,
       sort,
       q,
-      page,
     ],
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam = 1 }) => {
       let qy = supabase
         .from("products")
         .select(
@@ -313,9 +313,9 @@ function ShopPage() {
         qy = qy.eq("brand", brand);
       }
 
-      // Size
+      // Size filter (only show products with stock > 0 for selected size)
       if (size !== "all") {
-        qy = qy.contains("sizes", [size]);
+        qy = qy.gt(`size_stock->${size}`, 0);
       }
 
       // Price Range
@@ -366,43 +366,79 @@ function ShopPage() {
       else qy = qy.order("created_at", { ascending: false });
 
       // Range for pagination
-      const from = (page - 1) * ITEMS_PER_PAGE;
+      const from = (pageParam - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       qy = qy.range(from, to);
 
       const { data, count, error } = await qy;
       if (error) throw error;
 
-      function getProductRealStock(p: any): number {
-        const raw = p.size_stock as Record<string, any> | null;
-        if (raw && typeof raw === "object") {
-          const entries = Object.entries(raw).filter(([k]) => !k.startsWith("_"));
-          if (entries.length > 0) {
-            return entries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
-          }
-        }
-        return Number(p.stock) || 0;
-      }
-
-      // Sort items so in-stock products appear first, out-of-stock appear at the bottom
-      const sortedItems = (data ?? []).slice().sort((a, b) => {
-        const aInStock = getProductRealStock(a) > 0 ? 1 : 0;
-        const bInStock = getProductRealStock(b) > 0 ? 1 : 0;
-        return bInStock - aInStock;
-      });
-
       return {
-        items: sortedItems,
+        items: data ?? [],
         total: count ?? 0,
       };
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((acc, p) => acc + p.items.length, 0);
+      if (totalLoaded >= lastPage.total) return undefined;
+      return allPages.length + 1;
     },
     staleTime: 1000 * 10,
   });
 
-  const list = products.data?.items ?? [];
-  const total = products.data?.total ?? 0;
-  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
-  const empty = !products.isLoading && list.length === 0;
+  const list = useMemo(() => {
+    if (!productsQuery.data) return [];
+    const flattened = productsQuery.data.pages.flatMap((page) => page.items);
+
+    function getProductRealStock(p: any): number {
+      const raw = p.size_stock as Record<string, any> | null;
+      if (raw && typeof raw === "object") {
+        const entries = Object.entries(raw).filter(([k]) => !k.startsWith("_"));
+        if (entries.length > 0) {
+          return entries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
+        }
+      }
+      return Number(p.stock) || 0;
+    }
+
+    return flattened.slice().sort((a, b) => {
+      const aInStock = getProductRealStock(a) > 0 ? 1 : 0;
+      const bInStock = getProductRealStock(b) > 0 ? 1 : 0;
+      return bInStock - aInStock;
+    });
+  }, [productsQuery.data]);
+
+  const total = productsQuery.data?.pages[0]?.total ?? 0;
+  const hasNextPage = !!productsQuery.hasNextPage;
+  const isFetchingNextPage = !!productsQuery.isFetchingNextPage;
+  const fetchNextPage = productsQuery.fetchNextPage;
+  const empty = !productsQuery.isLoading && list.length === 0;
+
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const current = triggerRef.current;
+    if (current) {
+      observer.observe(current);
+    }
+
+    return () => {
+      if (current) {
+        observer.unobserve(current);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Filter Sidebar Controls Component (Reused on Desktop & Mobile Drawer)
   const FilterControls = () => (
@@ -646,8 +682,7 @@ function ShopPage() {
       <Navbar />
       <main id="main-content">
         <Section bare className="pt-28 md:pt-36 pb-20 md:pb-28">
-          <div className="container-swiss">
-            {/* Header Title & Search Controls */}
+          {/* Header Title & Search Controls */}
             <div className="grid lg:grid-cols-12 gap-6 lg:gap-10 mb-8 items-end">
               <div className="lg:col-span-6">
                 <span className="eyebrow text-muted-foreground">N° 01 — Katalog & Filter</span>
@@ -869,7 +904,7 @@ function ShopPage() {
                   </p>
                 </div>
 
-                {products.isLoading ? (
+                {productsQuery.isLoading ? (
                   <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-6 lg:gap-8">
                     {Array.from({ length: 6 }).map((_, i) => (
                       <ProductCardSkeleton key={i} />
@@ -897,35 +932,16 @@ function ShopPage() {
                       ))}
                     </div>
 
-                    {totalPages > 1 && (
-                      <nav
-                        className="mt-12 flex justify-center items-center gap-4"
-                        aria-label="Navigasi Halaman"
-                      >
-                        <button
-                          disabled={page <= 1}
-                          onClick={() => setPage(page - 1)}
-                          className="px-4 py-2 border border-border text-sm font-semibold rounded hover:border-foreground disabled:opacity-30 disabled:hover:border-border transition-all cursor-pointer"
-                        >
-                          Sebelumnya
-                        </button>
-                        <span className="text-sm font-semibold mx-2">
-                          Halaman {page} dari {totalPages}
-                        </span>
-                        <button
-                          disabled={page >= totalPages}
-                          onClick={() => setPage(page + 1)}
-                          className="px-4 py-2 border border-border text-sm font-semibold rounded hover:border-foreground disabled:opacity-30 disabled:hover:border-border transition-all cursor-pointer"
-                        >
-                          Berikutnya
-                        </button>
-                      </nav>
-                    )}
+                    {/* Infinite Scroll Trigger & Loader */}
+                    <div ref={triggerRef} className="h-10 w-full mt-8 flex items-center justify-center">
+                      {isFetchingNextPage && (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                      )}
+                    </div>
                   </>
                 )}
               </div>
             </div>
-          </div>
         </Section>
       </main>
       <Footer />
