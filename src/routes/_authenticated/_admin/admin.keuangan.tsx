@@ -33,6 +33,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatIDR, formatDate } from "@/lib/format";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   TrendingUp,
   TrendingDown,
@@ -41,7 +43,8 @@ import {
   Wallet,
   ShoppingBag,
   Briefcase,
-  Calendar,
+  Calendar as CalendarIcon,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -79,6 +82,7 @@ function formatThousand(val: string | number): string {
 function AdminKeuangan() {
   const qc = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Form State
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
@@ -273,13 +277,46 @@ function AdminKeuangan() {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="date">Tanggal Transaksi</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={txDate}
-                    onChange={(e) => setTxDate(e.target.value)}
-                  />
+                  <Label>Tanggal Transaksi</Label>
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-between text-left font-normal text-xs bg-background border-input cursor-pointer h-10 animate-fade-in"
+                      >
+                        <span className="flex items-center gap-2">
+                          <CalendarIcon className="size-4 text-primary" />
+                          {txDate
+                            ? new Date(txDate).toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })
+                            : "Pilih Tanggal"}
+                        </span>
+                        <ChevronsUpDown className="size-3 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto p-0 z-[100] bg-popover border border-border shadow-xl rounded-xl"
+                      align="start"
+                    >
+                      <Calendar
+                        mode="single"
+                        selected={txDate ? new Date(txDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const offset = date.getTimezoneOffset();
+                            const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+                            setTxDate(localDate.toISOString().split("T")[0]);
+                            setDatePickerOpen(false);
+                          }
+                        }}
+                        initialFocus
+                        className="rounded-lg border-0"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="grid gap-2">
