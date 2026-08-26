@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatIDR, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -50,6 +51,9 @@ import {
   ArrowUpRight,
   Search,
   FileText,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -83,6 +87,39 @@ function formatThousand(val: string | number): string {
   return Number(clean).toLocaleString("id-ID");
 }
 
+function getProductHppDetails(p: any) {
+  const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
+  const sizeCostMap = (rawStock["_cost_prices"] || p.size_cost_price || {}) as Record<string, any>;
+  const defaultCost = Number(p.cost_price ?? 0);
+
+  const stockEntries = Object.entries(rawStock).filter(([k]) => !k.startsWith("_"));
+
+  if (stockEntries.length > 0) {
+    let totalStock = 0;
+    let totalCost = 0;
+    let fallbackCost = defaultCost;
+
+    stockEntries.forEach(([sz, qtyVal]) => {
+      const qty = Number(qtyVal) || 0;
+      const szCost =
+        sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
+          ? Number(sizeCostMap[sz])
+          : defaultCost;
+      if (szCost > 0) fallbackCost = szCost;
+      totalStock += qty;
+      totalCost += szCost * qty;
+    });
+
+    const anySizeCost = Object.values(sizeCostMap).map(Number).find((c) => c > 0);
+    const unitCost = totalStock > 0 ? totalCost / totalStock : (anySizeCost ?? fallbackCost);
+
+    return { stock: totalStock, unitCost, totalCost };
+  }
+
+  const stock = Number(p.stock ?? 0);
+  return { stock, unitCost: defaultCost, totalCost: defaultCost * stock };
+}
+
 function AdminKeuangan() {
   const qc = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -99,6 +136,63 @@ function AdminKeuangan() {
     | null;
   const [detailModalType, setDetailModalType] = useState<DetailModalType>(null);
   const [modalSearch, setModalSearch] = useState("");
+
+  // Modal Table Column Sorting State (A-Z / Asc, Z-A / Desc, Default / null)
+  const [modalSortKey, setModalSortKey] = useState<string | null>(null);
+  const [modalSortDir, setModalSortDir] = useState<"asc" | "desc" | null>(null);
+
+  function handleModalSort(key: string) {
+    if (modalSortKey === key) {
+      if (modalSortDir === "asc") {
+        setModalSortDir("desc");
+      } else if (modalSortDir === "desc") {
+        setModalSortKey(null);
+        setModalSortDir(null); // Reset to default
+      } else {
+        setModalSortDir("asc");
+      }
+    } else {
+      setModalSortKey(key);
+      setModalSortDir("asc");
+    }
+  }
+
+  function renderSortHeader(
+    label: string,
+    key: string,
+    align: "left" | "center" | "right" = "left",
+  ) {
+    const isActive = modalSortKey === key;
+    return (
+      <TableHead
+        onClick={() => handleModalSort(key)}
+        className={cn(
+          "font-bold cursor-pointer select-none hover:text-primary transition-colors py-2.5 group",
+          align === "right" && "text-right",
+          align === "center" && "text-center",
+        )}
+      >
+        <div
+          className={cn(
+            "inline-flex items-center gap-1.5",
+            align === "right" && "justify-end w-full",
+            align === "center" && "justify-center w-full",
+          )}
+        >
+          <span>{label}</span>
+          {isActive ? (
+            modalSortDir === "asc" ? (
+              <ArrowUp className="size-3 text-primary shrink-0" />
+            ) : (
+              <ArrowDown className="size-3 text-primary shrink-0" />
+            )
+          ) : (
+            <ArrowUpDown className="size-3 text-muted-foreground/40 group-hover:text-primary shrink-0 transition-colors" />
+          )}
+        </div>
+      </TableHead>
+    );
+  }
 
   // Form State
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
@@ -223,11 +317,9 @@ function AdminKeuangan() {
 
   // 1b. Total Modal Jersey (HPP Inventaris Keseluruhan seperti di menu Produk)
   const totalModalHpp = products.reduce((sum, p) => {
-    const cost = Number(p.cost_price ?? 0);
-    const qty = Number(p.stock ?? 0);
-    return sum + cost * qty;
+    return sum + getProductHppDetails(p).totalCost;
   }, 0);
-  const totalStockPcs = products.reduce((sum, p) => sum + (Number(p.stock ?? 0) || 0), 0);
+  const totalStockPcs = products.reduce((sum, p) => sum + getProductHppDetails(p).stock, 0);
 
   // 2. Total Injected Capital (Inflows categorized as modal)
   const totalManualInCapital = manualTxs
@@ -475,6 +567,8 @@ function AdminKeuangan() {
           onClick={() => {
             setDetailModalType("saldo");
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }}
           className="border-border border-emerald-500/30 bg-emerald-500/[0.03] cursor-pointer hover:border-emerald-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
         >
@@ -505,6 +599,8 @@ function AdminKeuangan() {
           onClick={() => {
             setDetailModalType("dana_masuk");
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }}
           className="border-border cursor-pointer hover:border-primary hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
         >
@@ -539,6 +635,8 @@ function AdminKeuangan() {
           onClick={() => {
             setDetailModalType("operasional");
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }}
           className="border-border cursor-pointer hover:border-rose-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
         >
@@ -569,6 +667,8 @@ function AdminKeuangan() {
           onClick={() => {
             setDetailModalType("modal_jersey");
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }}
           className="border-border cursor-pointer hover:border-amber-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
         >
@@ -604,6 +704,8 @@ function AdminKeuangan() {
           onClick={() => {
             setDetailModalType("omset_jersey");
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }}
           className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20 cursor-pointer hover:border-primary hover:bg-primary/[0.03] hover:shadow-md transition-all duration-200 group"
         >
@@ -628,6 +730,8 @@ function AdminKeuangan() {
           onClick={() => {
             setDetailModalType("modal_disuntik");
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }}
           className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20 cursor-pointer hover:border-amber-500 hover:bg-amber-500/[0.03] hover:shadow-md transition-all duration-200 group"
         >
@@ -818,6 +922,8 @@ function AdminKeuangan() {
           if (!open) {
             setDetailModalType(null);
             setModalSearch("");
+            setModalSortKey(null);
+            setModalSortDir(null);
           }
         }}
       >
@@ -1018,7 +1124,7 @@ function AdminKeuangan() {
                     desc: t.description || "-",
                     amount: Number(t.amount || 0),
                   })),
-              ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              ];
 
               const filtered = allInflows.filter(
                 (item) =>
@@ -1027,27 +1133,42 @@ function AdminKeuangan() {
                   item.type.toLowerCase().includes(modalSearch.toLowerCase())
               );
 
+              let sortedInflows = [...filtered];
+              if (modalSortKey && modalSortDir) {
+                sortedInflows.sort((a, b) => {
+                  let cmp = 0;
+                  if (modalSortKey === "date") cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+                  else if (modalSortKey === "type") cmp = a.type.localeCompare(b.type);
+                  else if (modalSortKey === "ref") cmp = a.ref.localeCompare(b.ref);
+                  else if (modalSortKey === "desc") cmp = a.desc.localeCompare(b.desc);
+                  else if (modalSortKey === "amount") cmp = a.amount - b.amount;
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              } else {
+                sortedInflows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              }
+
               return (
                 <div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="font-bold">Tanggal</TableHead>
-                        <TableHead className="font-bold">Tipe Sumber</TableHead>
-                        <TableHead className="font-bold">No. Ref / Pesanan</TableHead>
-                        <TableHead className="font-bold">Keterangan</TableHead>
-                        <TableHead className="text-right font-bold">Nominal Masuk</TableHead>
+                        {renderSortHeader("Tanggal", "date")}
+                        {renderSortHeader("Tipe Sumber", "type")}
+                        {renderSortHeader("No. Ref / Pesanan", "ref")}
+                        {renderSortHeader("Keterangan", "desc")}
+                        {renderSortHeader("Nominal Masuk", "amount", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.length === 0 ? (
+                      {sortedInflows.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             Tidak ada data dana masuk yang sesuai pencarian.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filtered.map((item) => (
+                        sortedInflows.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="text-xs whitespace-nowrap">{formatDate(item.date)}</TableCell>
                             <TableCell>
@@ -1079,26 +1200,38 @@ function AdminKeuangan() {
                     (t.description || "").toLowerCase().includes(modalSearch.toLowerCase())
                 );
 
+              let sortedOutTxs = [...outTxs];
+              if (modalSortKey && modalSortDir) {
+                sortedOutTxs.sort((a, b) => {
+                  let cmp = 0;
+                  if (modalSortKey === "date") cmp = new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
+                  else if (modalSortKey === "category") cmp = (CATEGORY_LABELS[a.category] || a.category).localeCompare(CATEGORY_LABELS[b.category] || b.category);
+                  else if (modalSortKey === "desc") cmp = (a.description || "").localeCompare(b.description || "");
+                  else if (modalSortKey === "amount") cmp = Number(a.amount || 0) - Number(b.amount || 0);
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              }
+
               return (
                 <div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="font-bold">Tanggal</TableHead>
-                        <TableHead className="font-bold">Kategori Beban</TableHead>
-                        <TableHead className="font-bold">Deskripsi Catatan</TableHead>
-                        <TableHead className="text-right font-bold">Nominal Pengeluaran</TableHead>
+                        {renderSortHeader("Tanggal", "date")}
+                        {renderSortHeader("Kategori Beban", "category")}
+                        {renderSortHeader("Deskripsi Catatan", "desc")}
+                        {renderSortHeader("Nominal Pengeluaran", "amount", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {outTxs.length === 0 ? (
+                      {sortedOutTxs.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                             Tidak ada data pengeluaran operasional yang sesuai.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        outTxs.map((t) => (
+                        sortedOutTxs.map((t) => (
                           <TableRow key={t.id}>
                             <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
                             <TableCell>
@@ -1127,30 +1260,43 @@ function AdminKeuangan() {
                   (p.team || "").toLowerCase().includes(modalSearch.toLowerCase())
               );
 
+              let sortedJerseyProducts = [...filteredProducts];
+              if (modalSortKey && modalSortDir) {
+                sortedJerseyProducts.sort((a, b) => {
+                  const hppA = getProductHppDetails(a);
+                  const hppB = getProductHppDetails(b);
+                  let cmp = 0;
+                  if (modalSortKey === "name") cmp = a.name.localeCompare(b.name);
+                  else if (modalSortKey === "team") cmp = (a.team || "").localeCompare(b.team || "");
+                  else if (modalSortKey === "stock") cmp = hppA.stock - hppB.stock;
+                  else if (modalSortKey === "cost_price") cmp = hppA.unitCost - hppB.unitCost;
+                  else if (modalSortKey === "total_cost") cmp = hppA.totalCost - hppB.totalCost;
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              }
+
               return (
                 <div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="font-bold">Nama Produk Jersey</TableHead>
-                        <TableHead className="font-bold">Klub / Tim</TableHead>
-                        <TableHead className="text-center font-bold">Stok (Pcs)</TableHead>
-                        <TableHead className="text-right font-bold">Modal Satuan (HPP)</TableHead>
-                        <TableHead className="text-right font-bold">Total Modal (HPP)</TableHead>
+                        {renderSortHeader("Nama Produk Jersey", "name")}
+                        {renderSortHeader("Klub / Tim", "team")}
+                        {renderSortHeader("Stok (Pcs)", "stock", "center")}
+                        {renderSortHeader("Modal Satuan (HPP)", "cost_price", "right")}
+                        {renderSortHeader("Total Modal (HPP)", "total_cost", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProducts.length === 0 ? (
+                      {sortedJerseyProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             Tidak ada produk jersey yang sesuai pencarian.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredProducts.map((p) => {
-                          const cost = Number(p.cost_price ?? 0);
-                          const qty = Number(p.stock ?? 0);
-                          const subtotalCost = cost * qty;
+                        sortedJerseyProducts.map((p) => {
+                          const { stock: qty, unitCost: cost, totalCost: subtotalCost } = getProductHppDetails(p);
                           return (
                             <TableRow key={p.id}>
                               <TableCell className="font-medium text-xs max-w-xs truncate">{p.name}</TableCell>
@@ -1178,29 +1324,48 @@ function AdminKeuangan() {
                   (o.recipient_name || "").toLowerCase().includes(modalSearch.toLowerCase())
               );
 
+              let sortedOrders = [...filteredOrders];
+              if (modalSortKey && modalSortDir) {
+                sortedOrders.sort((a, b) => {
+                  let cmp = 0;
+                  if (modalSortKey === "date") cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                  else if (modalSortKey === "order_number") cmp = (a.order_number || "").localeCompare(b.order_number || "");
+                  else if (modalSortKey === "customer") cmp = (a.recipient_name || "").localeCompare(b.recipient_name || "");
+                  else if (modalSortKey === "status") cmp = (a.status || "").localeCompare(b.status || "");
+                  else if (modalSortKey === "subtotal") cmp = Number(a.subtotal || 0) - Number(b.subtotal || 0);
+                  else if (modalSortKey === "discount") cmp = Number(a.discount_amount || 0) - Number(b.discount_amount || 0);
+                  else if (modalSortKey === "net") {
+                    const netA = Math.max(0, Number(a.subtotal || 0) - Number(a.discount_amount || 0));
+                    const netB = Math.max(0, Number(b.subtotal || 0) - Number(b.discount_amount || 0));
+                    cmp = netA - netB;
+                  }
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              }
+
               return (
                 <div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="font-bold">Tanggal</TableHead>
-                        <TableHead className="font-bold">No. Pesanan</TableHead>
-                        <TableHead className="font-bold">Pemesan</TableHead>
-                        <TableHead className="font-bold">Status</TableHead>
-                        <TableHead className="text-right font-bold">Subtotal</TableHead>
-                        <TableHead className="text-right font-bold">Diskon</TableHead>
-                        <TableHead className="text-right font-bold">Omset Bersih</TableHead>
+                        {renderSortHeader("Tanggal", "date")}
+                        {renderSortHeader("No. Pesanan", "order_number")}
+                        {renderSortHeader("Pemesan", "customer")}
+                        {renderSortHeader("Status", "status")}
+                        {renderSortHeader("Subtotal", "subtotal", "right")}
+                        {renderSortHeader("Diskon", "discount", "right")}
+                        {renderSortHeader("Omset Bersih", "net", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOrders.length === 0 ? (
+                      {sortedOrders.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                             Tidak ada pesanan yang sesuai pencarian.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredOrders.map((o) => {
+                        sortedOrders.map((o) => {
                           const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
                           return (
                             <TableRow key={o.id}>
@@ -1235,26 +1400,38 @@ function AdminKeuangan() {
                 .filter((t) => t.type === "in" && t.category === "modal")
                 .filter((t) => (t.description || "").toLowerCase().includes(modalSearch.toLowerCase()));
 
+              let sortedModalTxs = [...modalTxs];
+              if (modalSortKey && modalSortDir) {
+                sortedModalTxs.sort((a, b) => {
+                  let cmp = 0;
+                  if (modalSortKey === "date") cmp = new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime();
+                  else if (modalSortKey === "category") cmp = "Modal Dagang".localeCompare("Modal Dagang");
+                  else if (modalSortKey === "desc") cmp = (a.description || "").localeCompare(b.description || "");
+                  else if (modalSortKey === "amount") cmp = Number(a.amount || 0) - Number(b.amount || 0);
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              }
+
               return (
                 <div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
-                        <TableHead className="font-bold">Tanggal</TableHead>
-                        <TableHead className="font-bold">Kategori</TableHead>
-                        <TableHead className="font-bold">Deskripsi Catatan</TableHead>
-                        <TableHead className="text-right font-bold">Nominal Disuntik</TableHead>
+                        {renderSortHeader("Tanggal", "date")}
+                        {renderSortHeader("Kategori", "category")}
+                        {renderSortHeader("Deskripsi Catatan", "desc")}
+                        {renderSortHeader("Nominal Disuntik", "amount", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {modalTxs.length === 0 ? (
+                      {sortedModalTxs.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                             Belum ada catatan suntik modal dagang.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        modalTxs.map((t) => (
+                        sortedModalTxs.map((t) => (
                           <TableRow key={t.id}>
                             <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
                             <TableCell>

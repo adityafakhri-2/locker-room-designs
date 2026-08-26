@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { formatIDR } from "@/lib/format";
@@ -19,6 +19,8 @@ export interface ProductCardData {
   authenticity_badge?: string | null;
   sold_count?: number | null;
   stock?: number | null;
+  sizes?: string[] | string | null;
+  size_stock?: Record<string, any> | null;
 }
 
 const BADGE_LABEL: Record<string, string> = {
@@ -63,70 +65,105 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
 
   const isOutOfStock = totalCalculatedStock <= 0;
 
+  // Extract available sizes
+  const availableSizes: string[] = useMemo(() => {
+    if (rawSizeStock && typeof rawSizeStock === "object") {
+      const stockEntries = Object.entries(rawSizeStock).filter(([k]) => !k.startsWith("_"));
+      if (stockEntries.length > 0) {
+        return stockEntries
+          .filter(([, qty]) => Number(qty) > 0)
+          .map(([size]) => size);
+      }
+    }
+    const rawSizes = (p as any).sizes;
+    if (Array.isArray(rawSizes)) {
+      return rawSizes;
+    }
+    if (typeof rawSizes === "string") {
+      return rawSizes.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [];
+  }, [rawSizeStock, (p as any).sizes]);
+
   return (
     <article className="group flex flex-col h-full bg-card rounded-lg overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-md transition-all duration-300">
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
         {/* Discount Badge on Image */}
         {hasDiscount && !isOutOfStock && (
-          <div className="absolute top-2.5 left-2.5 z-10 bg-rose-600 text-white font-black text-[10px] md:text-xs px-2 py-0.5 rounded shadow-md tracking-tight uppercase animate-fade-in">
-            -{discountPercent}%
-          </div>
-        )}
-
-        {/* Out of Stock Overlay on Image */}
-        {isOutOfStock && (
-          <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center p-3 text-center pointer-events-none">
-            <span className="px-2.5 py-1 bg-rose-600/95 text-white font-extrabold text-[11px] md:text-xs tracking-wider uppercase rounded shadow-lg">
-              STOK HABIS
-            </span>
-            <span className="text-[10px] text-zinc-200 mt-1 font-medium">
-              Lihat Detail Produk
+          <div className="absolute top-2.5 left-2.5 z-10">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-black bg-rose-600 text-white shadow-sm tracking-tight">
+              -{discountPercent}%
             </span>
           </div>
         )}
 
-        <Link to="/product/$slug" params={{ slug: p.slug }} className="block size-full">
+        {/* Product Image */}
+        <Link
+          to="/product/$slug"
+          params={{ slug: p.slug }}
+          className="block w-full h-full"
+        >
           {p.cover_image_url ? (
             <img
               src={p.cover_image_url}
               alt={p.name}
-              loading="lazy"
               className={cn(
-                "size-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-105",
-                isOutOfStock && "grayscale-[40%] opacity-75",
+                "w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out",
+                isOutOfStock && "grayscale opacity-60"
               )}
+              loading="lazy"
             />
           ) : (
-            <div className="size-full grid place-items-center text-muted-foreground text-xs">
-              No image
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs font-mono">
+              [NO IMAGE]
             </div>
           )}
         </Link>
+
+        {/* Out of Stock Overlay Badge */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+            <span className="px-3 py-1 bg-zinc-900/90 text-white text-[11px] font-extrabold uppercase tracking-wider rounded shadow">
+              Stok Habis
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Detail info & interaksi di bawah gambar */}
-      <div className="p-3 flex flex-col flex-1 justify-between gap-2">
-        <div>
-          {/* Baris 1: Label Keaslian & Tombol Wishlist (Hati) */}
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            {p.authenticity_badge ? (
-              <span
-                title={BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
-                className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold text-[9px] md:text-[10px] uppercase tracking-wide select-none truncate max-w-[75%]"
-              >
-                <span className="size-1.5 shrink-0 bg-primary rounded-full" />
-                <span className="truncate font-bold">
+      <div className="p-3 md:p-3.5 flex flex-col flex-1 gap-2">
+        {/* Baris 1: Kategori / Badge Kualitas & Wishlist */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {p.authenticity_badge && (
+                <span
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1 leading-none",
+                    p.authenticity_badge === "original_verified" &&
+                      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+                    p.authenticity_badge === "grade_ori" &&
+                      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20",
+                    p.authenticity_badge === "match_worn" &&
+                      "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+                    p.authenticity_badge === "collector_item" &&
+                      "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+                    p.authenticity_badge === "limited_edition" &&
+                      "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
+                  )}
+                >
+                  <span className="size-1.5 rounded-full bg-current" />
                   {BADGE_LABEL[p.authenticity_badge] ?? p.authenticity_badge}
                 </span>
-              </span>
-            ) : (
-              <div />
-            )}
+              )}
+            </div>
 
+            {/* Wishlist Button */}
             <button
-              aria-label={liked ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
+              type="button"
+              aria-label={liked ? "Hapus dari wishlist" : "Simpan ke wishlist"}
               onClick={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 if (!user) {
                   toast.error("Silakan masuk terlebih dahulu");
                   navigate({ to: "/auth" });
@@ -158,7 +195,7 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
           </Link>
         </div>
 
-        {/* Bagian Bawah: Harga Highlight & Status Terjual */}
+        {/* Bagian Bawah: Harga Highlight & Status Terjual / Size Pills */}
         <div className="pt-1 mt-auto">
           {/* Harga Coret & Diskon */}
           {hasDiscount && (
@@ -172,8 +209,8 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
             </div>
           )}
 
-          {/* Baris Harga Menonjol & Terjual */}
-          <div className="flex items-baseline justify-between gap-2">
+          {/* Baris Harga Menonjol & Terjual / Size Pills */}
+          <div className="flex items-end justify-between gap-2">
             <Link
               to="/product/$slug"
               params={{ slug: p.slug }}
@@ -187,14 +224,40 @@ export function ProductCard({ p, footer }: { p: ProductCardData; footer?: ReactN
               </span>
             </Link>
 
-            <div className="text-right">
+            <div className="text-right flex flex-col items-end gap-1 shrink-0">
               {footer ? (
                 footer
-              ) : isSold ? (
-                <span className="text-[10px] md:text-xs text-muted-foreground tabular-nums font-medium">
-                  {p.sold_count} terjual
+              ) : isOutOfStock ? (
+                <span className="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded leading-none">
+                  Habis
                 </span>
-              ) : null}
+              ) : (
+                <>
+                  {availableSizes.length > 0 && (
+                    <div className="flex items-center gap-0.5 flex-wrap justify-end">
+                      {availableSizes.slice(0, 4).map((sz) => (
+                        <span
+                          key={sz}
+                          className="text-[9px] font-bold px-1 py-0.5 rounded bg-muted/80 text-muted-foreground border border-border/60 group-hover:border-primary/40 group-hover:text-foreground transition-colors leading-none"
+                        >
+                          {sz}
+                        </span>
+                      ))}
+                      {availableSizes.length > 4 && (
+                        <span className="text-[9px] text-muted-foreground font-semibold px-0.5 leading-none">
+                          +{availableSizes.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {isSold && (
+                    <span className="text-[10px] text-muted-foreground tabular-nums font-medium">
+                      {p.sold_count} terjual
+                    </span>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
