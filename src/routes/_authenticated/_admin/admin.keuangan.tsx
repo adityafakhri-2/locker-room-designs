@@ -21,6 +21,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -46,6 +47,9 @@ import {
   Calendar as CalendarIcon,
   ChevronsUpDown,
   Coins,
+  ArrowUpRight,
+  Search,
+  FileText,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -84,6 +88,18 @@ function AdminKeuangan() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
+  // Drilldown Detail Modal State
+  type DetailModalType =
+    | "saldo"
+    | "dana_masuk"
+    | "operasional"
+    | "modal_jersey"
+    | "omset_jersey"
+    | "modal_disuntik"
+    | null;
+  const [detailModalType, setDetailModalType] = useState<DetailModalType>(null);
+  const [modalSearch, setModalSearch] = useState("");
+
   // Form State
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
   const [txType, setTxType] = useState<"in" | "out">("out");
@@ -117,16 +133,22 @@ function AdminKeuangan() {
         .from("orders")
         .select(`
           id, 
+          order_number,
+          recipient_name,
           subtotal, 
           discount_amount, 
+          grand_total,
           status, 
           created_at,
           order_items (
+            product_name,
             quantity,
+            unit_price,
             cost_price
           )
         `)
-        .in("status", ["paid", "processing", "shipped", "delivered"]);
+        .in("status", ["paid", "processing", "shipped", "delivered"])
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -138,7 +160,8 @@ function AdminKeuangan() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, cost_price, stock");
+        .select("id, name, team, cost_price, price, stock, size_stock")
+        .order("stock", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -448,12 +471,21 @@ function AdminKeuangan() {
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="border-border border-emerald-500/20 bg-emerald-500/[0.02]">
+        <Card
+          onClick={() => {
+            setDetailModalType("saldo");
+            setModalSearch("");
+          }}
+          className="border-border border-emerald-500/30 bg-emerald-500/[0.03] cursor-pointer hover:border-emerald-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               Saldo Kas Saat Ini
             </span>
-            <Wallet className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-1">
+              <Wallet className="size-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+              <ArrowUpRight className="size-3.5 text-emerald-600/60 dark:text-emerald-400/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
           <div
             className="text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate"
@@ -461,15 +493,29 @@ function AdminKeuangan() {
           >
             {formatIDR(saldoKasSaatIni)}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">Dana Masuk - Total Pengeluaran</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[11px] text-muted-foreground">Dana Masuk - Total Pengeluaran</p>
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              Lihat Detail ↗
+            </span>
+          </div>
         </Card>
 
-        <Card className="border-border">
+        <Card
+          onClick={() => {
+            setDetailModalType("dana_masuk");
+            setModalSearch("");
+          }}
+          className="border-border cursor-pointer hover:border-primary hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Total Dana Masuk
             </span>
-            <TrendingUp className="size-4 text-emerald-500" />
+            <div className="flex items-center gap-1">
+              <TrendingUp className="size-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+              <ArrowUpRight className="size-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
           <div
             className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
@@ -477,19 +523,33 @@ function AdminKeuangan() {
           >
             {formatIDR(totalDanaMasuk)}
           </div>
-          <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-2">
-            <span>Modal: {formatIDR(totalManualInCapital)}</span>
-            <span>·</span>
-            <span>Jersey: {formatIDR(totalJerseySales)}</span>
+          <div className="flex items-center justify-between mt-1">
+            <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-1.5">
+              <span>Modal: {formatIDR(totalManualInCapital)}</span>
+              <span>·</span>
+              <span>Jersey: {formatIDR(totalJerseySales)}</span>
+            </div>
+            <span className="text-[10px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              Lihat Detail ↗
+            </span>
           </div>
         </Card>
 
-        <Card className="border-border">
+        <Card
+          onClick={() => {
+            setDetailModalType("operasional");
+            setModalSearch("");
+          }}
+          className="border-border cursor-pointer hover:border-rose-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Pengeluaran Operasional
             </span>
-            <TrendingDown className="size-4 text-rose-500" />
+            <div className="flex items-center gap-1">
+              <TrendingDown className="size-4 text-rose-500 group-hover:scale-110 transition-transform" />
+              <ArrowUpRight className="size-3.5 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
           <div
             className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
@@ -497,15 +557,29 @@ function AdminKeuangan() {
           >
             {formatIDR(totalPengeluaranOperasional)}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">Sewa, packaging, operasional, dll.</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[11px] text-muted-foreground">Sewa, packaging, operasional, dll.</p>
+            <span className="text-[10px] font-semibold text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+              Lihat Detail ↗
+            </span>
+          </div>
         </Card>
 
-        <Card className="border-border">
+        <Card
+          onClick={() => {
+            setDetailModalType("modal_jersey");
+            setModalSearch("");
+          }}
+          className="border-border cursor-pointer hover:border-amber-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Total Modal Jersey (HPP)
             </span>
-            <Coins className="size-4 text-amber-500" />
+            <div className="flex items-center gap-1">
+              <Coins className="size-4 text-amber-500 group-hover:scale-110 transition-transform" />
+              <ArrowUpRight className="size-3.5 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
           <div
             className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
@@ -513,41 +587,64 @@ function AdminKeuangan() {
           >
             {formatIDR(totalModalHpp)}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Dari seluruh <span className="font-bold text-foreground">{totalStockPcs} pcs</span> stok jersey
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[11px] text-muted-foreground">
+              Dari <span className="font-bold text-foreground">{totalStockPcs} pcs</span> stok jersey
+            </p>
+            <span className="text-[10px] font-semibold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
+              Lihat Detail ↗
+            </span>
+          </div>
         </Card>
       </div>
 
       {/* Breakdown Sub-Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20">
+        <Card
+          onClick={() => {
+            setDetailModalType("omset_jersey");
+            setModalSearch("");
+          }}
+          className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20 cursor-pointer hover:border-primary hover:bg-primary/[0.03] hover:shadow-md transition-all duration-200 group"
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-md">
+            <div className="p-2.5 bg-primary/10 rounded-md group-hover:scale-105 transition-transform">
               <ShoppingBag className="size-5 text-primary" />
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Omset Penjualan Jersey</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span>Omset Penjualan Jersey</span>
+                <ArrowUpRight className="size-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
               <div className="font-extrabold text-lg">{formatIDR(totalJerseySales)}</div>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary">
-            Otomatis (Orders)
+          <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+            Otomatis (Orders) ↗
           </Badge>
         </Card>
 
-        <Card className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20">
+        <Card
+          onClick={() => {
+            setDetailModalType("modal_disuntik");
+            setModalSearch("");
+          }}
+          className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20 cursor-pointer hover:border-amber-500 hover:bg-amber-500/[0.03] hover:shadow-md transition-all duration-200 group"
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500/10 rounded-md">
+            <div className="p-2.5 bg-amber-500/10 rounded-md group-hover:scale-105 transition-transform">
               <Briefcase className="size-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Modal Dagang Disuntik</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span>Modal Dagang Disuntik</span>
+                <ArrowUpRight className="size-3 text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
               <div className="font-extrabold text-lg">{formatIDR(totalManualInCapital)}</div>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">
-            Manual (Input)
+          <Badge variant="outline" className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+            Manual (Input) ↗
           </Badge>
         </Card>
       </div>
@@ -713,6 +810,488 @@ function AdminKeuangan() {
           </div>
         )}
       </Card>
+
+      {/* Drilldown Detail Modal Dialog */}
+      <Dialog
+        open={detailModalType !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailModalType(null);
+            setModalSearch("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
+              <FileText className="size-3.5" />
+              Perincian Transaksi & Arus Keuangan
+            </div>
+            <DialogTitle className="text-xl font-black tracking-tight flex items-center justify-between">
+              {detailModalType === "saldo" && "Audit Perincian Saldo Kas Saat Ini"}
+              {detailModalType === "dana_masuk" && "Perincian Total Dana Masuk"}
+              {detailModalType === "operasional" && "Perincian Pengeluaran Operasional"}
+              {detailModalType === "modal_jersey" && "Perincian Total Modal Jersey (HPP Inventaris)"}
+              {detailModalType === "omset_jersey" && "Perincian Omset Penjualan Jersey (Pesanan)"}
+              {detailModalType === "modal_disuntik" && "Perincian Modal Dagang Disuntik"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              {detailModalType === "saldo" &&
+                "Rekapitulasi lengkap sumber dana masuk dan seluruh komponen pengeluaran modal & beban operasional."}
+              {detailModalType === "dana_masuk" &&
+                "Daftar lengkap dana masuk yang bersumber dari modal disuntik manual dan omset pesanan jersey pelanggan."}
+              {detailModalType === "operasional" &&
+                "Daftar transaksi pengeluaran operasional manual (sewa lapak, packaging, marketing, dll.)."}
+              {detailModalType === "modal_jersey" &&
+                "Rincian modal (HPP) seluruh stok jersey toko yang saat ini tersedia di gudang inventaris."}
+              {detailModalType === "omset_jersey" &&
+                "Daftar seluruh pesanan jersey yang telah dibayar oleh pelanggan beserta nilai transaksi bersihnya."}
+              {detailModalType === "modal_disuntik" &&
+                "Riwayat catatan penambahan modal dagang (capital inbound) ke dalam kas toko."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Search bar inside modal (except for saldo overview) */}
+          {detailModalType !== "saldo" && (
+            <div className="px-6 py-3 border-b border-border bg-muted/10 flex items-center gap-3">
+              <Search className="size-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder={
+                  detailModalType === "modal_jersey"
+                    ? "Cari nama jersey atau klub..."
+                    : detailModalType === "omset_jersey"
+                    ? "Cari no. pesanan atau nama pemesan..."
+                    : "Cari transaksi, kategori, atau catatan..."
+                }
+                value={modalSearch}
+                onChange={(e) => setModalSearch(e.target.value)}
+                className="h-8 text-xs bg-background border-border/80"
+              />
+              {modalSearch && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setModalSearch("")}
+                  className="h-8 px-2 text-xs"
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* 1. Modal: SALDO KAS */}
+            {detailModalType === "saldo" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block">Total Dana Masuk (+)</span>
+                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalDanaMasuk)}</span>
+                  </div>
+                  <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                    <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 block">Total Pengeluaran (-)</span>
+                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalDanaKeluar)}</span>
+                  </div>
+                  <div className="p-4 rounded-xl border border-primary/30 bg-primary/5">
+                    <span className="text-xs font-semibold text-primary block">Saldo Kas Bersih</span>
+                    <span className="text-xl font-extrabold text-primary mt-1 block">{formatIDR(saldoKasSaatIni)}</span>
+                  </div>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="font-bold">Arus Kas</TableHead>
+                      <TableHead className="font-bold">Komponen / Sumber Dana</TableHead>
+                      <TableHead className="font-bold">Jumlah Data</TableHead>
+                      <TableHead className="text-right font-bold">Total Nominal</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                          Dana Masuk (+)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Modal Dagang Disuntik
+                        <span className="block text-xs text-muted-foreground">Catatan suntikan dana manual</span>
+                      </TableCell>
+                      <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Transaksi</TableCell>
+                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                        + {formatIDR(totalManualInCapital)}
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                          Dana Masuk (+)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Omset Penjualan Jersey
+                        <span className="block text-xs text-muted-foreground">Penjualan pesanan berstatus sukses</span>
+                      </TableCell>
+                      <TableCell>{orders.length} Pesanan</TableCell>
+                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                        + {formatIDR(totalJerseySales)}
+                      </TableCell>
+                    </TableRow>
+
+                    {totalManualInOther > 0 && (
+                      <TableRow>
+                        <TableCell>
+                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                            Dana Masuk (+)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Pendapatan Lain-lain
+                          <span className="block text-xs text-muted-foreground">Pemasukan non-modal / order</span>
+                        </TableCell>
+                        <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category !== "modal").length} Transaksi</TableCell>
+                        <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                          + {formatIDR(totalManualInOther)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+
+                    <TableRow>
+                      <TableCell>
+                        <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
+                          Dana Keluar (-)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Pengeluaran Beban Operasional
+                        <span className="block text-xs text-muted-foreground">Sewa lapak, packaging, marketing, operasional</span>
+                      </TableCell>
+                      <TableCell>{manualTxs.filter((t) => t.type === "out").length} Transaksi</TableCell>
+                      <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                        - {formatIDR(totalPengeluaranOperasional)}
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>
+                        <Badge variant="destructive" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0">
+                          Dana Keluar (-)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Total Modal Jersey (HPP)
+                        <span className="block text-xs text-muted-foreground">Modal pengadaan seluruh stok jersey</span>
+                      </TableCell>
+                      <TableCell>{totalStockPcs} Pcs ({products.length} Produk)</TableCell>
+                      <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                        - {formatIDR(totalModalHpp)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* 2. Modal: TOTAL DANA MASUK */}
+            {detailModalType === "dana_masuk" && (() => {
+              const allInflows = [
+                ...orders.map((o) => ({
+                  id: `order-${o.id}`,
+                  date: o.created_at,
+                  type: "Pesanan Jersey",
+                  ref: o.order_number || "-",
+                  desc: `Pemesan: ${o.recipient_name || "Pelanggan"} (${(o as any).order_items?.length || 0} item)`,
+                  amount: Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0)),
+                })),
+                ...manualTxs
+                  .filter((t) => t.type === "in")
+                  .map((t) => ({
+                    id: `manual-${t.id}`,
+                    date: t.transaction_date,
+                    type: CATEGORY_LABELS[t.category] || "Dana Masuk",
+                    ref: "Manual",
+                    desc: t.description || "-",
+                    amount: Number(t.amount || 0),
+                  })),
+              ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+              const filtered = allInflows.filter(
+                (item) =>
+                  item.ref.toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  item.desc.toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  item.type.toLowerCase().includes(modalSearch.toLowerCase())
+              );
+
+              return (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Tanggal</TableHead>
+                        <TableHead className="font-bold">Tipe Sumber</TableHead>
+                        <TableHead className="font-bold">No. Ref / Pesanan</TableHead>
+                        <TableHead className="font-bold">Keterangan</TableHead>
+                        <TableHead className="text-right font-bold">Nominal Masuk</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            Tidak ada data dana masuk yang sesuai pencarian.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filtered.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="text-xs whitespace-nowrap">{formatDate(item.date)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] font-semibold">
+                                {item.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs font-semibold">{item.ref}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{item.desc}</TableCell>
+                            <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                              + {formatIDR(item.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
+
+            {/* 3. Modal: PENGELUARAN OPERASIONAL */}
+            {detailModalType === "operasional" && (() => {
+              const outTxs = manualTxs
+                .filter((t) => t.type === "out")
+                .filter(
+                  (t) =>
+                    (CATEGORY_LABELS[t.category] || "").toLowerCase().includes(modalSearch.toLowerCase()) ||
+                    (t.description || "").toLowerCase().includes(modalSearch.toLowerCase())
+                );
+
+              return (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Tanggal</TableHead>
+                        <TableHead className="font-bold">Kategori Beban</TableHead>
+                        <TableHead className="font-bold">Deskripsi Catatan</TableHead>
+                        <TableHead className="text-right font-bold">Nominal Pengeluaran</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {outTxs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            Tidak ada data pengeluaran operasional yang sesuai.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        outTxs.map((t) => (
+                          <TableRow key={t.id}>
+                            <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] font-semibold text-rose-600 border-rose-500/20 bg-rose-500/5">
+                                {CATEGORY_LABELS[t.category] || t.category}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{t.description || "-"}</TableCell>
+                            <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                              - {formatIDR(t.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
+
+            {/* 4. Modal: TOTAL MODAL JERSEY (HPP) */}
+            {detailModalType === "modal_jersey" && (() => {
+              const filteredProducts = products.filter(
+                (p) =>
+                  p.name.toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  (p.team || "").toLowerCase().includes(modalSearch.toLowerCase())
+              );
+
+              return (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Nama Produk Jersey</TableHead>
+                        <TableHead className="font-bold">Klub / Tim</TableHead>
+                        <TableHead className="text-center font-bold">Stok (Pcs)</TableHead>
+                        <TableHead className="text-right font-bold">Modal Satuan (HPP)</TableHead>
+                        <TableHead className="text-right font-bold">Total Modal (HPP)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            Tidak ada produk jersey yang sesuai pencarian.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredProducts.map((p) => {
+                          const cost = Number(p.cost_price ?? 0);
+                          const qty = Number(p.stock ?? 0);
+                          const subtotalCost = cost * qty;
+                          return (
+                            <TableRow key={p.id}>
+                              <TableCell className="font-medium text-xs max-w-xs truncate">{p.name}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{p.team || "-"}</TableCell>
+                              <TableCell className="text-center font-bold text-xs">{qty} pcs</TableCell>
+                              <TableCell className="text-right text-xs font-mono">{formatIDR(cost)}</TableCell>
+                              <TableCell className="text-right font-bold text-xs text-amber-600 dark:text-amber-400">
+                                {formatIDR(subtotalCost)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
+
+            {/* 5. Modal: OMSET PENJUALAN JERSEY */}
+            {detailModalType === "omset_jersey" && (() => {
+              const filteredOrders = orders.filter(
+                (o) =>
+                  (o.order_number || "").toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  (o.recipient_name || "").toLowerCase().includes(modalSearch.toLowerCase())
+              );
+
+              return (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Tanggal</TableHead>
+                        <TableHead className="font-bold">No. Pesanan</TableHead>
+                        <TableHead className="font-bold">Pemesan</TableHead>
+                        <TableHead className="font-bold">Status</TableHead>
+                        <TableHead className="text-right font-bold">Subtotal</TableHead>
+                        <TableHead className="text-right font-bold">Diskon</TableHead>
+                        <TableHead className="text-right font-bold">Omset Bersih</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredOrders.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            Tidak ada pesanan yang sesuai pencarian.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredOrders.map((o) => {
+                          const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+                          return (
+                            <TableRow key={o.id}>
+                              <TableCell className="text-xs whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
+                              <TableCell className="font-mono text-xs font-bold text-primary">{o.order_number}</TableCell>
+                              <TableCell className="text-xs">{o.recipient_name || "Pelanggan"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-500/10 border-0">
+                                  {o.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right text-xs">{formatIDR(o.subtotal || 0)}</TableCell>
+                              <TableCell className="text-right text-xs text-rose-500">
+                                {Number(o.discount_amount) > 0 ? `- ${formatIDR(o.discount_amount)}` : "Rp 0"}
+                              </TableCell>
+                              <TableCell className="text-right font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                                {formatIDR(netRevenue)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
+
+            {/* 6. Modal: MODAL DAGANG DISUNTIK */}
+            {detailModalType === "modal_disuntik" && (() => {
+              const modalTxs = manualTxs
+                .filter((t) => t.type === "in" && t.category === "modal")
+                .filter((t) => (t.description || "").toLowerCase().includes(modalSearch.toLowerCase()));
+
+              return (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Tanggal</TableHead>
+                        <TableHead className="font-bold">Kategori</TableHead>
+                        <TableHead className="font-bold">Deskripsi Catatan</TableHead>
+                        <TableHead className="text-right font-bold">Nominal Disuntik</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {modalTxs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            Belum ada catatan suntik modal dagang.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        modalTxs.map((t) => (
+                          <TableRow key={t.id}>
+                            <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-0">
+                                Modal Dagang
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{t.description || "-"}</TableCell>
+                            <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                              + {formatIDR(t.amount)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Modal Footer */}
+          <DialogFooter className="p-4 border-t border-border bg-muted/20 flex sm:justify-between items-center">
+            <div className="text-xs text-muted-foreground font-medium">
+              {detailModalType === "saldo" && `Total Saldo Kas: ${formatIDR(saldoKasSaatIni)}`}
+              {detailModalType === "dana_masuk" && `Total Dana Masuk: ${formatIDR(totalDanaMasuk)}`}
+              {detailModalType === "operasional" && `Total Beban Operasional: ${formatIDR(totalPengeluaranOperasional)}`}
+              {detailModalType === "modal_jersey" && `Total Modal Stok (${totalStockPcs} pcs): ${formatIDR(totalModalHpp)}`}
+              {detailModalType === "omset_jersey" && `Total Omset (${orders.length} pesanan): ${formatIDR(totalJerseySales)}`}
+              {detailModalType === "modal_disuntik" && `Total Modal Masuk: ${formatIDR(totalManualInCapital)}`}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setDetailModalType(null)} className="text-xs">
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardShell>
   );
 }
