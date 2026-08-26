@@ -914,6 +914,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      financial_transactions: {
+        Row: {
+          id: string;
+          created_at: string;
+          transaction_date: string;
+          type: "in" | "out";
+          category: string;
+          amount: number;
+          description: string | null;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          transaction_date?: string;
+          type: "in" | "out";
+          category: string;
+          amount?: number;
+          description?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          transaction_date?: string;
+          type?: "in" | "out";
+          category?: string;
+          amount?: number;
+          description?: string | null;
+          created_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "financial_transactions_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

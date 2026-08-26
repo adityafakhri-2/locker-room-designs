@@ -5,6 +5,7 @@ export const ADMIN_NAV = [
   { label: "Voucher", to: "/admin/voucher" },
   { label: "Pesanan", to: "/admin/pesanan" },
   { label: "Pelanggan", to: "/admin/pelanggan" },
+  { label: "Keuangan", to: "/admin/keuangan" },
   { label: "Ulasan", to: "/admin/ulasan" },
   { label: "Laporan", to: "/admin/laporan" },
   { label: "Pengaturan Toko", to: "/admin/pengaturan" },
