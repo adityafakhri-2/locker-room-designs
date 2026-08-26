@@ -692,7 +692,6 @@ function ProductForm() {
             .replace(/[^a-z0-9-]/g, ""),
         name: form.name,
         cost_price: effectiveHpp,
-        size_cost_price: filteredSizeCostPrice,
         original_price: form.original_price ? Number(form.original_price.replace(/\D/g, "")) : null,
         price: Number(form.price.replace(/\D/g, "")),
         stock: totalStockSum,
