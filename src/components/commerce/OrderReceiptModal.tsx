@@ -116,19 +116,19 @@ export function OrderReceiptModal({
         doc.addImage(imgData, "JPEG", 0, 2, pdfWidth, pdfHeight);
         doc.save(`Struk-${order.order_number}.pdf`);
       } else {
-        // A4 Invoice
+        // A4 Invoice - Standard A4 210mm x 297mm
         const doc = new jsPDF({
           orientation: "portrait",
           unit: "mm",
           format: "a4",
         });
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 10;
-        const printWidth = pageWidth - margin * 2;
-        const printHeight = (canvas.height * printWidth) / canvas.width;
+        const pageWidth = 210;
+        const pageHeight = 297;
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        doc.addImage(imgData, "JPEG", margin, margin, printWidth, Math.min(printHeight, pageHeight - margin * 2));
+        // Draw full A4 image page
+        doc.addImage(imgData, "JPEG", 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
         doc.save(`Invoice-${order.order_number}.pdf`);
       }
 
@@ -335,157 +335,159 @@ Terima kasih telah berbelanja di AA Jersey!`;
             /* OFFICIAL INVOICE VIEW (A4 Document format) */
             <div
               id="printable-invoice"
-              className="w-full bg-white text-zinc-900 p-8 rounded-lg shadow-sm border border-zinc-200 text-xs leading-relaxed printable-document print:w-full print:shadow-none print:border-none print:p-0 print:m-0"
+              className="w-full max-w-[680px] min-h-[780px] bg-white text-zinc-900 p-6 md:p-8 rounded-lg shadow-sm border border-zinc-200 text-xs leading-relaxed printable-document print:w-full print:shadow-none print:border-none print:p-0 print:m-0 flex flex-col justify-between"
             >
-              <div className="flex justify-between items-start pb-6 border-b border-zinc-200">
-                <div className="flex items-center gap-3.5">
-                  <img
-                    src="/logo-aa-jersey-dark.png"
-                    alt="Logo AA Jersey"
-                    className="size-12 object-contain"
-                  />
+              <div>
+                <div className="flex justify-between items-start pb-5 border-b border-zinc-200">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/logo-aa-jersey-dark.png"
+                      alt="Logo AA Jersey"
+                      className="size-11 object-contain"
+                    />
+                    <div>
+                      <h1 className="font-black text-xl tracking-tight text-zinc-900">
+                        AA JERSEY
+                      </h1>
+                      <p className="text-zinc-500 text-[11px] mt-0.5">
+                        Official Store & Football Kits Specialist
+                      </p>
+                      <p className="text-zinc-500 text-[11px] mt-0.5">
+                        {storeLocation}
+                      </p>
+                      <p className="text-zinc-500 text-[11px]">
+                        WhatsApp: {storePhone} · Email: hello@jerseyaa.com
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-3 py-1 bg-zinc-900 text-white font-extrabold tracking-wider uppercase text-[11px] rounded">
+                      INVOICE
+                    </span>
+                    <p className="font-mono font-bold text-xs text-zinc-900 mt-2">
+                      {order.order_number}
+                    </p>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">
+                      {formatDateTime(order.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bill To & Payment Meta */}
+                <div className="grid grid-cols-2 gap-6 py-4 border-b border-zinc-200 text-xs">
                   <div>
-                    <h1 className="font-black text-xl tracking-tight text-zinc-900">
-                      AA JERSEY
-                    </h1>
-                    <p className="text-zinc-500 text-xs mt-0.5">
-                      Official Store & Football Kits Specialist
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
+                      DITAGIHKAN KEPADA:
+                    </span>
+                    <p className="font-bold text-xs text-zinc-900">{order.recipient_name}</p>
+                    {order.recipient_no_hp && (
+                      <p className="text-zinc-600 mt-0.5 font-mono text-[11px]">No. HP: {order.recipient_no_hp}</p>
+                    )}
+                    {order.recipient_alamat && (
+                      <p className="text-zinc-600 mt-0.5 leading-relaxed text-[11px]">
+                        {order.recipient_alamat}
+                        {order.recipient_kota ? `, ${order.recipient_kota}` : ""}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
+                      DETAIL PEMBAYARAN:
+                    </span>
+                    <p className="font-bold text-zinc-900 uppercase text-xs">{paymentMethod}</p>
+                    <p className="text-zinc-500 text-[11px] mt-0.5">
+                      Status: <span className="font-semibold text-emerald-600">LUNAS / SELESAI</span>
                     </p>
-                    <p className="text-zinc-500 text-xs mt-1">
-                      {storeLocation}
-                    </p>
-                    <p className="text-zinc-500 text-xs">
-                      WhatsApp: {storePhone} · Email: hello@jerseyaa.com
-                    </p>
+                    {order.note && (
+                      <p className="text-zinc-500 text-[11px] mt-0.5 italic">
+                        Catatan: {order.note}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="inline-block px-3 py-1 bg-zinc-900 text-white font-extrabold tracking-wider uppercase text-xs rounded">
-                    INVOICE
-                  </span>
-                  <p className="font-mono font-bold text-sm text-zinc-900 mt-2">
-                    {order.order_number}
-                  </p>
-                  <p className="text-zinc-500 text-xs mt-0.5">
-                    {formatDateTime(order.created_at)}
-                  </p>
-                </div>
-              </div>
 
-              {/* Bill To & Payment Meta */}
-              <div className="grid grid-cols-2 gap-6 py-5 border-b border-zinc-200 text-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
-                    DITAGIHKAN KEPADA:
-                  </span>
-                  <p className="font-bold text-sm text-zinc-900">{order.recipient_name}</p>
-                  {order.recipient_no_hp && (
-                    <p className="text-zinc-600 mt-0.5 font-mono">No. HP: {order.recipient_no_hp}</p>
-                  )}
-                  {order.recipient_alamat && (
-                    <p className="text-zinc-600 mt-0.5 leading-relaxed">
-                      {order.recipient_alamat}
-                      {order.recipient_kota ? `, ${order.recipient_kota}` : ""}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
-                    DETAIL PEMBAYARAN:
-                  </span>
-                  <p className="font-bold text-zinc-900 uppercase">{paymentMethod}</p>
-                  <p className="text-zinc-500 text-xs mt-0.5">
-                    Status: <span className="font-semibold text-emerald-600">LUNAS / SELESAI</span>
-                  </p>
-                  {order.note && (
-                    <p className="text-zinc-500 text-xs mt-1 italic">
-                      Catatan: {order.note}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Item List Table */}
-              <div className="py-6 border-b border-zinc-200">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-zinc-300 text-zinc-500 text-[11px]">
-                      <th className="pb-2 text-left font-semibold w-8">NO</th>
-                      <th className="pb-2 text-left font-semibold pr-3">DESKRIPSI PRODUK</th>
-                      <th className="pb-2 text-center font-semibold px-2 w-20">UKURAN</th>
-                      <th className="pb-2 text-center font-semibold px-2 w-16">JUMLAH</th>
-                      <th className="pb-2 text-right font-semibold px-2 w-28">HARGA SATUAN</th>
-                      <th className="pb-2 text-right font-semibold pl-2 w-28">TOTAL</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {(order.order_items || []).map((it, idx) => (
-                      <tr key={idx} className="py-2.5">
-                        <td className="py-2.5 text-zinc-400 font-mono">{idx + 1}</td>
-                        <td className="py-2.5 font-semibold text-zinc-900 pr-3">
-                          {it.product_name}
-                        </td>
-                        <td className="py-2.5 text-center font-medium text-zinc-700 px-2">
-                          {it.size || "All Size"}
-                        </td>
-                        <td className="py-2.5 text-center font-medium text-zinc-700 px-2">
-                          {it.quantity}
-                        </td>
-                        <td className="py-2.5 text-right font-mono tabular-nums text-zinc-700 px-2">
-                          {formatIDR(it.unit_price)}
-                        </td>
-                        <td className="py-2.5 text-right font-mono font-bold tabular-nums text-zinc-900 pl-2">
-                          {formatIDR(it.subtotal)}
-                        </td>
+                {/* Item List Table */}
+                <div className="py-4 border-b border-zinc-200">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-300 text-zinc-500 text-[10px]">
+                        <th className="pb-1.5 text-left font-semibold w-8">NO</th>
+                        <th className="pb-1.5 text-left font-semibold pr-3">DESKRIPSI PRODUK</th>
+                        <th className="pb-1.5 text-center font-semibold px-2 w-20">UKURAN</th>
+                        <th className="pb-1.5 text-center font-semibold px-2 w-16">JUMLAH</th>
+                        <th className="pb-1.5 text-right font-semibold px-2 w-28">HARGA SATUAN</th>
+                        <th className="pb-1.5 text-right font-semibold pl-2 w-28">TOTAL</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {(order.order_items || []).map((it, idx) => (
+                        <tr key={idx}>
+                          <td className="py-2 text-zinc-400 font-mono text-[11px]">{idx + 1}</td>
+                          <td className="py-2 font-semibold text-zinc-900 pr-3">
+                            {it.product_name}
+                          </td>
+                          <td className="py-2 text-center font-medium text-zinc-700 px-2 text-[11px]">
+                            {it.size || "All Size"}
+                          </td>
+                          <td className="py-2 text-center font-medium text-zinc-700 px-2 text-[11px]">
+                            {it.quantity}
+                          </td>
+                          <td className="py-2 text-right font-mono tabular-nums text-zinc-700 px-2 text-[11px]">
+                            {formatIDR(it.unit_price)}
+                          </td>
+                          <td className="py-2 text-right font-mono font-bold tabular-nums text-zinc-900 pl-2 text-[11px]">
+                            {formatIDR(it.subtotal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              {/* Summary Calculations */}
-              <div className="py-5 flex justify-end">
-                <div className="w-64 space-y-2 text-xs">
-                  <div className="flex justify-between text-zinc-600">
-                    <span>Subtotal Produk:</span>
-                    <span className="font-mono tabular-nums font-semibold">
-                      {formatIDR(order.subtotal)}
-                    </span>
-                  </div>
-                  {Boolean(order.discount_amount && order.discount_amount > 0) && (
-                    <div className="flex justify-between text-rose-600 font-semibold">
-                      <span>Potongan Diskon:</span>
-                      <span className="font-mono tabular-nums">
-                        -{formatIDR(order.discount_amount!)}
+                {/* Summary Calculations */}
+                <div className="py-4 flex justify-end">
+                  <div className="w-64 space-y-1.5 text-xs">
+                    <div className="flex justify-between text-zinc-600 text-[11px]">
+                      <span>Subtotal Produk:</span>
+                      <span className="font-mono tabular-nums font-semibold">
+                        {formatIDR(order.subtotal)}
                       </span>
                     </div>
-                  )}
-                  {Boolean(order.shipping_cost && order.shipping_cost > 0) && (
-                    <div className="flex justify-between text-zinc-600">
-                      <span>Biaya Pengiriman:</span>
+                    {Boolean(order.discount_amount && order.discount_amount > 0) && (
+                      <div className="flex justify-between text-rose-600 font-semibold text-[11px]">
+                        <span>Potongan Diskon:</span>
+                        <span className="font-mono tabular-nums">
+                          -{formatIDR(order.discount_amount!)}
+                        </span>
+                      </div>
+                    )}
+                    {Boolean(order.shipping_cost && order.shipping_cost > 0) && (
+                      <div className="flex justify-between text-zinc-600 text-[11px]">
+                        <span>Biaya Pengiriman:</span>
+                        <span className="font-mono tabular-nums">
+                          {formatIDR(order.shipping_cost!)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-1.5 border-t-2 border-zinc-900 font-black text-xs text-zinc-900">
+                      <span>TOTAL TAGIHAN:</span>
                       <span className="font-mono tabular-nums">
-                        {formatIDR(order.shipping_cost!)}
+                        {formatIDR(order.grand_total)}
                       </span>
                     </div>
-                  )}
-                  <div className="flex justify-between pt-2 border-t-2 border-zinc-900 font-black text-sm text-zinc-900">
-                    <span>TOTAL TAGIHAN:</span>
-                    <span className="font-mono tabular-nums">
-                      {formatIDR(order.grand_total)}
-                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Signature & Footer Notes */}
-              <div className="mt-8 pt-6 border-t border-zinc-200 flex justify-between items-end text-zinc-600">
-                <div className="text-[10px] space-y-1 max-w-sm">
+              <div className="pt-4 border-t border-zinc-200 flex justify-between items-end text-zinc-600">
+                <div className="text-[10px] space-y-0.5 max-w-sm">
                   <p className="font-bold text-zinc-800">Catatan & Ketentuan:</p>
-                  <p className="leading-relaxed">1. Simpan invoice ini sebagai bukti transaksi resmi AA Jersey.</p>
-                  <p className="leading-relaxed">2. Barang yang sudah dibeli dapat dikembalikan 1x24 jam apabila tidak sesuai dengan pesanan.</p>
+                  <p className="leading-normal">1. Simpan invoice ini sebagai bukti transaksi resmi AA Jersey.</p>
+                  <p className="leading-normal">2. Barang yang sudah dibeli dapat dikembalikan 1x24 jam apabila tidak sesuai dengan pesanan.</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-zinc-500 mb-8">Hormat Kami, AA Jersey</p>
+                  <p className="text-[10px] text-zinc-500 mb-6">Hormat Kami, AA Jersey</p>
                   <div className="border-b border-zinc-400 w-32 mx-auto"></div>
                   <p className="text-[10px] font-bold text-zinc-800 mt-1">Authorized Cashier</p>
                 </div>
