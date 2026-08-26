@@ -87,37 +87,77 @@ function formatThousand(val: string | number): string {
   return Number(clean).toLocaleString("id-ID");
 }
 
-function getProductHppDetails(p: any) {
-  const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
-  const sizeCostMap = (rawStock["_cost_prices"] || p.size_cost_price || {}) as Record<string, any>;
-  const defaultCost = Number(p.cost_price ?? 0);
+export interface JerseyVariantHppItem {
+  id: string;
+  productId: string;
+  name: string;
+  team: string;
+  size: string;
+  stock: number;
+  costPrice: number;
+  totalCost: number;
+}
 
-  const stockEntries = Object.entries(rawStock).filter(([k]) => !k.startsWith("_"));
+function expandProductsToSizeVariants(products: any[]): JerseyVariantHppItem[] {
+  const items: JerseyVariantHppItem[] = [];
 
-  if (stockEntries.length > 0) {
-    let totalStock = 0;
-    let totalCost = 0;
-    let fallbackCost = defaultCost;
+  products.forEach((p) => {
+    const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
+    const sizeCostMap = (rawStock["_cost_prices"] || p.size_cost_price || {}) as Record<string, any>;
+    const defaultCost = Number(p.cost_price ?? 0);
+    const stockEntries = Object.entries(rawStock).filter(([k]) => !k.startsWith("_"));
 
-    stockEntries.forEach(([sz, qtyVal]) => {
-      const qty = Number(qtyVal) || 0;
-      const szCost =
-        sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
-          ? Number(sizeCostMap[sz])
-          : defaultCost;
-      if (szCost > 0) fallbackCost = szCost;
-      totalStock += qty;
-      totalCost += szCost * qty;
-    });
+    if (stockEntries.length > 0) {
+      stockEntries.forEach(([sz, qtyVal]) => {
+        const qty = Number(qtyVal) || 0;
+        const szCost =
+          sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
+            ? Number(sizeCostMap[sz])
+            : defaultCost;
+        items.push({
+          id: `${p.id}-${sz}`,
+          productId: p.id,
+          name: p.name,
+          team: p.team || "-",
+          size: sz,
+          stock: qty,
+          costPrice: szCost,
+          totalCost: szCost * qty,
+        });
+      });
+    } else if (Array.isArray(p.sizes) && p.sizes.length > 0) {
+      p.sizes.forEach((sz: string) => {
+        const szCost =
+          sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
+            ? Number(sizeCostMap[sz])
+            : defaultCost;
+        items.push({
+          id: `${p.id}-${sz}`,
+          productId: p.id,
+          name: p.name,
+          team: p.team || "-",
+          size: sz,
+          stock: Number(p.stock ?? 0),
+          costPrice: szCost,
+          totalCost: szCost * Number(p.stock ?? 0),
+        });
+      });
+    } else {
+      const qty = Number(p.stock ?? 0);
+      items.push({
+        id: `${p.id}-all`,
+        productId: p.id,
+        name: p.name,
+        team: p.team || "-",
+        size: "All Size",
+        stock: qty,
+        costPrice: defaultCost,
+        totalCost: defaultCost * qty,
+      });
+    }
+  });
 
-    const anySizeCost = Object.values(sizeCostMap).map(Number).find((c) => c > 0);
-    const unitCost = totalStock > 0 ? totalCost / totalStock : (anySizeCost ?? fallbackCost);
-
-    return { stock: totalStock, unitCost, totalCost };
-  }
-
-  const stock = Number(p.stock ?? 0);
-  return { stock, unitCost: defaultCost, totalCost: defaultCost * stock };
+  return items;
 }
 
 function AdminKeuangan() {
@@ -254,8 +294,8 @@ function AdminKeuangan() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, team, cost_price, price, stock, size_stock")
-        .order("stock", { ascending: false });
+        .select("id, name, team, cost_price, price, stock, sizes, size_stock")
+        .order("name", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -309,6 +349,9 @@ function AdminKeuangan() {
   const manualTxs = txQuery.data ?? [];
   const products = productsQuery.data ?? [];
 
+  // Expand all products into size variants
+  const allJerseyVariants = expandProductsToSizeVariants(products);
+
   // 1. Total Jersey Sales (Automated)
   const totalJerseySales = orders.reduce((acc, o) => {
     const revenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
@@ -316,10 +359,8 @@ function AdminKeuangan() {
   }, 0);
 
   // 1b. Total Modal Jersey (HPP Inventaris Keseluruhan seperti di menu Produk)
-  const totalModalHpp = products.reduce((sum, p) => {
-    return sum + getProductHppDetails(p).totalCost;
-  }, 0);
-  const totalStockPcs = products.reduce((sum, p) => sum + getProductHppDetails(p).stock, 0);
+  const totalModalHpp = allJerseyVariants.reduce((sum, v) => sum + v.totalCost, 0);
+  const totalStockPcs = allJerseyVariants.reduce((sum, v) => sum + v.stock, 0);
 
   // 2. Total Injected Capital (Inflows categorized as modal)
   const totalManualInCapital = manualTxs
@@ -1254,23 +1295,23 @@ function AdminKeuangan() {
 
             {/* 4. Modal: TOTAL MODAL JERSEY (HPP) */}
             {detailModalType === "modal_jersey" && (() => {
-              const filteredProducts = products.filter(
-                (p) =>
-                  p.name.toLowerCase().includes(modalSearch.toLowerCase()) ||
-                  (p.team || "").toLowerCase().includes(modalSearch.toLowerCase())
+              const filteredVariants = allJerseyVariants.filter(
+                (v) =>
+                  v.name.toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  v.team.toLowerCase().includes(modalSearch.toLowerCase()) ||
+                  v.size.toLowerCase().includes(modalSearch.toLowerCase())
               );
 
-              let sortedJerseyProducts = [...filteredProducts];
+              let sortedVariants = [...filteredVariants];
               if (modalSortKey && modalSortDir) {
-                sortedJerseyProducts.sort((a, b) => {
-                  const hppA = getProductHppDetails(a);
-                  const hppB = getProductHppDetails(b);
+                sortedVariants.sort((a, b) => {
                   let cmp = 0;
                   if (modalSortKey === "name") cmp = a.name.localeCompare(b.name);
-                  else if (modalSortKey === "team") cmp = (a.team || "").localeCompare(b.team || "");
-                  else if (modalSortKey === "stock") cmp = hppA.stock - hppB.stock;
-                  else if (modalSortKey === "cost_price") cmp = hppA.unitCost - hppB.unitCost;
-                  else if (modalSortKey === "total_cost") cmp = hppA.totalCost - hppB.totalCost;
+                  else if (modalSortKey === "team") cmp = a.team.localeCompare(b.team);
+                  else if (modalSortKey === "size") cmp = a.size.localeCompare(b.size);
+                  else if (modalSortKey === "stock") cmp = a.stock - b.stock;
+                  else if (modalSortKey === "cost_price") cmp = a.costPrice - b.costPrice;
+                  else if (modalSortKey === "total_cost") cmp = a.totalCost - b.totalCost;
                   return modalSortDir === "asc" ? cmp : -cmp;
                 });
               }
@@ -1282,33 +1323,42 @@ function AdminKeuangan() {
                       <TableRow className="bg-muted/40">
                         {renderSortHeader("Nama Produk Jersey", "name")}
                         {renderSortHeader("Klub / Tim", "team")}
+                        {renderSortHeader("Ukuran (Size)", "size", "center")}
                         {renderSortHeader("Stok (Pcs)", "stock", "center")}
                         {renderSortHeader("Modal Satuan (HPP)", "cost_price", "right")}
                         {renderSortHeader("Total Modal (HPP)", "total_cost", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sortedJerseyProducts.length === 0 ? (
+                      {sortedVariants.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            Tidak ada produk jersey yang sesuai pencarian.
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            Tidak ada varian jersey yang sesuai pencarian.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        sortedJerseyProducts.map((p) => {
-                          const { stock: qty, unitCost: cost, totalCost: subtotalCost } = getProductHppDetails(p);
-                          return (
-                            <TableRow key={p.id}>
-                              <TableCell className="font-medium text-xs max-w-xs truncate">{p.name}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{p.team || "-"}</TableCell>
-                              <TableCell className="text-center font-bold text-xs">{qty} pcs</TableCell>
-                              <TableCell className="text-right text-xs font-mono">{formatIDR(cost)}</TableCell>
-                              <TableCell className="text-right font-bold text-xs text-amber-600 dark:text-amber-400">
-                                {formatIDR(subtotalCost)}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
+                        sortedVariants.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium text-xs max-w-xs truncate">{item.name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{item.team}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0.5 uppercase bg-muted/60">
+                                {item.size}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-xs">
+                              {item.stock > 0 ? (
+                                `${item.stock} pcs`
+                              ) : (
+                                <span className="text-rose-500 font-semibold text-[10px]">0 pcs (Habis)</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right text-xs font-mono">{formatIDR(item.costPrice)}</TableCell>
+                            <TableCell className="text-right font-bold text-xs text-amber-600 dark:text-amber-400">
+                              {formatIDR(item.totalCost)}
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
