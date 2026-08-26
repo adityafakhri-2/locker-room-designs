@@ -198,68 +198,32 @@
 
 /* Aturan Print Bersih untuk Struk Kasir & Invoice */
 @media print {
-  /* Sembunyikan elemen bawaan halaman & header/footer browser */
-  body > *:not([data-radix-portal]) {
-    display: none !important;
+  body * {
+    visibility: hidden !important;
   }
 
-  /* Hilangkan overlay gelap dialog saat print */
-  [data-radix-dialog-overlay] {
-    display: none !important;
-  }
-
-  /* Reset dialog container Radix agar rata dokumen dan tidak terpotong viewport/transform */
-  [data-radix-dialog-content] {
-    position: static !important;
-    transform: none !important;
-    left: auto !important;
-    top: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    overflow: visible !important;
-  }
-
-  /* Sembunyikan scroll container Radix dan header/footer action modal */
-  .receipt-scroll-area {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    display: block !important;
-  }
-
-  /* Pastikan dokumen struk/invoice tampil 100% */
-  .printable-document {
-    display: block !important;
-    visibility: visible !important;
-    position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-
+  .printable-document,
   .printable-document * {
     visibility: visible !important;
+  }
+
+  .printable-document {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 15px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
   html, body {
     background: #ffffff !important;
     height: auto !important;
     overflow: visible !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 }

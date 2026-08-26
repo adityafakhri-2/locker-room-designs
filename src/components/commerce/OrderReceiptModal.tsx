@@ -73,7 +73,89 @@ export function OrderReceiptModal({
     (order.note?.toLowerCase().includes("cash") ? "Tunai / Cash" : "Transfer Bank");
 
   const handlePrint = () => {
-    window.print();
+    const elementId = viewMode === "thermal" ? "printable-receipt" : "printable-invoice";
+    const element = document.getElementById(elementId);
+    if (!element) {
+      toast.error("Gagal menemukan dokumen untuk dicetak.");
+      return;
+    }
+
+    // Buat iframe tersembunyi untuk mencetak konten secara bersih dan independen dari modal
+    const printFrame = document.createElement("iframe");
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0px";
+    printFrame.style.height = "0px";
+    printFrame.style.border = "none";
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (!frameDoc) {
+      window.print();
+      return;
+    }
+
+    // Salin stylesheet aplikasi ke dalam iframe
+    const styleTags = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"))
+      .map((tag) => tag.outerHTML)
+      .join("\n");
+
+    const pageTitle = viewMode === "thermal" ? `Struk-${order.order_number}` : `Invoice-${order.order_number}`;
+
+    frameDoc.open();
+    frameDoc.write(`
+      <!DOCTYPE html>
+      <html lang="id">
+        <head>
+          <title>${pageTitle}</title>
+          ${styleTags}
+          <style>
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body {
+              background: #ffffff !important;
+              color: #000000 !important;
+              margin: 0 !important;
+              padding: ${viewMode === "thermal" ? "10px 5px" : "15px"} !important;
+              font-family: ui-sans-serif, system-ui, sans-serif;
+            }
+            .printable-document {
+              max-width: 100% !important;
+              box-shadow: none !important;
+              border: none !important;
+              padding: 0 !important;
+              margin: 0 auto !important;
+              background: #ffffff !important;
+            }
+            @page {
+              size: ${viewMode === "thermal" ? "80mm auto" : "A4 portrait"};
+              margin: 8mm;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="printable-document">
+            ${element.outerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    frameDoc.close();
+
+    // Tunggu gambar dan style termuat sempurna sebelum memicu dialog print
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow?.focus();
+        printFrame.contentWindow?.print();
+      } catch (e) {
+        console.error("Print frame error:", e);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 2000);
+      }
+    }, 350);
   };
 
   const handleDownloadPdf = async () => {
