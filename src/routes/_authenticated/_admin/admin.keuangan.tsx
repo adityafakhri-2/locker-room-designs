@@ -94,26 +94,75 @@ export interface JerseyVariantHppItem {
   team: string;
   size: string;
   stock: number;
+  sold: number;
+  totalProcured: number;
   costPrice: number;
   totalCost: number;
 }
 
-function expandProductsToSizeVariants(products: any[]): JerseyVariantHppItem[] {
+function expandProductsToSizeVariants(products: any[], orders: any[] = []): JerseyVariantHppItem[] {
   const items: JerseyVariantHppItem[] = [];
+
+  // Track sold counts per size and per product from valid orders
+  const sizeSoldMap: Record<string, number> = {};
+  const productSoldMap: Record<string, number> = {};
+
+  orders.forEach((o) => {
+    const orderItems = (o as any).order_items || [];
+    orderItems.forEach((it: any) => {
+      const qty = Number(it.quantity) || 1;
+      if (it.product_id) {
+        productSoldMap[it.product_id] = (productSoldMap[it.product_id] || 0) + qty;
+        if (it.size) {
+          const key = `${it.product_id}-${String(it.size).toUpperCase().trim()}`;
+          sizeSoldMap[key] = (sizeSoldMap[key] || 0) + qty;
+        }
+      }
+    });
+  });
 
   products.forEach((p) => {
     const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
     const sizeCostMap = (rawStock["_cost_prices"] || p.size_cost_price || {}) as Record<string, any>;
     const defaultCost = Number(p.cost_price ?? 0);
     const stockEntries = Object.entries(rawStock).filter(([k]) => !k.startsWith("_"));
+    const productDbSold = Number(p.sold_count ?? 0);
+    const orderItemsSold = productSoldMap[p.id] ?? 0;
+    const totalKnownSold = Math.max(productDbSold, orderItemsSold);
 
     if (stockEntries.length > 0) {
+      let remainingUnassignedSold = totalKnownSold;
+
+      // First pass: account for any exact size order records
+      stockEntries.forEach(([sz]) => {
+        const szKey = `${p.id}-${String(sz).toUpperCase().trim()}`;
+        if (sizeSoldMap[szKey]) {
+          remainingUnassignedSold = Math.max(0, remainingUnassignedSold - sizeSoldMap[szKey]);
+        }
+      });
+
       stockEntries.forEach(([sz, qtyVal]) => {
         const qty = Number(qtyVal) || 0;
+        const szKey = `${p.id}-${String(sz).toUpperCase().trim()}`;
+        let szSold = sizeSoldMap[szKey] ?? 0;
+
+        // If no size-specific order breakdown but product has sold_count:
+        // Allocate sold to variant with 0 stock (out of stock due to sales) or single variant
+        if (szSold === 0 && remainingUnassignedSold > 0) {
+          if (qty === 0 || stockEntries.length === 1) {
+            const allocate = Math.min(1, remainingUnassignedSold);
+            szSold = allocate;
+            remainingUnassignedSold -= allocate;
+          }
+        }
+
         const szCost =
           sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
             ? Number(sizeCostMap[sz])
             : defaultCost;
+
+        const totalProcured = qty + szSold;
+
         items.push({
           id: `${p.id}-${sz}`,
           productId: p.id,
@@ -121,29 +170,40 @@ function expandProductsToSizeVariants(products: any[]): JerseyVariantHppItem[] {
           team: p.team || "-",
           size: sz,
           stock: qty,
+          sold: szSold,
+          totalProcured,
           costPrice: szCost,
-          totalCost: szCost * qty,
+          totalCost: szCost * totalProcured,
         });
       });
     } else if (Array.isArray(p.sizes) && p.sizes.length > 0) {
       p.sizes.forEach((sz: string) => {
+        const qty = Number(p.stock ?? 0);
+        const szKey = `${p.id}-${String(sz).toUpperCase().trim()}`;
+        let szSold = sizeSoldMap[szKey] ?? (p.sizes.length === 1 ? totalKnownSold : 0);
         const szCost =
           sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
             ? Number(sizeCostMap[sz])
             : defaultCost;
+        const totalProcured = qty + szSold;
+
         items.push({
           id: `${p.id}-${sz}`,
           productId: p.id,
           name: p.name,
           team: p.team || "-",
           size: sz,
-          stock: Number(p.stock ?? 0),
+          stock: qty,
+          sold: szSold,
+          totalProcured,
           costPrice: szCost,
-          totalCost: szCost * Number(p.stock ?? 0),
+          totalCost: szCost * totalProcured,
         });
       });
     } else {
       const qty = Number(p.stock ?? 0);
+      const szSold = totalKnownSold;
+      const totalProcured = qty + szSold;
       items.push({
         id: `${p.id}-all`,
         productId: p.id,
@@ -151,8 +211,10 @@ function expandProductsToSizeVariants(products: any[]): JerseyVariantHppItem[] {
         team: p.team || "-",
         size: "All Size",
         stock: qty,
+        sold: szSold,
+        totalProcured,
         costPrice: defaultCost,
-        totalCost: defaultCost * qty,
+        totalCost: defaultCost * totalProcured,
       });
     }
   });
@@ -275,8 +337,10 @@ function AdminKeuangan() {
           status, 
           created_at,
           order_items (
+            product_id,
             product_name,
             quantity,
+            size,
             unit_price,
             cost_price
           )
@@ -294,7 +358,7 @@ function AdminKeuangan() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, team, cost_price, price, stock, sizes, size_stock")
+        .select("id, name, team, cost_price, price, stock, sizes, size_stock, sold_count")
         .order("name", { ascending: true });
       if (error) throw error;
       return data ?? [];
@@ -349,18 +413,18 @@ function AdminKeuangan() {
   const manualTxs = txQuery.data ?? [];
   const products = productsQuery.data ?? [];
 
-  // Expand all products into size variants
-  const allJerseyVariants = expandProductsToSizeVariants(products);
+  // Expand all products into size variants (including sold count)
+  const allJerseyVariants = expandProductsToSizeVariants(products, orders);
+  const totalStockPcs = allJerseyVariants.reduce((sum, v) => sum + v.stock, 0);
+  const totalSoldPcs = allJerseyVariants.reduce((sum, v) => sum + v.sold, 0);
+  const totalProcuredPcs = allJerseyVariants.reduce((sum, v) => sum + v.totalProcured, 0);
+  const totalModalHpp = allJerseyVariants.reduce((sum, v) => sum + v.totalCost, 0);
 
   // 1. Total Jersey Sales (Automated)
   const totalJerseySales = orders.reduce((acc, o) => {
     const revenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
     return acc + revenue;
   }, 0);
-
-  // 1b. Total Modal Jersey (HPP Inventaris Keseluruhan seperti di menu Produk)
-  const totalModalHpp = allJerseyVariants.reduce((sum, v) => sum + v.totalCost, 0);
-  const totalStockPcs = allJerseyVariants.reduce((sum, v) => sum + v.stock, 0);
 
   // 2. Total Injected Capital (Inflows categorized as modal)
   const totalManualInCapital = manualTxs
@@ -730,7 +794,7 @@ function AdminKeuangan() {
           </div>
           <div className="flex items-center justify-between mt-1">
             <p className="text-[11px] text-muted-foreground">
-              Dari <span className="font-bold text-foreground">{totalStockPcs} pcs</span> stok jersey
+              Dari <span className="font-bold text-foreground">{totalProcuredPcs} pcs</span> jersey ({totalStockPcs} stok + {totalSoldPcs} terjual)
             </p>
             <span className="text-[10px] font-semibold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
               Lihat Detail ↗
@@ -1131,10 +1195,10 @@ function AdminKeuangan() {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
-                        Total Modal Jersey (HPP)
-                        <span className="block text-xs text-muted-foreground">Modal pengadaan seluruh stok jersey</span>
+                        Total Modal Jersey (Pengadaan)
+                        <span className="block text-xs text-muted-foreground">Modal kulakan stok gudang & jersey terjual</span>
                       </TableCell>
-                      <TableCell>{totalStockPcs} Pcs ({products.length} Produk)</TableCell>
+                      <TableCell>{totalProcuredPcs} Pcs ({totalStockPcs} stok + {totalSoldPcs} terjual)</TableCell>
                       <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
                         - {formatIDR(totalModalHpp)}
                       </TableCell>
@@ -1310,8 +1374,10 @@ function AdminKeuangan() {
                   else if (modalSortKey === "team") cmp = a.team.localeCompare(b.team);
                   else if (modalSortKey === "size") cmp = a.size.localeCompare(b.size);
                   else if (modalSortKey === "stock") cmp = a.stock - b.stock;
-                  else if (modalSortKey === "cost_price") cmp = a.costPrice - b.costPrice;
-                  else if (modalSortKey === "total_cost") cmp = a.totalCost - b.totalCost;
+                  else if (modalSortKey === "sold") cmp = a.sold - b.sold;
+                  else if (modalSortKey === "totalProcured") cmp = a.totalProcured - b.totalProcured;
+                  else if (modalSortKey === "costPrice") cmp = a.costPrice - b.costPrice;
+                  else if (modalSortKey === "totalCost") cmp = a.totalCost - b.totalCost;
                   return modalSortDir === "asc" ? cmp : -cmp;
                 });
               }
@@ -1323,16 +1389,18 @@ function AdminKeuangan() {
                       <TableRow className="bg-muted/40">
                         {renderSortHeader("Nama Produk Jersey", "name")}
                         {renderSortHeader("Klub / Tim", "team")}
-                        {renderSortHeader("Ukuran (Size)", "size", "center")}
-                        {renderSortHeader("Stok (Pcs)", "stock", "center")}
-                        {renderSortHeader("Modal Satuan (HPP)", "cost_price", "right")}
-                        {renderSortHeader("Total Modal (HPP)", "total_cost", "right")}
+                        {renderSortHeader("Ukuran", "size", "center")}
+                        {renderSortHeader("Stok Sisa", "stock", "center")}
+                        {renderSortHeader("Terjual", "sold", "center")}
+                        {renderSortHeader("Total Diadakan", "totalProcured", "center")}
+                        {renderSortHeader("Modal Satuan (HPP)", "costPrice", "right")}
+                        {renderSortHeader("Total Modal Keluar", "totalCost", "right")}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {sortedVariants.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             Tidak ada varian jersey yang sesuai pencarian.
                           </TableCell>
                         </TableRow>
@@ -1346,12 +1414,24 @@ function AdminKeuangan() {
                                 {item.size}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-center font-bold text-xs">
+                            <TableCell className="text-center text-xs font-semibold">
                               {item.stock > 0 ? (
                                 `${item.stock} pcs`
                               ) : (
-                                <span className="text-rose-500 font-semibold text-[10px]">0 pcs (Habis)</span>
+                                <span className="text-muted-foreground text-[10px]">0 pcs</span>
                               )}
+                            </TableCell>
+                            <TableCell className="text-center text-xs">
+                              {item.sold > 0 ? (
+                                <span className="text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded text-[11px]">
+                                  +{item.sold} pcs
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/60 text-[10px]">0</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-xs bg-muted/20">
+                              {item.totalProcured} pcs
                             </TableCell>
                             <TableCell className="text-right text-xs font-mono">{formatIDR(item.costPrice)}</TableCell>
                             <TableCell className="text-right font-bold text-xs text-amber-600 dark:text-amber-400">
@@ -1509,7 +1589,8 @@ function AdminKeuangan() {
               {detailModalType === "saldo" && `Total Saldo Kas: ${formatIDR(saldoKasSaatIni)}`}
               {detailModalType === "dana_masuk" && `Total Dana Masuk: ${formatIDR(totalDanaMasuk)}`}
               {detailModalType === "operasional" && `Total Beban Operasional: ${formatIDR(totalPengeluaranOperasional)}`}
-              {detailModalType === "modal_jersey" && `Total Modal Stok (${totalStockPcs} pcs): ${formatIDR(totalModalHpp)}`}
+              {detailModalType === "modal_jersey" &&
+                `Total Modal Pengadaan (${totalProcuredPcs} pcs): ${formatIDR(totalModalHpp)} (${totalStockPcs} stok + ${totalSoldPcs} terjual)`}
               {detailModalType === "omset_jersey" && `Total Omset (${orders.length} pesanan): ${formatIDR(totalJerseySales)}`}
               {detailModalType === "modal_disuntik" && `Total Modal Masuk: ${formatIDR(totalManualInCapital)}`}
             </div>
