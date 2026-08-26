@@ -45,6 +45,7 @@ import {
   Briefcase,
   Calendar as CalendarIcon,
   ChevronsUpDown,
+  Coins,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -56,13 +57,6 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-
 export const Route = createFileRoute("/_authenticated/_admin/admin/keuangan")({
   component: AdminKeuangan,
 });
@@ -78,17 +72,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   lainnya: "Pengeluaran Lainnya",
   penjualan: "Penjualan Jersey (Otomatis)",
 };
-
-const chartConfig = {
-  masuk: {
-    label: "Dana Masuk",
-    color: "#10b981",
-  },
-  keluar: {
-    label: "Dana Keluar",
-    color: "#f43f5e",
-  },
-} satisfies ChartConfig;
 
 function formatThousand(val: string | number): string {
   const clean = String(val).replace(/\D/g, "");
@@ -132,8 +115,30 @@ function AdminKeuangan() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, subtotal, discount_amount, status, created_at")
+        .select(`
+          id, 
+          subtotal, 
+          discount_amount, 
+          status, 
+          created_at,
+          order_items (
+            quantity,
+            cost_price
+          )
+        `)
         .in("status", ["paid", "processing", "shipped", "delivered"]);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Query 3: Products (for Total Modal HPP Inventaris)
+  const productsQuery = useQuery({
+    queryKey: ["financial-products-hpp"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, cost_price, stock");
       if (error) throw error;
       return data ?? [];
     },
@@ -185,12 +190,21 @@ function AdminKeuangan() {
   // Calculations
   const orders = ordersQuery.data ?? [];
   const manualTxs = txQuery.data ?? [];
+  const products = productsQuery.data ?? [];
 
   // 1. Total Jersey Sales (Automated)
   const totalJerseySales = orders.reduce((acc, o) => {
     const revenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
     return acc + revenue;
   }, 0);
+
+  // 1b. Total Modal Jersey (HPP Inventaris Keseluruhan seperti di menu Produk)
+  const totalModalHpp = products.reduce((sum, p) => {
+    const cost = Number(p.cost_price ?? 0);
+    const qty = Number(p.stock ?? 0);
+    return sum + cost * qty;
+  }, 0);
+  const totalStockPcs = products.reduce((sum, p) => sum + (Number(p.stock ?? 0) || 0), 0);
 
   // 2. Total Injected Capital (Inflows categorized as modal)
   const totalManualInCapital = manualTxs
@@ -205,12 +219,15 @@ function AdminKeuangan() {
   // 4. Total Inflow (Jersey Sales + Capital + Inflows)
   const totalDanaMasuk = totalJerseySales + totalManualInCapital + totalManualInOther;
 
-  // 5. Total Outflow (Operational costs)
-  const totalDanaKeluar = manualTxs
+  // 5. Total Pengeluaran Operasional (Sewa, Packaging, Operasional, dll.)
+  const totalPengeluaranOperasional = manualTxs
     .filter((t) => t.type === "out")
     .reduce((acc, t) => acc + Number(t.amount), 0);
 
-  // 6. Current Cash Balance
+  // 6. Total Pengeluaran Keseluruhan (Operasional + Modal Jersey HPP)
+  const totalDanaKeluar = totalPengeluaranOperasional + totalModalHpp;
+
+  // 7. Current Cash Balance
   const saldoKasSaatIni = totalDanaMasuk - totalDanaKeluar;
 
   // Chart aggregation by month (Last 6 Months)
@@ -242,6 +259,14 @@ function AdminKeuangan() {
     if (monthlyDataMap[monthKey]) {
       const revenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
       monthlyDataMap[monthKey].masuk += revenue;
+
+      // Add sold jersey cost to monthly outflows
+      const items = (o as any).order_items || [];
+      const orderCost = items.reduce(
+        (sum: number, item: any) => sum + Number(item.cost_price || 0) * Number(item.quantity || 1),
+        0
+      );
+      monthlyDataMap[monthKey].keluar += orderCost;
     }
   });
 
@@ -422,7 +447,7 @@ function AdminKeuangan() {
       />
 
       {/* Summary Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="border-border border-emerald-500/20 bg-emerald-500/[0.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
@@ -431,12 +456,12 @@ function AdminKeuangan() {
             <Wallet className="size-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div
-            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate"
+            className="text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate"
             title={formatIDR(saldoKasSaatIni)}
           >
             {formatIDR(saldoKasSaatIni)}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Total Dana Masuk - Total Dana Keluar</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Dana Masuk - Total Pengeluaran</p>
         </Card>
 
         <Card className="border-border">
@@ -447,7 +472,7 @@ function AdminKeuangan() {
             <TrendingUp className="size-4 text-emerald-500" />
           </div>
           <div
-            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-2 truncate"
+            className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
             title={formatIDR(totalDanaMasuk)}
           >
             {formatIDR(totalDanaMasuk)}
@@ -462,17 +487,35 @@ function AdminKeuangan() {
         <Card className="border-border">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Pengeluaran
+              Pengeluaran Operasional
             </span>
             <TrendingDown className="size-4 text-rose-500" />
           </div>
           <div
-            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-2 truncate"
-            title={formatIDR(totalDanaKeluar)}
+            className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
+            title={formatIDR(totalPengeluaranOperasional)}
           >
-            {formatIDR(totalDanaKeluar)}
+            {formatIDR(totalPengeluaranOperasional)}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Biaya sewa, packaging, operasional, dll.</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Sewa, packaging, operasional, dll.</p>
+        </Card>
+
+        <Card className="border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Modal Jersey (HPP)
+            </span>
+            <Coins className="size-4 text-amber-500" />
+          </div>
+          <div
+            className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
+            title={formatIDR(totalModalHpp)}
+          >
+            {formatIDR(totalModalHpp)}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Dari seluruh <span className="font-bold text-foreground">{totalStockPcs} pcs</span> stok jersey
+          </p>
         </Card>
       </div>
 
@@ -511,39 +554,55 @@ function AdminKeuangan() {
 
       {/* Chart Panel */}
       <Card className="mb-6">
-        <h2 className="font-extrabold text-base mb-4 flex items-center gap-2">
-          <Calendar className="size-4 text-muted-foreground" />
-          Tren Keuangan 6 Bulan Terakhir
-        </h2>
-        <div className="h-[280px] w-full">
-          <ChartContainer config={chartConfig} className="h-full w-full min-h-[250px] aspect-auto">
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 15, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+          <h2 className="font-extrabold text-base flex items-center gap-2">
+            <CalendarIcon className="size-4 text-muted-foreground" />
+            Tren Keuangan 6 Bulan Terakhir
+          </h2>
+          <div className="flex items-center gap-4 text-xs font-semibold">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="size-2.5 rounded-full bg-emerald-500" /> Dana Masuk
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="size-2.5 rounded-full bg-rose-500" /> Dana Keluar
+            </span>
+          </div>
+        </div>
+        <div className="h-[280px] w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} barGap={6}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
               <XAxis
                 dataKey="month"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={8}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                tickMargin={10}
+                tick={{ fill: "currentColor", fontSize: 12, opacity: 0.6 }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tickMargin={8}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                tickMargin={10}
+                tick={{ fill: "currentColor", fontSize: 11, opacity: 0.6 }}
                 tickFormatter={(v) =>
-                  v === 0 ? "0" : v >= 1000000 ? `${(v / 1000000).toFixed(0)}Jt` : `${v / 1000}rb`
+                  v === 0 ? "0" : v >= 1000000 ? `${(v / 1000000).toFixed(0)} Jt` : `${v / 1000} rb`
                 }
               />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="line" className="bg-popover border-border" />}
+              <Tooltip
+                formatter={(value: any, name: any) => [formatIDR(Number(value || 0)), name]}
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  borderColor: "hsl(var(--border))",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                }}
+                labelStyle={{ fontWeight: "bold", marginBottom: "4px", color: "hsl(var(--foreground))" }}
               />
-              <Legend wrapperStyle={{ fontSize: "11px", marginTop: "10px" }} />
-              <Bar name="Dana Masuk" dataKey="masuk" fill="var(--color-masuk)" radius={[4, 4, 0, 0]} />
-              <Bar name="Dana Keluar" dataKey="keluar" fill="var(--color-keluar)" radius={[4, 4, 0, 0]} />
+              <Bar name="Dana Masuk" dataKey="masuk" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={42} />
+              <Bar name="Dana Keluar" dataKey="keluar" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={42} />
             </BarChart>
-          </ChartContainer>
+          </ResponsiveContainer>
         </div>
       </Card>
 
