@@ -65,7 +65,7 @@ export function Navbar({ overHero = false }: NavbarProps) {
           className="flex items-center gap-2.5 min-w-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm group"
         >
           <img
-            src="/logo-aa-jersey.png"
+            src={scrolled ? "/logo-aa-jersey-dark.png" : "/logo-aa-jersey.png"}
             alt="Logo AA Jersey"
             className="size-7 md:size-8 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
           />

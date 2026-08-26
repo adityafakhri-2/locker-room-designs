@@ -563,7 +563,7 @@ function AuthPage() {
         <div className="w-full max-w-md bg-background border border-border p-8 md:p-10">
           <Link to="/" className="inline-flex items-center gap-2.5 group">
             <img
-              src="/logo-aa-jersey.png"
+              src="/logo-aa-jersey-dark.png"
               alt="Logo AA Jersey"
               className="size-8 object-contain group-hover:scale-105 transition-transform"
             />

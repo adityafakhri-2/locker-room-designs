@@ -144,7 +144,7 @@ Terima kasih telah berbelanja di AA Jersey!`;
               {/* Logo & Store Header */}
               <div className="text-center pb-4 border-b border-dashed border-zinc-300">
                 <img
-                  src="/logo-aa-jersey.png"
+                  src="/logo-aa-jersey-dark.png"
                   alt="AA Jersey"
                   className="size-10 object-contain mx-auto mb-1.5"
                 />
@@ -261,7 +261,7 @@ Terima kasih telah berbelanja di AA Jersey!`;
               <div className="flex justify-between items-start pb-6 border-b border-zinc-200">
                 <div className="flex items-center gap-3.5">
                   <img
-                    src="/logo-aa-jersey.png"
+                    src="/logo-aa-jersey-dark.png"
                     alt="Logo AA Jersey"
                     className="size-12 object-contain"
                   />
