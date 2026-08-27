@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2 } from "lucide-react";
+import { triggerGlobalLogout } from "@/components/common/LogoutOverlay";
 
 import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
 import { parseAlamat } from "@/lib/format";
@@ -147,9 +148,8 @@ function ProfilePage() {
     qc.invalidateQueries({ queryKey: ["profile"] });
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
+  function logout() {
+    triggerGlobalLogout();
   }
 
   async function handleLinkGoogle() {

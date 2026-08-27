@@ -149,11 +149,18 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+import { NavigationProgress } from "@/components/common/NavigationProgress";
+import { InitialBrandLoader } from "@/components/common/InitialBrandLoader";
+import { LogoutOverlay } from "@/components/common/LogoutOverlay";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <InitialBrandLoader />
+      <NavigationProgress />
+      <LogoutOverlay />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="bottom-right" />

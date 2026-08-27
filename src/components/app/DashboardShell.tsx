@@ -47,6 +47,8 @@ function getNavIcon(label: string) {
   return LayoutDashboard;
 }
 
+import { triggerGlobalLogout } from "@/components/common/LogoutOverlay";
+
 export function DashboardShell({
   items,
   title,
@@ -60,9 +62,8 @@ export function DashboardShell({
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
+  function handleLogout() {
+    triggerGlobalLogout();
   }
 
   const currentItem = items.find(
