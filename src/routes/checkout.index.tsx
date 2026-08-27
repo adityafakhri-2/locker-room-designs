@@ -666,40 +666,51 @@ function CheckoutPage() {
                   ))}
                 </div>
               ) : rates.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-                  {rates.map((r) => (
-                    <button
-                      type="button"
-                      key={r.name}
-                      onClick={() => set("courier", r.name)}
-                      className={`border p-4 text-left cursor-pointer transition-all rounded-lg ${
-                        form.courier === r.name
-                          ? "border-primary bg-accent/40 shadow-sm"
-                          : "border-border hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-foreground">{r.name}</span>
-                        <img
-                          src="/images/jne-logo.png"
-                          alt="JNE"
-                          referrerPolicy="no-referrer"
-                          className="h-4 object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "https://upload.wikimedia.org/wikipedia/commons/9/92/New_Logo_JNE.png";
-                          }}
-                        />
-                      </div>
-                      <div className="text-sm font-extrabold text-foreground mt-1.5">
-                        {formatIDR(r.cost)}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-                        <span>Estimasi:</span>
-                        <span className="font-medium text-foreground">{r.etd}</span>
-                      </div>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                  {rates.map((r) => {
+                    const isJnt = r.name.toLowerCase().includes("j&t") || r.name.toLowerCase().includes("jnt");
+                    const isLion = r.name.toLowerCase().includes("lion");
+                    const logoSrc = isJnt
+                      ? "/images/JT-Express-Logo.png"
+                      : isLion
+                      ? "/images/lion-logo.png"
+                      : "/images/jne-logo.png";
+
+                    return (
+                      <button
+                        type="button"
+                        key={r.name}
+                        onClick={() => set("courier", r.name)}
+                        className={`border p-4 text-left cursor-pointer transition-all rounded-lg flex flex-col justify-between ${
+                          form.courier === r.name
+                            ? "border-primary bg-accent/40 shadow-sm ring-1 ring-primary"
+                            : "border-border hover:border-muted-foreground/30"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-xs sm:text-sm text-foreground">{r.name}</span>
+                          <img
+                            src={logoSrc}
+                            alt={r.name}
+                            referrerPolicy="no-referrer"
+                            className="h-4 max-w-[60px] object-contain flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                        <div className="mt-2">
+                          <div className="text-sm font-extrabold text-foreground">
+                            {formatIDR(r.cost)}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <span>Estimasi:</span>
+                            <span className="font-medium text-foreground">{r.etd}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="border border-dashed border-destructive/20 p-6 text-center text-sm text-destructive rounded-lg bg-destructive/5">
