@@ -54,6 +54,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  PiggyBank,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -230,6 +231,7 @@ function AdminKeuangan() {
   // Drilldown Detail Modal State
   type DetailModalType =
     | "saldo"
+    | "sisa_modal"
     | "dana_masuk"
     | "operasional"
     | "modal_jersey"
@@ -447,8 +449,11 @@ function AdminKeuangan() {
   // 6. Total Pengeluaran Keseluruhan (Operasional + Modal Jersey HPP)
   const totalDanaKeluar = totalPengeluaranOperasional + totalModalHpp;
 
-  // 7. Current Cash Balance
+  // 7. Current Cash Balance (Kas Riil: Dana Masuk - Total Pengeluaran)
   const saldoKasSaatIni = totalDanaMasuk - totalDanaKeluar;
+
+  // 8. Sisa Modal Dagang (Pure Pengeluaran: Modal Disuntik - Total Pengeluaran Murni)
+  const sisaModalDagang = totalManualInCapital - totalDanaKeluar;
 
   // Chart aggregation by month (Last 6 Months)
   const monthlyDataMap: Record<string, { month: string; masuk: number; keluar: number }> = {};
@@ -675,62 +680,61 @@ function AdminKeuangan() {
             setModalSortKey(null);
             setModalSortDir(null);
           }}
-          className="border-border border-emerald-500/30 bg-emerald-500/[0.03] cursor-pointer hover:border-emerald-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+          className="border-border border-emerald-500/30 bg-emerald-500/[0.03] cursor-pointer hover:border-emerald-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              Saldo Kas Saat Ini
-            </span>
-            <div className="flex items-center gap-1">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Saldo Kas Saat Ini
+              </span>
               <Wallet className="size-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-              <ArrowUpRight className="size-3.5 text-emerald-600/60 dark:text-emerald-400/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div
+              className="text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate"
+              title={formatIDR(saldoKasSaatIni)}
+            >
+              {formatIDR(saldoKasSaatIni)}
             </div>
           </div>
-          <div
-            className="text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate"
-            title={formatIDR(saldoKasSaatIni)}
-          >
-            {formatIDR(saldoKasSaatIni)}
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[11px] text-muted-foreground">Dana Masuk - Total Pengeluaran</p>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40 gap-2">
+            <p className="text-[11px] text-muted-foreground truncate" title="Dana Masuk - Total Pengeluaran">
+              Dana Masuk - Total Pengeluaran
+            </p>
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               Lihat Detail ↗
             </span>
           </div>
         </Card>
 
+        {/* Sisa Modal Dagang (Pure Pengeluaran) */}
         <Card
           onClick={() => {
-            setDetailModalType("dana_masuk");
+            setDetailModalType("sisa_modal");
             setModalSearch("");
             setModalSortKey(null);
             setModalSortDir(null);
           }}
-          className="border-border cursor-pointer hover:border-primary hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+          className="border-border border-cyan-500/30 bg-cyan-500/[0.03] cursor-pointer hover:border-cyan-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Dana Masuk
-            </span>
-            <div className="flex items-center gap-1">
-              <TrendingUp className="size-4 text-emerald-500 group-hover:scale-110 transition-transform" />
-              <ArrowUpRight className="size-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+                Sisa Modal Dagang
+              </span>
+              <PiggyBank className="size-4 text-cyan-600 dark:text-cyan-400 group-hover:scale-110 transition-transform" />
+            </div>
+            <div
+              className="text-2xl font-extrabold tracking-tight text-cyan-600 dark:text-cyan-400 mt-2 truncate"
+              title={formatIDR(sisaModalDagang)}
+            >
+              {formatIDR(sisaModalDagang)}
             </div>
           </div>
-          <div
-            className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
-            title={formatIDR(totalDanaMasuk)}
-          >
-            {formatIDR(totalDanaMasuk)}
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <div className="text-[11px] text-muted-foreground flex flex-wrap gap-x-1.5">
-              <span>Modal: {formatIDR(totalManualInCapital)}</span>
-              <span>·</span>
-              <span>Jersey: {formatIDR(totalJerseySales)}</span>
-            </div>
-            <span className="text-[10px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40 gap-2">
+            <p className="text-[11px] text-muted-foreground truncate" title="Modal Disuntik - Pengeluaran">
+              Modal Disuntik - Pengeluaran
+            </p>
+            <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 whitespace-nowrap shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               Lihat Detail ↗
             </span>
           </div>
@@ -743,26 +747,27 @@ function AdminKeuangan() {
             setModalSortKey(null);
             setModalSortDir(null);
           }}
-          className="border-border cursor-pointer hover:border-rose-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+          className="border-border cursor-pointer hover:border-rose-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Pengeluaran Operasional
-            </span>
-            <div className="flex items-center gap-1">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Pengeluaran Operasional
+              </span>
               <TrendingDown className="size-4 text-rose-500 group-hover:scale-110 transition-transform" />
-              <ArrowUpRight className="size-3.5 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div
+              className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
+              title={formatIDR(totalPengeluaranOperasional)}
+            >
+              {formatIDR(totalPengeluaranOperasional)}
             </div>
           </div>
-          <div
-            className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
-            title={formatIDR(totalPengeluaranOperasional)}
-          >
-            {formatIDR(totalPengeluaranOperasional)}
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[11px] text-muted-foreground">Sewa, packaging, operasional, dll.</p>
-            <span className="text-[10px] font-semibold text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40 gap-2">
+            <p className="text-[11px] text-muted-foreground truncate" title="Sewa, packaging, operasional, dll.">
+              Sewa, packaging, operasional, dll.
+            </p>
+            <span className="text-[11px] font-semibold text-rose-500 whitespace-nowrap shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               Lihat Detail ↗
             </span>
           </div>
@@ -775,28 +780,27 @@ function AdminKeuangan() {
             setModalSortKey(null);
             setModalSortDir(null);
           }}
-          className="border-border cursor-pointer hover:border-amber-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden"
+          className="border-border cursor-pointer hover:border-amber-500 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 group relative overflow-hidden flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Modal Jersey (HPP)
-            </span>
-            <div className="flex items-center gap-1">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Total Modal Jersey (HPP)
+              </span>
               <Coins className="size-4 text-amber-500 group-hover:scale-110 transition-transform" />
-              <ArrowUpRight className="size-3.5 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div
+              className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
+              title={formatIDR(totalModalHpp)}
+            >
+              {formatIDR(totalModalHpp)}
             </div>
           </div>
-          <div
-            className="text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate"
-            title={formatIDR(totalModalHpp)}
-          >
-            {formatIDR(totalModalHpp)}
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[11px] text-muted-foreground">
-              Dari <span className="font-bold text-foreground">{totalProcuredPcs} pcs</span> jersey ({totalStockPcs} stok + {totalSoldPcs} terjual)
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40 gap-2">
+            <p className="text-[11px] text-muted-foreground truncate" title={`Dari ${totalProcuredPcs} pcs jersey (${totalStockPcs} stok + ${totalSoldPcs} terjual)`}>
+              Dari <strong className="font-bold text-foreground">{totalProcuredPcs} pcs</strong> jersey ({totalStockPcs} stok + {totalSoldPcs} terjual)
             </p>
-            <span className="text-[10px] font-semibold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-[11px] font-semibold text-amber-500 whitespace-nowrap shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               Lihat Detail ↗
             </span>
           </div>
@@ -819,9 +823,8 @@ function AdminKeuangan() {
               <ShoppingBag className="size-5 text-primary" />
             </div>
             <div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span>Omset Penjualan Jersey</span>
-                <ArrowUpRight className="size-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-xs text-muted-foreground">
+                Omset Penjualan Jersey
               </div>
               <div className="font-extrabold text-lg">{formatIDR(totalJerseySales)}</div>
             </div>
@@ -845,9 +848,8 @@ function AdminKeuangan() {
               <Briefcase className="size-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span>Modal Dagang Disuntik</span>
-                <ArrowUpRight className="size-3 text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="text-xs text-muted-foreground">
+                Modal Dagang Disuntik
               </div>
               <div className="font-extrabold text-lg">{formatIDR(totalManualInCapital)}</div>
             </div>
@@ -1041,6 +1043,7 @@ function AdminKeuangan() {
             </div>
             <DialogTitle className="text-xl font-black tracking-tight flex items-center justify-between">
               {detailModalType === "saldo" && "Audit Perincian Saldo Kas Saat Ini"}
+              {detailModalType === "sisa_modal" && "Audit Perincian Sisa Modal Dagang (Pure Pengeluaran)"}
               {detailModalType === "dana_masuk" && "Perincian Total Dana Masuk"}
               {detailModalType === "operasional" && "Perincian Pengeluaran Operasional"}
               {detailModalType === "modal_jersey" && "Perincian Total Modal Jersey (HPP Inventaris)"}
@@ -1050,6 +1053,8 @@ function AdminKeuangan() {
             <DialogDescription className="text-xs text-muted-foreground mt-1">
               {detailModalType === "saldo" &&
                 "Rekapitulasi lengkap sumber dana masuk dan seluruh komponen pengeluaran modal & beban operasional."}
+              {detailModalType === "sisa_modal" &&
+                "Rincian sisa modal murni (Modal Disuntik dikurangi seluruh pengeluaran HPP jersey & biaya operasional) tanpa memperhitungkan omset penjualan."}
               {detailModalType === "dana_masuk" &&
                 "Daftar lengkap dana masuk yang bersumber dari modal disuntik manual dan omset pesanan jersey pelanggan."}
               {detailModalType === "operasional" &&
@@ -1201,6 +1206,102 @@ function AdminKeuangan() {
                       <TableCell>{totalProcuredPcs} Pcs ({totalStockPcs} stok + {totalSoldPcs} terjual)</TableCell>
                       <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
                         - {formatIDR(totalModalHpp)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* 2. Modal: SISA MODAL DAGANG (PURE PENGELUARAN) */}
+            {detailModalType === "sisa_modal" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                    <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 block">Modal Dagang Disuntik (+)</span>
+                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalManualInCapital)}</span>
+                  </div>
+                  <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                    <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 block">Total Beban & Modal Keluar (-)</span>
+                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalDanaKeluar)}</span>
+                  </div>
+                  <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
+                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 block">Sisa Modal Bersih (Pure)</span>
+                    <span className="text-xl font-extrabold text-cyan-600 dark:text-cyan-400 mt-1 block">{formatIDR(sisaModalDagang)}</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-lg border border-cyan-500/20 bg-cyan-500/[0.04] text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
+                  <PiggyBank className="size-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Catatan Sisa Modal Murni:</strong> Angka ini menghitung sisa dana modal dagang Anda yang belum terpakai setelah dikurangi seluruh pengadaan jersey ({formatIDR(totalModalHpp)}) dan biaya operasional ({formatIDR(totalPengeluaranOperasional)}), <u>tanpa mencampurkan</u> uang dari omset penjualan jersey ({formatIDR(totalJerseySales)}).
+                  </span>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead className="font-bold">Pos Alokasi</TableHead>
+                      <TableHead className="font-bold">Keterangan Komponen</TableHead>
+                      <TableHead className="font-bold">Volume / Satuan</TableHead>
+                      <TableHead className="text-right font-bold">Nominal</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>
+                        <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0">
+                          Modal Awal (+)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Modal Dagang Disuntik
+                        <span className="block text-xs text-muted-foreground">Total dana modal yang dimasukkan ke kas toko</span>
+                      </TableCell>
+                      <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Catatan Injeksi</TableCell>
+                      <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                        + {formatIDR(totalManualInCapital)}
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>
+                        <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
+                          Pengeluaran (-)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Pengadaan Jersey (Total Modal HPP)
+                        <span className="block text-xs text-muted-foreground">Modal pengadaan seluruh jersey ({totalStockPcs} sisa stok + {totalSoldPcs} terjual)</span>
+                      </TableCell>
+                      <TableCell>{totalProcuredPcs} Pcs Jersey</TableCell>
+                      <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                        - {formatIDR(totalModalHpp)}
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow>
+                      <TableCell>
+                        <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
+                          Pengeluaran (-)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        Beban Operasional Toko
+                        <span className="block text-xs text-muted-foreground">Sewa lapak, packaging, marketing, operasional</span>
+                      </TableCell>
+                      <TableCell>{manualTxs.filter((t) => t.type === "out").length} Catatan Beban</TableCell>
+                      <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                        - {formatIDR(totalPengeluaranOperasional)}
+                      </TableCell>
+                    </TableRow>
+
+                    <TableRow className="bg-muted/20 font-bold border-t-2 border-border">
+                      <TableCell colSpan={3} className="text-foreground">
+                        SISA MODAL DAGANG TERSEDIA (PURE TANPA OMSET)
+                      </TableCell>
+                      <TableCell className="text-right text-base text-cyan-600 dark:text-cyan-400">
+                        {formatIDR(sisaModalDagang)}
                       </TableCell>
                     </TableRow>
                   </TableBody>

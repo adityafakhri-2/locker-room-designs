@@ -368,6 +368,20 @@ function CheckoutPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) return toast.error("Keranjang kosong");
+
+    if (!form.recipient_name.trim()) {
+      return toast.error("Nama penerima wajib diisi.");
+    }
+    if (!form.recipient_no_hp.trim()) {
+      return toast.error("Nomor HP penerima wajib diisi.");
+    }
+    if (!form.recipient_provinsi || !form.recipient_kota || !kecamatan) {
+      return toast.error("Provinsi, Kota, dan Kecamatan wajib diisi.");
+    }
+    if (!alamatDetail.trim()) {
+      return toast.error("Alamat lengkap (nama jalan/rumah) wajib diisi.");
+    }
+
     setLoading(true);
 
     // Validasi kuota voucher terbaru dari database sebelum pesanan dibuat
@@ -590,19 +604,25 @@ function CheckoutPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                 <div className="sm:col-span-2">
-                  <Label htmlFor="recipient_name">Nama Penerima</Label>
+                  <Label htmlFor="recipient_name" className="flex items-center gap-1.5 h-5 mb-1.5">
+                    Nama Penerima <span className="text-destructive font-bold">*</span>
+                  </Label>
                   <Input
                     id="recipient_name"
                     required
+                    placeholder="Nama lengkap penerima paket"
                     value={form.recipient_name}
                     onChange={(e) => set("recipient_name", e.target.value)}
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label htmlFor="recipient_no_hp">Nomor HP</Label>
+                  <Label htmlFor="recipient_no_hp" className="flex items-center gap-1.5 h-5 mb-1.5">
+                    Nomor HP <span className="text-destructive font-bold">*</span>
+                  </Label>
                   <Input
                     id="recipient_no_hp"
                     required
+                    placeholder="Contoh: 08123456789"
                     value={form.recipient_no_hp}
                     onChange={(e) => set("recipient_no_hp", e.target.value)}
                   />
@@ -625,7 +645,9 @@ function CheckoutPage() {
                 />
 
                 <div className="sm:col-span-2">
-                  <Label htmlFor="note">Catatan Pesanan</Label>
+                  <Label htmlFor="note" className="flex items-center gap-1.5 h-5 mb-1.5">
+                    Catatan Pesanan
+                  </Label>
                   <Textarea
                     id="note"
                     placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..."

@@ -8,7 +8,7 @@ import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Sparkles, Loader2, Wand2, Download, Save, Trash2 } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Download, Save, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { analyzeSalesData } from "@/lib/api/ai.functions";
 
 function toCSV(rows: Record<string, unknown>[]): string {
@@ -211,6 +211,72 @@ function AdminReports() {
       })
       .sort((a, b) => b.total_laba - a.total_laba || b.sold_count - a.sold_count);
   }, [products.data, productSalesMap]);
+
+  const [productSortKey, setProductSortKey] = useState<string | null>(null);
+  const [productSortDir, setProductSortDir] = useState<"asc" | "desc" | null>(null);
+
+  function handleProductSort(key: string) {
+    if (productSortKey !== key) {
+      setProductSortKey(key);
+      setProductSortDir("asc");
+    } else if (productSortDir === "asc") {
+      setProductSortDir("desc");
+    } else if (productSortDir === "desc") {
+      setProductSortKey(null);
+      setProductSortDir(null);
+    } else {
+      setProductSortKey(key);
+      setProductSortDir("asc");
+    }
+  }
+
+  const sortedProcessedProducts = useMemo(() => {
+    if (!productSortKey || !productSortDir) {
+      return processedProducts;
+    }
+    return [...processedProducts].sort((a, b) => {
+      let cmp = 0;
+      if (productSortKey === "name") {
+        cmp = a.name.localeCompare(b.name, "id-ID");
+      } else {
+        cmp = Number((a as any)[productSortKey] || 0) - Number((b as any)[productSortKey] || 0);
+      }
+      return productSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [processedProducts, productSortKey, productSortDir]);
+
+  const renderSortHeader = (label: string, sortKey: string, align: "left" | "right" = "left") => {
+    const isActive = productSortKey === sortKey;
+    return (
+      <th
+        onClick={() => handleProductSort(sortKey)}
+        className={cn(
+          "py-2.5 px-2 cursor-pointer select-none transition-colors hover:text-foreground hover:bg-muted/40 group",
+          align === "right" ? "text-right" : "text-left",
+          isActive ? "text-primary font-bold bg-primary/5" : ""
+        )}
+        title="Klik untuk sortir A-Z, Z-A, atau Default"
+      >
+        <div
+          className={cn(
+            "inline-flex items-center gap-1",
+            align === "right" ? "flex-row-reverse" : "flex-row"
+          )}
+        >
+          <span>{label}</span>
+          {isActive ? (
+            productSortDir === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary shrink-0" />
+            ) : (
+              <ArrowDown className="size-3.5 text-primary shrink-0" />
+            )
+          ) : (
+            <ArrowUpDown className="size-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          )}
+        </div>
+      </th>
+    );
+  };
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -520,18 +586,18 @@ function AdminReports() {
           <table className="w-full text-sm min-w-[750px]">
             <thead>
               <tr className="text-left eyebrow text-muted-foreground border-b border-border">
-                <th className="py-2.5">Produk</th>
-                <th>Terjual</th>
-                <th className="text-right">Modal/Pcs</th>
-                <th className="text-right">Harga Jual</th>
-                <th className="text-right">Total Omset</th>
-                <th className="text-right">Total Modal</th>
-                <th className="text-right">Total Keuntungan</th>
-                <th className="text-right">Margin</th>
+                {renderSortHeader("Produk", "name", "left")}
+                {renderSortHeader("Terjual", "sold_count", "left")}
+                {renderSortHeader("Modal/Pcs", "cost_price", "right")}
+                {renderSortHeader("Harga Jual", "price", "right")}
+                {renderSortHeader("Total Omset", "total_omset", "right")}
+                {renderSortHeader("Total Modal", "total_modal", "right")}
+                {renderSortHeader("Total Keuntungan", "total_laba", "right")}
+                {renderSortHeader("Margin", "profit_margin", "right")}
               </tr>
             </thead>
             <tbody>
-              {processedProducts.map((p) => (
+              {sortedProcessedProducts.map((p) => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-muted/10">
                   <td className="py-3 pr-3">
                     <div className="font-semibold text-xs sm:text-sm">{p.name}</div>
