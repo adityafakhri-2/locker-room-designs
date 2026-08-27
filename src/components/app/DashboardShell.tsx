@@ -2,6 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { ADMIN_NAV_GROUPS, type NavItem } from "@/lib/navigation";
 import {
   LayoutDashboard,
   Shirt,
@@ -28,23 +29,18 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-interface NavItem {
-  label: string;
-  to: string;
-}
-
 // Icon mapper for nav items
 function getNavIcon(label: string) {
   const l = label.toLowerCase();
   if (l.includes("dashboard")) return LayoutDashboard;
+  if (l.includes("pesanan")) return ShoppingBag;
   if (l.includes("produk")) return Shirt;
   if (l.includes("kategori")) return Tag;
-  if (l.includes("voucher")) return Ticket;
-  if (l.includes("pesanan")) return ShoppingBag;
   if (l.includes("pelanggan")) return Users;
   if (l.includes("keuangan")) return Wallet;
-  if (l.includes("ulasan")) return Star;
   if (l.includes("laporan")) return BarChart3;
+  if (l.includes("voucher")) return Ticket;
+  if (l.includes("ulasan")) return Star;
   if (l.includes("pengaturan")) return Settings;
   if (l.includes("profil") || l.includes("keamanan")) return ShieldCheck;
   if (l.includes("wishlist")) return Heart;
@@ -78,12 +74,12 @@ export function DashboardShell({
   const CurrentIcon = getNavIcon(currentItem?.label || "");
   const isAdminShell = title.toLowerCase().includes("admin");
 
-  // Primary mobile quick tabs
+  // Primary mobile quick tabs (Optimized: Dashboard, Pesanan, Produk, Keuangan, Lainnya)
   const quickTabs = isAdminShell
     ? [
         { label: "Dashboard", to: "/admin" },
-        { label: "Produk", to: "/admin/produk" },
         { label: "Pesanan", to: "/admin/pesanan" },
+        { label: "Produk", to: "/admin/produk" },
         { label: "Keuangan", to: "/admin/keuangan" },
       ]
     : [
@@ -101,40 +97,88 @@ export function DashboardShell({
   return (
     <div className="min-h-screen pt-16 sm:pt-20 md:pt-24 bg-muted/30 w-full pb-20 lg:pb-10">
       <div className="container-swiss py-3 sm:py-6 md:py-8 grid lg:grid-cols-[240px_minmax(0,1fr)] gap-6 lg:gap-10">
-        {/* Desktop: Classic Elegant Vertical Sidebar - Always Sticky & Visible on Scroll */}
+        {/* Desktop: Classic Elegant Grouped Vertical Sidebar - Always Sticky & Visible on Scroll */}
         <aside className="hidden lg:block sticky top-24 self-start w-full max-h-[calc(100vh-7rem)] overflow-y-auto pr-1">
           <div className="eyebrow text-muted-foreground mb-3 text-[11px] font-bold tracking-widest">
             {title}
           </div>
-          <nav className="flex flex-col gap-1">
-            {items.map((i) => {
-              const active =
-                pathname === i.to ||
-                (i.to !== "/dashboard" && i.to !== "/admin" && pathname.startsWith(i.to));
-              const Icon = getNavIcon(i.label);
-              return (
-                <Link
-                  key={i.to}
-                  to={i.to}
-                  className={cn(
-                    "px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2.5 rounded-lg border-l-2",
-                    active
-                      ? "bg-background text-foreground border-primary shadow-sm font-bold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border-transparent",
-                  )}
-                >
-                  <Icon className={cn("size-4", active ? "text-primary" : "text-muted-foreground")} />
-                  <span>{i.label}</span>
-                </Link>
-              );
-            })}
-            <button
-              onClick={handleLogout}
-              className="px-3.5 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors text-left cursor-pointer flex items-center gap-2.5 rounded-lg border-l-2 border-transparent hover:border-red-600 mt-2"
-            >
-              <LogOut className="size-4" />
-              <span>Logout</span>
-            </button>
+          <nav className="flex flex-col gap-3.5">
+            {isAdminShell ? (
+              ADMIN_NAV_GROUPS.map((group) => (
+                <div key={group.section} className="space-y-1">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/70 px-3 py-0.5">
+                    {group.section}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {group.items.map((i) => {
+                      const active =
+                        pathname === i.to ||
+                        (i.to !== "/dashboard" && i.to !== "/admin" && pathname.startsWith(i.to));
+                      const Icon = getNavIcon(i.label);
+                      return (
+                        <Link
+                          key={i.to}
+                          to={i.to}
+                          className={cn(
+                            "px-3 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer flex items-center gap-2.5 rounded-lg border-l-2",
+                            active
+                              ? "bg-background text-foreground border-primary shadow-xs font-bold"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border-transparent",
+                          )}
+                        >
+                          <Icon
+                            className={cn(
+                              "size-4 shrink-0",
+                              active ? "text-primary" : "text-muted-foreground",
+                            )}
+                          />
+                          <span className="truncate">{i.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col gap-1">
+                {items.map((i) => {
+                  const active =
+                    pathname === i.to ||
+                    (i.to !== "/dashboard" && i.to !== "/admin" && pathname.startsWith(i.to));
+                  const Icon = getNavIcon(i.label);
+                  return (
+                    <Link
+                      key={i.to}
+                      to={i.to}
+                      className={cn(
+                        "px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2.5 rounded-lg border-l-2",
+                        active
+                          ? "bg-background text-foreground border-primary shadow-sm font-bold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border-transparent",
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "size-4",
+                          active ? "text-primary" : "text-muted-foreground",
+                        )}
+                      />
+                      <span>{i.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-border/50">
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors text-left cursor-pointer flex items-center gap-2.5 rounded-lg border-l-2 border-transparent hover:border-red-600 w-full"
+              >
+                <LogOut className="size-4 shrink-0" />
+                <span>Logout</span>
+              </button>
+            </div>
           </nav>
         </aside>
 
@@ -199,37 +243,82 @@ export function DashboardShell({
                   Daftar Menu {title}
                 </SheetTitle>
               </SheetHeader>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 py-1">
-                {items.map((i) => {
-                  const active =
-                    pathname === i.to ||
-                    (i.to !== "/dashboard" && i.to !== "/admin" && pathname.startsWith(i.to));
-                  const Icon = getNavIcon(i.label);
-                  return (
-                    <Link
-                      key={i.to}
-                      to={i.to}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer min-h-[48px]",
-                        active
-                          ? "bg-primary text-primary-foreground border-primary shadow-md"
-                          : "bg-background border-border hover:bg-muted text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      <div
+
+              {isAdminShell ? (
+                <div className="space-y-4 py-1">
+                  {ADMIN_NAV_GROUPS.map((group) => (
+                    <div key={group.section} className="space-y-1.5">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground/80 px-1">
+                        {group.section}
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {group.items.map((i) => {
+                          const active =
+                            pathname === i.to ||
+                            (i.to !== "/dashboard" && i.to !== "/admin" && pathname.startsWith(i.to));
+                          const Icon = getNavIcon(i.label);
+                          return (
+                            <Link
+                              key={i.to}
+                              to={i.to}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={cn(
+                                "flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer min-h-[44px]",
+                                active
+                                  ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                  : "bg-background border-border hover:bg-muted text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "p-1.5 rounded-lg shrink-0",
+                                  active ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
+                                )}
+                              >
+                                <Icon className="size-4" />
+                              </div>
+                              <span className="truncate">{i.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 py-1">
+                  {items.map((i) => {
+                    const active =
+                      pathname === i.to ||
+                      (i.to !== "/dashboard" && i.to !== "/admin" && pathname.startsWith(i.to));
+                    const Icon = getNavIcon(i.label);
+                    return (
+                      <Link
+                        key={i.to}
+                        to={i.to}
+                        onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          "p-1.5 rounded-lg shrink-0",
-                          active ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
+                          "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer min-h-[48px]",
+                          active
+                            ? "bg-primary text-primary-foreground border-primary shadow-md"
+                            : "bg-background border-border hover:bg-muted text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        <Icon className="size-4" />
-                      </div>
-                      <span className="truncate">{i.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+                        <div
+                          className={cn(
+                            "p-1.5 rounded-lg shrink-0",
+                            active ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
+                          )}
+                        >
+                          <Icon className="size-4" />
+                        </div>
+                        <span className="truncate">{i.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="mt-5 pt-3 border-t border-border">
                 <button
                   type="button"
