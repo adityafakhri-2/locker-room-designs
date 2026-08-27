@@ -35,6 +35,7 @@ import {
   ChevronRight,
   Star,
   Coins,
+  AlertTriangle,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -1018,7 +1019,8 @@ function ProductForm() {
                   />
                   {isOriginalPriceInvalid ? (
                     <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1 animate-pulse">
-                      ⚠️ Harus lebih besar dari harga jual (&gt; {formatIDR(numPrice)}).
+                      <AlertTriangle className="size-3.5 inline shrink-0" />
+                      <span>Harus lebih besar dari harga jual (&gt; {formatIDR(numPrice)}).</span>
                     </p>
                   ) : (
                     <p className="text-[11px] text-muted-foreground mt-1">
@@ -1039,8 +1041,9 @@ function ProductForm() {
                 </div>
                 <div className="flex items-center gap-2">
                   {isOriginalPriceInvalid ? (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                      ⚠️ Harga coret tidak valid
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1">
+                      <AlertTriangle className="size-3" />
+                      <span>Harga coret tidak valid</span>
                     </span>
                   ) : discountPercent > 0 ? (
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">

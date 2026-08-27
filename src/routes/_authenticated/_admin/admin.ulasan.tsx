@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 
 interface ReviewItem {
   id: string;
@@ -56,7 +57,10 @@ function AdminReviews() {
             <div className="flex justify-between">
               <div>
                 <div className="text-xs eyebrow text-muted-foreground">{r.products?.name}</div>
-                <div className="font-semibold">★ {r.rating}/5</div>
+                <div className="font-semibold flex items-center gap-1 mt-0.5">
+                  <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                  <span>{r.rating}/5</span>
+                </div>
                 <p className="text-sm mt-1">{r.body}</p>
                 <p className="text-xs text-muted-foreground mt-2">
                   Status: {r.approved ? "approved" : "pending"} {r.hidden && "(hidden)"}

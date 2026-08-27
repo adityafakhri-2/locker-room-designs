@@ -959,47 +959,17 @@ function AdminKeuangan() {
             Tidak ada transaksi manual ditemukan.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">Tanggal</TableHead>
-                  <TableHead className="w-[100px]">Tipe</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Keterangan</TableHead>
-                  <TableHead className="text-right">Nominal</TableHead>
-                  <TableHead className="w-[80px] text-center">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTxs.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium text-xs whitespace-nowrap">
-                      {formatDate(t.transaction_date)}
-                    </TableCell>
-                    <TableCell>
-                      {t.type === "in" ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 border-0 text-[10px] px-2 py-0.5 rounded">
-                          Masuk
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15 border-0 text-[10px] px-2 py-0.5 rounded">
-                          Keluar
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs font-semibold text-foreground">
-                      {CATEGORY_LABELS[t.category] ?? t.category}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.description ?? ""}>
-                      {t.description || "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-extrabold text-xs">
-                      <span className={t.type === "in" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                        {t.type === "in" ? "+" : "-"} {formatIDR(t.amount)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
+          <>
+            {/* Mobile Card View (< sm) */}
+            <div className="sm:hidden space-y-3">
+              {filteredTxs.map((t) => (
+                <div key={t.id} className="p-3.5 rounded-lg border border-border bg-card/60 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-muted-foreground">{formatDate(t.transaction_date)}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge className={t.type === "in" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0 text-[10px] px-2 py-0.5" : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-0 text-[10px] px-2 py-0.5"}>
+                        {t.type === "in" ? "Masuk" : "Keluar"}
+                      </Badge>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -1009,16 +979,87 @@ function AdminKeuangan() {
                           }
                         }}
                         disabled={deleteMutation.isPending}
-                        className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                        className="size-7 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-3.5" />
                       </Button>
-                    </TableCell>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-bold text-foreground">{CATEGORY_LABELS[t.category] ?? t.category}</div>
+                    <div className={`font-extrabold text-sm ${t.type === "in" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {t.type === "in" ? "+" : "-"} {formatIDR(t.amount)}
+                    </div>
+                  </div>
+                  {t.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= sm) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[120px]">Tanggal</TableHead>
+                    <TableHead className="w-[100px]">Tipe</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Keterangan</TableHead>
+                    <TableHead className="text-right">Nominal</TableHead>
+                    <TableHead className="w-[80px] text-center">Aksi</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredTxs.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium text-xs whitespace-nowrap">
+                        {formatDate(t.transaction_date)}
+                      </TableCell>
+                      <TableCell>
+                        {t.type === "in" ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 border-0 text-[10px] px-2 py-0.5 rounded">
+                            Masuk
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15 border-0 text-[10px] px-2 py-0.5 rounded">
+                            Keluar
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold text-foreground">
+                        {CATEGORY_LABELS[t.category] ?? t.category}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={t.description ?? ""}>
+                        {t.description || "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-extrabold text-xs">
+                        <span className={t.type === "in" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                          {t.type === "in" ? "+" : "-"} {formatIDR(t.amount)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            if (confirm("Apakah Anda yakin ingin menghapus catatan transaksi ini?")) {
+                              deleteMutation.mutate(t.id);
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </Card>
 
@@ -1034,14 +1075,14 @@ function AdminKeuangan() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="w-[calc(100%-1rem)] sm:w-full sm:max-w-4xl max-h-[92dvh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-xl">
           {/* Header */}
-          <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30">
+          <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
               <FileText className="size-3.5" />
               Perincian Transaksi & Arus Keuangan
             </div>
-            <DialogTitle className="text-xl font-black tracking-tight flex items-center justify-between">
+            <DialogTitle className="text-lg sm:text-xl font-black tracking-tight flex items-center justify-between">
               {detailModalType === "saldo" && "Audit Perincian Saldo Kas Saat Ini"}
               {detailModalType === "sisa_modal" && "Audit Perincian Sisa Modal Dagang (Pure Pengeluaran)"}
               {detailModalType === "dana_masuk" && "Perincian Total Dana Masuk"}
@@ -1070,7 +1111,7 @@ function AdminKeuangan() {
 
           {/* Search bar inside modal (except for saldo overview) */}
           {detailModalType !== "saldo" && (
-            <div className="px-6 py-3 border-b border-border bg-muted/10 flex items-center gap-3">
+            <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-muted/10 flex items-center gap-2 sm:gap-3">
               <Search className="size-4 text-muted-foreground shrink-0" />
               <Input
                 placeholder={
@@ -1082,7 +1123,7 @@ function AdminKeuangan() {
                 }
                 value={modalSearch}
                 onChange={(e) => setModalSearch(e.target.value)}
-                className="h-8 text-xs bg-background border-border/80"
+                className="h-8 text-xs bg-background border-border/80 flex-1"
               />
               {modalSearch && (
                 <Button
@@ -1098,68 +1139,122 @@ function AdminKeuangan() {
           )}
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4">
             {/* 1. Modal: SALDO KAS */}
             {detailModalType === "saldo" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  <div className="p-3 sm:p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
                     <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block">Total Dana Masuk (+)</span>
-                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalDanaMasuk)}</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalDanaMasuk)}</span>
                   </div>
-                  <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                  <div className="p-3 sm:p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
                     <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 block">Total Pengeluaran (-)</span>
-                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalDanaKeluar)}</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalDanaKeluar)}</span>
                   </div>
-                  <div className="p-4 rounded-xl border border-primary/30 bg-primary/5">
+                  <div className="p-3 sm:p-4 rounded-xl border border-primary/30 bg-primary/5">
                     <span className="text-xs font-semibold text-primary block">Saldo Kas Bersih</span>
-                    <span className="text-xl font-extrabold text-primary mt-1 block">{formatIDR(saldoKasSaatIni)}</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-primary mt-0.5 block">{formatIDR(saldoKasSaatIni)}</span>
                   </div>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40">
-                      <TableHead className="font-bold">Arus Kas</TableHead>
-                      <TableHead className="font-bold">Komponen / Sumber Dana</TableHead>
-                      <TableHead className="font-bold">Jumlah Data</TableHead>
-                      <TableHead className="text-right font-bold">Total Nominal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
-                          Dana Masuk (+)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Modal Dagang Disuntik
-                        <span className="block text-xs text-muted-foreground">Catatan suntikan dana manual</span>
-                      </TableCell>
-                      <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Transaksi</TableCell>
-                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                {/* Mobile Breakdown Cards (< md) */}
+                <div className="space-y-2.5 md:hidden">
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0 text-[10px]">
+                        Dana Masuk (+)
+                      </Badge>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
                         + {formatIDR(totalManualInCapital)}
-                      </TableCell>
-                    </TableRow>
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Modal Dagang Disuntik</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Catatan suntikan dana manual</span>
+                      <span>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Transaksi</span>
+                    </div>
+                  </div>
 
-                    <TableRow>
-                      <TableCell>
-                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0 text-[10px]">
+                        Dana Masuk (+)
+                      </Badge>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                        + {formatIDR(totalJerseySales)}
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Omset Penjualan Jersey</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Penjualan pesanan sukses</span>
+                      <span>{orders.length} Pesanan</span>
+                    </div>
+                  </div>
+
+                  {totalManualInOther > 0 && (
+                    <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                      <div className="flex items-center justify-between">
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0 text-[10px]">
                           Dana Masuk (+)
                         </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Omset Penjualan Jersey
-                        <span className="block text-xs text-muted-foreground">Penjualan pesanan berstatus sukses</span>
-                      </TableCell>
-                      <TableCell>{orders.length} Pesanan</TableCell>
-                      <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
-                        + {formatIDR(totalJerseySales)}
-                      </TableCell>
-                    </TableRow>
+                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                          + {formatIDR(totalManualInOther)}
+                        </span>
+                      </div>
+                      <div className="font-bold text-foreground">Pendapatan Lain-lain</div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                        <span>Pemasukan non-modal/order</span>
+                        <span>{manualTxs.filter((t) => t.type === "in" && t.category !== "modal").length} Transaksi</span>
+                      </div>
+                    </div>
+                  )}
 
-                    {totalManualInOther > 0 && (
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0 text-[10px]">
+                        Dana Keluar (-)
+                      </Badge>
+                      <span className="font-extrabold text-rose-600 dark:text-rose-400 text-sm">
+                        - {formatIDR(totalPengeluaranOperasional)}
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Pengeluaran Beban Operasional</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Sewa, packaging, marketing, dll.</span>
+                      <span>{manualTxs.filter((t) => t.type === "out").length} Transaksi</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="destructive" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0 text-[10px]">
+                        Dana Keluar (-)
+                      </Badge>
+                      <span className="font-extrabold text-amber-600 dark:text-amber-400 text-sm">
+                        - {formatIDR(totalModalHpp)}
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Total Modal Jersey (Pengadaan)</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Stok gudang & jersey terjual</span>
+                      <span>{totalProcuredPcs} Pcs</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Arus Kas</TableHead>
+                        <TableHead className="font-bold">Komponen / Sumber Dana</TableHead>
+                        <TableHead className="font-bold">Jumlah Data</TableHead>
+                        <TableHead className="text-right font-bold">Total Nominal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       <TableRow>
                         <TableCell>
                           <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
@@ -1167,149 +1262,246 @@ function AdminKeuangan() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-medium">
-                          Pendapatan Lain-lain
-                          <span className="block text-xs text-muted-foreground">Pemasukan non-modal / order</span>
+                          Modal Dagang Disuntik
+                          <span className="block text-xs text-muted-foreground">Catatan suntikan dana manual</span>
                         </TableCell>
-                        <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category !== "modal").length} Transaksi</TableCell>
+                        <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Transaksi</TableCell>
                         <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
-                          + {formatIDR(totalManualInOther)}
+                          + {formatIDR(totalManualInCapital)}
                         </TableCell>
                       </TableRow>
-                    )}
 
-                    <TableRow>
-                      <TableCell>
-                        <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
-                          Dana Keluar (-)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Pengeluaran Beban Operasional
-                        <span className="block text-xs text-muted-foreground">Sewa lapak, packaging, marketing, operasional</span>
-                      </TableCell>
-                      <TableCell>{manualTxs.filter((t) => t.type === "out").length} Transaksi</TableCell>
-                      <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
-                        - {formatIDR(totalPengeluaranOperasional)}
-                      </TableCell>
-                    </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                            Dana Masuk (+)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Omset Penjualan Jersey
+                          <span className="block text-xs text-muted-foreground">Penjualan pesanan berstatus sukses</span>
+                        </TableCell>
+                        <TableCell>{orders.length} Pesanan</TableCell>
+                        <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                          + {formatIDR(totalJerseySales)}
+                        </TableCell>
+                      </TableRow>
 
-                    <TableRow>
-                      <TableCell>
-                        <Badge variant="destructive" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0">
-                          Dana Keluar (-)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Total Modal Jersey (Pengadaan)
-                        <span className="block text-xs text-muted-foreground">Modal kulakan stok gudang & jersey terjual</span>
-                      </TableCell>
-                      <TableCell>{totalProcuredPcs} Pcs ({totalStockPcs} stok + {totalSoldPcs} terjual)</TableCell>
-                      <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
-                        - {formatIDR(totalModalHpp)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                      {totalManualInOther > 0 && (
+                        <TableRow>
+                          <TableCell>
+                            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                              Dana Masuk (+)
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            Pendapatan Lain-lain
+                            <span className="block text-xs text-muted-foreground">Pemasukan non-modal / order</span>
+                          </TableCell>
+                          <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category !== "modal").length} Transaksi</TableCell>
+                          <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                            + {formatIDR(totalManualInOther)}
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      <TableRow>
+                        <TableCell>
+                          <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
+                            Dana Keluar (-)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Pengeluaran Beban Operasional
+                          <span className="block text-xs text-muted-foreground">Sewa lapak, packaging, marketing, operasional</span>
+                        </TableCell>
+                        <TableCell>{manualTxs.filter((t) => t.type === "out").length} Transaksi</TableCell>
+                        <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                          - {formatIDR(totalPengeluaranOperasional)}
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell>
+                          <Badge variant="destructive" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0">
+                            Dana Keluar (-)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Total Modal Jersey (Pengadaan)
+                          <span className="block text-xs text-muted-foreground">Modal kulakan stok gudang & jersey terjual</span>
+                        </TableCell>
+                        <TableCell>{totalProcuredPcs} Pcs ({totalStockPcs} stok + {totalSoldPcs} terjual)</TableCell>
+                        <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                          - {formatIDR(totalModalHpp)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
 
             {/* 2. Modal: SISA MODAL DAGANG (PURE PENGELUARAN) */}
             {detailModalType === "sisa_modal" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  <div className="p-3 sm:p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
                     <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 block">Modal Dagang Disuntik (+)</span>
-                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalManualInCapital)}</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalManualInCapital)}</span>
                   </div>
-                  <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                  <div className="p-3 sm:p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
                     <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 block">Total Beban & Modal Keluar (-)</span>
-                    <span className="text-xl font-extrabold text-foreground mt-1 block">{formatIDR(totalDanaKeluar)}</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalDanaKeluar)}</span>
                   </div>
-                  <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
+                  <div className="p-3 sm:p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
                     <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 block">Sisa Modal Bersih (Pure)</span>
-                    <span className="text-xl font-extrabold text-cyan-600 dark:text-cyan-400 mt-1 block">{formatIDR(sisaModalDagang)}</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-cyan-600 dark:text-cyan-400 mt-0.5 block">{formatIDR(sisaModalDagang)}</span>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-lg border border-cyan-500/20 bg-cyan-500/[0.04] text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
+                <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/[0.04] text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
                   <PiggyBank className="size-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                   <span>
                     <strong>Catatan Sisa Modal Murni:</strong> Angka ini menghitung sisa dana modal dagang Anda yang belum terpakai setelah dikurangi seluruh pengadaan jersey ({formatIDR(totalModalHpp)}) dan biaya operasional ({formatIDR(totalPengeluaranOperasional)}), <u>tanpa mencampurkan</u> uang dari omset penjualan jersey ({formatIDR(totalJerseySales)}).
                   </span>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40">
-                      <TableHead className="font-bold">Pos Alokasi</TableHead>
-                      <TableHead className="font-bold">Keterangan Komponen</TableHead>
-                      <TableHead className="font-bold">Volume / Satuan</TableHead>
-                      <TableHead className="text-right font-bold">Nominal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0">
-                          Modal Awal (+)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Modal Dagang Disuntik
-                        <span className="block text-xs text-muted-foreground">Total dana modal yang dimasukkan ke kas toko</span>
-                      </TableCell>
-                      <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Catatan Injeksi</TableCell>
-                      <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                {/* Mobile Cards (< md) */}
+                <div className="space-y-2.5 md:hidden">
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0 text-[10px]">
+                        Modal Awal (+)
+                      </Badge>
+                      <span className="font-extrabold text-amber-600 dark:text-amber-400 text-sm">
                         + {formatIDR(totalManualInCapital)}
-                      </TableCell>
-                    </TableRow>
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Modal Dagang Disuntik</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Total dana modal masuk kas</span>
+                      <span>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Injeksi</span>
+                    </div>
+                  </div>
 
-                    <TableRow>
-                      <TableCell>
-                        <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
-                          Pengeluaran (-)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Pengadaan Jersey (Total Modal HPP)
-                        <span className="block text-xs text-muted-foreground">Modal pengadaan seluruh jersey ({totalStockPcs} sisa stok + {totalSoldPcs} terjual)</span>
-                      </TableCell>
-                      <TableCell>{totalProcuredPcs} Pcs Jersey</TableCell>
-                      <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0 text-[10px]">
+                        Pengeluaran (-)
+                      </Badge>
+                      <span className="font-extrabold text-rose-600 dark:text-rose-400 text-sm">
                         - {formatIDR(totalModalHpp)}
-                      </TableCell>
-                    </TableRow>
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Pengadaan Jersey (Total Modal HPP)</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>{totalStockPcs} stok + {totalSoldPcs} terjual</span>
+                      <span>{totalProcuredPcs} Pcs</span>
+                    </div>
+                  </div>
 
-                    <TableRow>
-                      <TableCell>
-                        <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
-                          Pengeluaran (-)
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        Beban Operasional Toko
-                        <span className="block text-xs text-muted-foreground">Sewa lapak, packaging, marketing, operasional</span>
-                      </TableCell>
-                      <TableCell>{manualTxs.filter((t) => t.type === "out").length} Catatan Beban</TableCell>
-                      <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0 text-[10px]">
+                        Pengeluaran (-)
+                      </Badge>
+                      <span className="font-extrabold text-rose-600 dark:text-rose-400 text-sm">
                         - {formatIDR(totalPengeluaranOperasional)}
-                      </TableCell>
-                    </TableRow>
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Beban Operasional Toko</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Sewa, packaging, marketing</span>
+                      <span>{manualTxs.filter((t) => t.type === "out").length} Catatan</span>
+                    </div>
+                  </div>
 
-                    <TableRow className="bg-muted/20 font-bold border-t-2 border-border">
-                      <TableCell colSpan={3} className="text-foreground">
-                        SISA MODAL DAGANG TERSEDIA (PURE TANPA OMSET)
-                      </TableCell>
-                      <TableCell className="text-right text-base text-cyan-600 dark:text-cyan-400">
-                        {formatIDR(sisaModalDagang)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                  <div className="p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/5 space-y-1 text-xs">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      Sisa Modal Dagang Tersedia (Pure):
+                    </span>
+                    <span className="text-lg font-black text-cyan-600 dark:text-cyan-400 block">
+                      {formatIDR(sisaModalDagang)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead className="font-bold">Pos Alokasi</TableHead>
+                        <TableHead className="font-bold">Keterangan Komponen</TableHead>
+                        <TableHead className="font-bold">Volume / Satuan</TableHead>
+                        <TableHead className="text-right font-bold">Nominal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>
+                          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-0">
+                            Modal Awal (+)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Modal Dagang Disuntik
+                          <span className="block text-xs text-muted-foreground">Total dana modal yang dimasukkan ke kas toko</span>
+                        </TableCell>
+                        <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Catatan Injeksi</TableCell>
+                        <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                          + {formatIDR(totalManualInCapital)}
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell>
+                          <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
+                            Pengeluaran (-)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Pengadaan Jersey (Total Modal HPP)
+                          <span className="block text-xs text-muted-foreground">Modal pengadaan seluruh jersey ({totalStockPcs} sisa stok + {totalSoldPcs} terjual)</span>
+                        </TableCell>
+                        <TableCell>{totalProcuredPcs} Pcs Jersey</TableCell>
+                        <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                          - {formatIDR(totalModalHpp)}
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell>
+                          <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
+                            Pengeluaran (-)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Beban Operasional Toko
+                          <span className="block text-xs text-muted-foreground">Sewa lapak, packaging, marketing, operasional</span>
+                        </TableCell>
+                        <TableCell>{manualTxs.filter((t) => t.type === "out").length} Catatan Beban</TableCell>
+                        <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                          - {formatIDR(totalPengeluaranOperasional)}
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow className="bg-muted/20 font-bold border-t-2 border-border">
+                        <TableCell colSpan={3} className="text-foreground">
+                          SISA MODAL DAGANG TERSEDIA (PURE TANPA OMSET)
+                        </TableCell>
+                        <TableCell className="text-right text-base text-cyan-600 dark:text-cyan-400">
+                          {formatIDR(sisaModalDagang)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
 
-            {/* 2. Modal: TOTAL DANA MASUK */}
+            {/* 3. Modal: TOTAL DANA MASUK */}
             {detailModalType === "dana_masuk" && (() => {
               const allInflows = [
                 ...orders.map((o) => ({
@@ -1356,47 +1548,77 @@ function AdminKeuangan() {
 
               return (
                 <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        {renderSortHeader("Tanggal", "date")}
-                        {renderSortHeader("Tipe Sumber", "type")}
-                        {renderSortHeader("No. Ref / Pesanan", "ref")}
-                        {renderSortHeader("Keterangan", "desc")}
-                        {renderSortHeader("Nominal Masuk", "amount", "right")}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedInflows.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            Tidak ada data dana masuk yang sesuai pencarian.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        sortedInflows.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-xs whitespace-nowrap">{formatDate(item.date)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[10px] font-semibold">
-                                {item.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-mono text-xs font-semibold">{item.ref}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{item.desc}</TableCell>
-                            <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                  {/* Mobile Cards (< md) */}
+                  <div className="space-y-2.5 md:hidden">
+                    {sortedInflows.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">
+                        Tidak ada data dana masuk yang sesuai pencarian.
+                      </p>
+                    ) : (
+                      sortedInflows.map((item) => (
+                        <div key={item.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px] font-semibold">
+                              {item.type}
+                            </Badge>
+                            <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
                               + {formatIDR(item.amount)}
+                            </span>
+                          </div>
+                          <div className="font-mono text-xs font-bold text-foreground">{item.ref}</div>
+                          <div className="text-[11px] text-muted-foreground">{item.desc}</div>
+                          <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+                            {formatDate(item.date)}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          {renderSortHeader("Tanggal", "date")}
+                          {renderSortHeader("Tipe Sumber", "type")}
+                          {renderSortHeader("No. Ref / Pesanan", "ref")}
+                          {renderSortHeader("Keterangan", "desc")}
+                          {renderSortHeader("Nominal Masuk", "amount", "right")}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedInflows.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                              Tidak ada data dana masuk yang sesuai pencarian.
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          sortedInflows.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="text-xs whitespace-nowrap">{formatDate(item.date)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] font-semibold">
+                                  {item.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-mono text-xs font-semibold">{item.ref}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.desc}</TableCell>
+                              <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                + {formatIDR(item.amount)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               );
             })()}
 
-            {/* 3. Modal: PENGELUARAN OPERASIONAL */}
+            {/* 4. Modal: PENGELUARAN OPERASIONAL */}
             {detailModalType === "operasional" && (() => {
               const outTxs = manualTxs
                 .filter((t) => t.type === "out")
@@ -1420,45 +1642,74 @@ function AdminKeuangan() {
 
               return (
                 <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        {renderSortHeader("Tanggal", "date")}
-                        {renderSortHeader("Kategori Beban", "category")}
-                        {renderSortHeader("Deskripsi Catatan", "desc")}
-                        {renderSortHeader("Nominal Pengeluaran", "amount", "right")}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedOutTxs.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                            Tidak ada data pengeluaran operasional yang sesuai.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        sortedOutTxs.map((t) => (
-                          <TableRow key={t.id}>
-                            <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[10px] font-semibold text-rose-600 border-rose-500/20 bg-rose-500/5">
-                                {CATEGORY_LABELS[t.category] || t.category}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs">{t.description || "-"}</TableCell>
-                            <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                  {/* Mobile Cards (< md) */}
+                  <div className="space-y-2.5 md:hidden">
+                    {sortedOutTxs.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">
+                        Tidak ada data pengeluaran operasional yang sesuai.
+                      </p>
+                    ) : (
+                      sortedOutTxs.map((t) => (
+                        <div key={t.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px] font-semibold text-rose-600 border-rose-500/20 bg-rose-500/5">
+                              {CATEGORY_LABELS[t.category] || t.category}
+                            </Badge>
+                            <span className="font-extrabold text-rose-600 dark:text-rose-400 text-sm">
                               - {formatIDR(t.amount)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-foreground font-medium">{t.description || "-"}</div>
+                          <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+                            {formatDate(t.transaction_date)}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          {renderSortHeader("Tanggal", "date")}
+                          {renderSortHeader("Kategori Beban", "category")}
+                          {renderSortHeader("Deskripsi Catatan", "desc")}
+                          {renderSortHeader("Nominal Pengeluaran", "amount", "right")}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedOutTxs.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                              Tidak ada data pengeluaran operasional yang sesuai.
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          sortedOutTxs.map((t) => (
+                            <TableRow key={t.id}>
+                              <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] font-semibold text-rose-600 border-rose-500/20 bg-rose-500/5">
+                                  {CATEGORY_LABELS[t.category] || t.category}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{t.description || "-"}</TableCell>
+                              <TableCell className="text-right font-bold text-rose-600 dark:text-rose-400">
+                                - {formatIDR(t.amount)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               );
             })()}
 
-            {/* 4. Modal: TOTAL MODAL JERSEY (HPP) */}
+            {/* 5. Modal: TOTAL MODAL JERSEY (HPP) */}
             {detailModalType === "modal_jersey" && (() => {
               const filteredVariants = allJerseyVariants.filter(
                 (v) =>
@@ -1485,69 +1736,107 @@ function AdminKeuangan() {
 
               return (
                 <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        {renderSortHeader("Nama Produk Jersey", "name")}
-                        {renderSortHeader("Klub / Tim", "team")}
-                        {renderSortHeader("Ukuran", "size", "center")}
-                        {renderSortHeader("Stok Sisa", "stock", "center")}
-                        {renderSortHeader("Terjual", "sold", "center")}
-                        {renderSortHeader("Total Diadakan", "totalProcured", "center")}
-                        {renderSortHeader("Modal Satuan (HPP)", "costPrice", "right")}
-                        {renderSortHeader("Total Modal Keluar", "totalCost", "right")}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedVariants.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            Tidak ada varian jersey yang sesuai pencarian.
-                          </TableCell>
+                  {/* Mobile Cards (< md) */}
+                  <div className="space-y-2.5 md:hidden">
+                    {sortedVariants.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">
+                        Tidak ada varian jersey yang sesuai pencarian.
+                      </p>
+                    ) : (
+                      sortedVariants.map((item) => (
+                        <div key={item.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-2 shadow-sm text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h5 className="font-bold text-foreground truncate">{item.name}</h5>
+                              <span className="text-[11px] text-muted-foreground">{item.team}</span>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] font-bold uppercase bg-muted/60 shrink-0">
+                              {item.size}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                              <span className="text-muted-foreground block text-[10px]">Stok & Terjual:</span>
+                              <span className="font-semibold">{item.stock} stok</span>
+                              <span className="text-emerald-600 font-bold ml-1">({item.sold} sold)</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-muted-foreground block text-[10px]">Total Modal:</span>
+                              <span className="font-bold text-amber-600 dark:text-amber-400 text-xs">
+                                {formatIDR(item.totalCost)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block">
+                                @ {formatIDR(item.costPrice)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          {renderSortHeader("Nama Produk Jersey", "name")}
+                          {renderSortHeader("Klub / Tim", "team")}
+                          {renderSortHeader("Ukuran", "size", "center")}
+                          {renderSortHeader("Stok Sisa", "stock", "center")}
+                          {renderSortHeader("Terjual", "sold", "center")}
+                          {renderSortHeader("Total Diadakan", "totalProcured", "center")}
+                          {renderSortHeader("Modal Satuan (HPP)", "costPrice", "right")}
+                          {renderSortHeader("Total Modal Keluar", "totalCost", "right")}
                         </TableRow>
-                      ) : (
-                        sortedVariants.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-medium text-xs max-w-xs truncate">{item.name}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{item.team}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0.5 uppercase bg-muted/60">
-                                {item.size}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center text-xs font-semibold">
-                              {item.stock > 0 ? (
-                                `${item.stock} pcs`
-                              ) : (
-                                <span className="text-muted-foreground text-[10px]">0 pcs</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center text-xs">
-                              {item.sold > 0 ? (
-                                <span className="text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded text-[11px]">
-                                  +{item.sold} pcs
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground/60 text-[10px]">0</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center font-bold text-xs bg-muted/20">
-                              {item.totalProcured} pcs
-                            </TableCell>
-                            <TableCell className="text-right text-xs font-mono">{formatIDR(item.costPrice)}</TableCell>
-                            <TableCell className="text-right font-bold text-xs text-amber-600 dark:text-amber-400">
-                              {formatIDR(item.totalCost)}
+                      </TableHeader>
+                      <TableBody>
+                        {sortedVariants.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                              Tidak ada varian jersey yang sesuai pencarian.
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          sortedVariants.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium text-xs max-w-xs truncate">{item.name}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.team}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="text-[10px] font-bold px-1.5 py-0.5 uppercase bg-muted/60">
+                                  {item.size}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center text-xs font-semibold">
+                                {item.stock > 0 ? `${item.stock} pcs` : <span className="text-muted-foreground text-[10px]">0 pcs</span>}
+                              </TableCell>
+                              <TableCell className="text-center text-xs">
+                                {item.sold > 0 ? (
+                                  <span className="text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded text-[11px]">
+                                    +{item.sold} pcs
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground/60 text-[10px]">0</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-xs bg-muted/20">
+                                {item.totalProcured} pcs
+                              </TableCell>
+                              <TableCell className="text-right text-xs font-mono">{formatIDR(item.costPrice)}</TableCell>
+                              <TableCell className="text-right font-bold text-xs text-amber-600 dark:text-amber-400">
+                                {formatIDR(item.totalCost)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               );
             })()}
 
-            {/* 5. Modal: OMSET PENJUALAN JERSEY */}
+            {/* 6. Modal: OMSET PENJUALAN JERSEY */}
             {detailModalType === "omset_jersey" && (() => {
               const filteredOrders = orders.filter(
                 (o) =>
@@ -1576,56 +1865,89 @@ function AdminKeuangan() {
 
               return (
                 <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        {renderSortHeader("Tanggal", "date")}
-                        {renderSortHeader("No. Pesanan", "order_number")}
-                        {renderSortHeader("Pemesan", "customer")}
-                        {renderSortHeader("Status", "status")}
-                        {renderSortHeader("Subtotal", "subtotal", "right")}
-                        {renderSortHeader("Diskon", "discount", "right")}
-                        {renderSortHeader("Omset Bersih", "net", "right")}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedOrders.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            Tidak ada pesanan yang sesuai pencarian.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        sortedOrders.map((o) => {
-                          const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
-                          return (
-                            <TableRow key={o.id}>
-                              <TableCell className="text-xs whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
-                              <TableCell className="font-mono text-xs font-bold text-primary">{o.order_number}</TableCell>
-                              <TableCell className="text-xs">{o.recipient_name || "Pelanggan"}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-500/10 border-0">
-                                  {o.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-xs">{formatIDR(o.subtotal || 0)}</TableCell>
-                              <TableCell className="text-right text-xs text-rose-500">
-                                {Number(o.discount_amount) > 0 ? `- ${formatIDR(o.discount_amount)}` : "Rp 0"}
-                              </TableCell>
-                              <TableCell className="text-right font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                  {/* Mobile Cards (< md) */}
+                  <div className="space-y-2.5 md:hidden">
+                    {sortedOrders.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">
+                        Tidak ada pesanan yang sesuai pencarian.
+                      </p>
+                    ) : (
+                      sortedOrders.map((o) => {
+                        const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+                        return (
+                          <div key={o.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono font-bold text-primary text-xs">{o.order_number}</span>
+                              <Badge variant="outline" className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-500/10 border-0">
+                                {o.status}
+                              </Badge>
+                            </div>
+                            <div className="text-xs font-semibold text-foreground">{o.recipient_name || "Pelanggan"}</div>
+                            <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
+                              <span className="text-muted-foreground">{formatDate(o.created_at)}</span>
+                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
                                 {formatIDR(netRevenue)}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          {renderSortHeader("Tanggal", "date")}
+                          {renderSortHeader("No. Pesanan", "order_number")}
+                          {renderSortHeader("Pemesan", "customer")}
+                          {renderSortHeader("Status", "status")}
+                          {renderSortHeader("Subtotal", "subtotal", "right")}
+                          {renderSortHeader("Diskon", "discount", "right")}
+                          {renderSortHeader("Omset Bersih", "net", "right")}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedOrders.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              Tidak ada pesanan yang sesuai pencarian.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          sortedOrders.map((o) => {
+                            const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+                            return (
+                              <TableRow key={o.id}>
+                                <TableCell className="text-xs whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
+                                <TableCell className="font-mono text-xs font-bold text-primary">{o.order_number}</TableCell>
+                                <TableCell className="text-xs">{o.recipient_name || "Pelanggan"}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-500/10 border-0">
+                                    {o.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right text-xs">{formatIDR(o.subtotal || 0)}</TableCell>
+                                <TableCell className="text-right text-xs text-rose-500">
+                                  {Number(o.discount_amount) > 0 ? `- ${formatIDR(o.discount_amount)}` : "Rp 0"}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                                  {formatIDR(netRevenue)}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               );
             })()}
 
-            {/* 6. Modal: MODAL DAGANG DISUNTIK */}
+            {/* 7. Modal: MODAL DAGANG DISUNTIK */}
             {detailModalType === "modal_disuntik" && (() => {
               const modalTxs = manualTxs
                 .filter((t) => t.type === "in" && t.category === "modal")
@@ -1645,48 +1967,77 @@ function AdminKeuangan() {
 
               return (
                 <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40">
-                        {renderSortHeader("Tanggal", "date")}
-                        {renderSortHeader("Kategori", "category")}
-                        {renderSortHeader("Deskripsi Catatan", "desc")}
-                        {renderSortHeader("Nominal Disuntik", "amount", "right")}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedModalTxs.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                            Belum ada catatan suntik modal dagang.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        sortedModalTxs.map((t) => (
-                          <TableRow key={t.id}>
-                            <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-0">
-                                Modal Dagang
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs">{t.description || "-"}</TableCell>
-                            <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                  {/* Mobile Cards (< md) */}
+                  <div className="space-y-2.5 md:hidden">
+                    {sortedModalTxs.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">
+                        Belum ada catatan suntik modal dagang.
+                      </p>
+                    ) : (
+                      sortedModalTxs.map((t) => (
+                        <div key={t.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-0">
+                              Modal Dagang
+                            </Badge>
+                            <span className="font-extrabold text-amber-600 dark:text-amber-400 text-sm">
                               + {formatIDR(t.amount)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-foreground font-medium">{t.description || "-"}</div>
+                          <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+                            {formatDate(t.transaction_date)}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          {renderSortHeader("Tanggal", "date")}
+                          {renderSortHeader("Kategori", "category")}
+                          {renderSortHeader("Deskripsi Catatan", "desc")}
+                          {renderSortHeader("Nominal Disuntik", "amount", "right")}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedModalTxs.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                              Belum ada catatan suntik modal dagang.
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          sortedModalTxs.map((t) => (
+                            <TableRow key={t.id}>
+                              <TableCell className="text-xs whitespace-nowrap">{formatDate(t.transaction_date)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-0">
+                                  Modal Dagang
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{t.description || "-"}</TableCell>
+                              <TableCell className="text-right font-bold text-amber-600 dark:text-amber-400">
+                                + {formatIDR(t.amount)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               );
             })()}
           </div>
 
           {/* Modal Footer */}
-          <DialogFooter className="p-4 border-t border-border bg-muted/20 flex sm:justify-between items-center">
-            <div className="text-xs text-muted-foreground font-medium">
+          <DialogFooter className="p-3 sm:p-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-2.5">
+            <div className="text-xs text-muted-foreground font-medium text-center sm:text-left">
               {detailModalType === "saldo" && `Total Saldo Kas: ${formatIDR(saldoKasSaatIni)}`}
               {detailModalType === "dana_masuk" && `Total Dana Masuk: ${formatIDR(totalDanaMasuk)}`}
               {detailModalType === "operasional" && `Total Beban Operasional: ${formatIDR(totalPengeluaranOperasional)}`}
@@ -1695,7 +2046,7 @@ function AdminKeuangan() {
               {detailModalType === "omset_jersey" && `Total Omset (${orders.length} pesanan): ${formatIDR(totalJerseySales)}`}
               {detailModalType === "modal_disuntik" && `Total Modal Masuk: ${formatIDR(totalManualInCapital)}`}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setDetailModalType(null)} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => setDetailModalType(null)} className="text-xs w-full sm:w-auto cursor-pointer">
               Tutup
             </Button>
           </DialogFooter>

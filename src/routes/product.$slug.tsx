@@ -483,8 +483,14 @@ function ProductDetail() {
                         <span
                           key="collector-score"
                           aria-label={`${p.collector_score} dari 5 bintang skor kolektor`}
+                          className="flex items-center gap-0.5"
                         >
-                          {"★".repeat(p.collector_score)}
+                          {Array.from({ length: p.collector_score || 0 }).map((_, i) => (
+                            <Star key={i} className="size-3.5 fill-amber-400 text-amber-400" />
+                          ))}
+                          {Array.from({ length: Math.max(0, 5 - (p.collector_score || 0)) }).map((_, i) => (
+                            <Star key={`empty-${i}`} className="size-3.5 text-muted-foreground/30" />
+                          ))}
                         </span>,
                       ],
                     ].map(([k, v]) => (
@@ -549,6 +555,63 @@ function ProductDetail() {
           </section>
         )}
       </main>
+
+      {/* Floating Sticky Bottom Bar for Mobile (< sm) */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-md border-t border-border p-3 flex items-center justify-between gap-3 z-40 shadow-2xl safe-area-pb">
+        <div className="min-w-0">
+          <div className="text-[11px] text-muted-foreground truncate">{p.name}</div>
+          <div className="text-base font-extrabold text-foreground">{formatIDR(p.price)}</div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10"
+            aria-label="Wishlist"
+            onClick={() => {
+              if (!user) {
+                toast.error("Silakan masuk terlebih dahulu");
+                navigate({ to: "/auth" });
+                return;
+              }
+              toggleWl.mutate(p.id);
+            }}
+          >
+            <Heart className={cn("size-4", liked && "fill-primary text-primary")} />
+          </Button>
+          <Button
+            className="h-10 px-4 text-xs font-bold shadow-sm"
+            disabled={isSelectedSizeOutOfStock || addToCart.isPending}
+            onClick={() => {
+              if (!user) {
+                toast.error("Silakan masuk terlebih dahulu");
+                navigate({ to: "/auth" });
+                return;
+              }
+              if (p.sizes && p.sizes.length > 0 && !size) {
+                toast.error("Pilih ukuran terlebih dahulu");
+                return;
+              }
+              addToCart.mutate(
+                { product_id: p.id, size },
+                {
+                  onSuccess: () => {
+                    toast.success("Berhasil ditambahkan ke keranjang", {
+                      action: {
+                        label: "Lihat Keranjang",
+                        onClick: () => navigate({ to: "/cart" }),
+                      },
+                    });
+                  },
+                },
+              );
+            }}
+          >
+            {isProductOutOfStock ? "Habis" : "+ Keranjang"}
+          </Button>
+        </div>
+      </div>
+
       <Footer />
     </>
   );

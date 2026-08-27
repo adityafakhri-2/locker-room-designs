@@ -477,18 +477,18 @@ export function CreateManualOrderDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col p-0 overflow-hidden">
-          <div className="p-5 border-b border-border bg-card">
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Receipt className="size-5 text-primary" />
-              Catat Transaksi Manual / Kasir POS (Offline)
+        <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-3xl max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl sm:rounded-xl">
+          <div className="p-3.5 sm:p-5 border-b border-border bg-card">
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <Receipt className="size-4 sm:size-5 text-primary shrink-0" />
+              <span>Catat Transaksi Manual / POS (Offline)</span>
             </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">
               Catat pesanan offline dari outlet Cimahi, WhatsApp, atau event. Otomatis masuk laporan keuangan & memotong stok inventaris.
             </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
             {/* Bagian 1: Data Pembeli & Info Transaksi */}
             <div className="grid sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/20 border border-border">
               <div className="relative">
@@ -498,8 +498,9 @@ export function CreateManualOrderDialog({
                     Nama Pembeli / Pelanggan *
                   </span>
                   {selectedCustomerId && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                      ✓ Database
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                      <Check className="size-2.5" />
+                      <span>Database</span>
                     </span>
                   )}
                 </Label>
@@ -739,7 +740,7 @@ export function CreateManualOrderDialog({
                                 <span className="truncate font-semibold text-foreground">
                                   {item.productName
                                     ? `${item.productName} — ${formatIDR(item.unitPrice)} (Stok: ${item.totalStock} pcs)`
-                                    : "🔍 Cari & Pilih Jersey dari Katalog..."}
+                                    : "Pilih Jersey dari Katalog..."}
                                 </span>
                               </div>
                               <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
@@ -994,7 +995,7 @@ export function CreateManualOrderDialog({
                 <span className="font-mono text-base text-primary">{formatIDR(grandTotal)}</span>
               </div>
 
-              <div className="pt-2 border-t border-dashed border-primary/20 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-dashed border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <Coins className="size-3 text-amber-500" />
                   Total HPP Modal: <strong className="font-mono">{formatIDR(totalCostPrice)}</strong>
@@ -1008,8 +1009,8 @@ export function CreateManualOrderDialog({
           </div>
 
           {/* Footer Actions */}
-          <div className="p-4 border-t border-border bg-card flex items-center justify-between gap-3">
-            <Button type="button" variant="outline" onClick={onClose} className="text-xs cursor-pointer">
+          <div className="p-3.5 sm:p-4 border-t border-border bg-card flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <Button type="button" variant="outline" onClick={onClose} className="text-xs cursor-pointer h-9 w-full sm:w-auto">
               Batal
             </Button>
 
@@ -1017,7 +1018,7 @@ export function CreateManualOrderDialog({
               type="button"
               disabled={createOrderMutation.isPending || items.length === 0}
               onClick={() => createOrderMutation.mutate()}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 text-xs cursor-pointer"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2 text-xs cursor-pointer h-9 w-full sm:w-auto shadow-sm"
             >
               {createOrderMutation.isPending ? (
                 <>

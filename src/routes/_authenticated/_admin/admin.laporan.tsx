@@ -8,29 +8,14 @@ import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Sparkles, Loader2, Wand2, Download, Save, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Download, Save, Trash2, ArrowUpDown, ArrowUp, ArrowDown, FileText, Printer, Calendar } from "lucide-react";
 import { analyzeSalesData } from "@/lib/api/ai.functions";
-
-function toCSV(rows: Record<string, unknown>[]): string {
-  if (!rows.length) return "";
-  const keys = Object.keys(rows[0]);
-  const esc = (v: unknown) => {
-    if (v == null) return "";
-    const s = String(v).replace(/"/g, '""');
-    return /[",\n]/.test(s) ? `"${s}"` : s;
-  };
-  return [keys.join(","), ...rows.map((r) => keys.map((k) => esc(r[k])).join(","))].join("\n");
-}
-
-function download(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import {
+  generateProductProfitPDF,
+  generateMonthlyProfitPDF,
+  generateOrdersReportPDF,
+  generateAIReportPDF,
+} from "@/lib/reportPdfGenerator";
 
 export const Route = createFileRoute("/_authenticated/_admin/admin/laporan")({
   component: AdminReports,
@@ -42,7 +27,7 @@ function AdminReports() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*)")
+        .select("*, payments(status, bank, method), order_items(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -377,103 +362,64 @@ function AdminReports() {
   }
 
   function handleDownloadPDF() {
-    if (!analysis) return;
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      const formattedDate = new Date().toLocaleDateString("id-ID", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+    if (!analysis) {
+      toast.error("Belum ada analisis AI yang dibuat.");
+      return;
+    }
+    try {
+      generateAIReportPDF(analysis);
+      toast.success("Laporan Strategis AI (PDF) berhasil diunduh!");
+    } catch (e: any) {
+      console.error("PDF generation error:", e);
+      toast.error("Gagal mengunduh PDF: " + (e?.message || "Terjadi kesalahan"));
+    }
+  }
+
+  function handleExportProductProfitPDF() {
+    try {
+      generateProductProfitPDF({
+        products: sortedProcessedProducts,
+        totalOmset: totalRevenue,
+        totalModal: totalCost,
+        totalLaba: totalProfit,
+        avgMargin,
+        totalPcs: totalItemsSold,
       });
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Laporan Analisis Penjualan - AA Jersey</title>
-            <style>
-              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-              body {
-                font-family: 'Inter', sans-serif;
-                color: #1e293b;
-                padding: 50px;
-                line-height: 1.7;
-                background-color: #ffffff;
-                max-width: 800px;
-                margin: 0 auto;
-              }
-              .header {
-                border-bottom: 3px solid #10b981;
-                padding-bottom: 25px;
-                margin-bottom: 35px;
-                display: flex;
-                flex-direction: column;
-              }
-              .logo {
-                font-size: 26px;
-                font-weight: 800;
-                color: #10b981;
-                text-transform: uppercase;
-                letter-spacing: 1.5px;
-              }
-              .title {
-                font-size: 22px;
-                font-weight: 700;
-                margin-top: 15px;
-                color: #0f172a;
-              }
-              .meta {
-                font-size: 13px;
-                color: #64748b;
-                margin-top: 8px;
-              }
-              .content {
-                font-size: 15px;
-                white-space: pre-wrap;
-                color: #334155;
-              }
-              .footer {
-                margin-top: 60px;
-                border-top: 1px solid #e2e8f0;
-                padding-top: 20px;
-                font-size: 12px;
-                color: #94a3b8;
-                text-align: center;
-              }
-              @media print {
-                body {
-                  padding: 20px;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="logo">AA JERSEY</div>
-              <div class="title">Laporan Analisis Strategi Penjualan AI</div>
-              <div class="meta">Diproduksi pada: ${formattedDate}</div>
-            </div>
-            <div class="content">${analysis}</div>
-            <div class="footer">
-              Laporan ini dibuat otomatis oleh Asisten Penjualan AI AA Jersey. Hak Cipta Dilindungi Undang-Undang.
-            </div>
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  window.onafterprint = function() {
-                    window.close();
-                  };
-                }, 300);
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } else {
-      toast.error("Gagal membuka jendela cetak. Pastikan pop-up diperbolehkan di browser Anda.");
+      toast.success("Laporan Profit Produk (PDF) berhasil diunduh!");
+    } catch (e: any) {
+      console.error("PDF generation error:", e);
+      toast.error("Gagal mengunduh PDF: " + (e?.message || "Terjadi kesalahan"));
+    }
+  }
+
+  function handleExportMonthlyProfitPDF() {
+    try {
+      const monthlyList = Object.entries(monthly).map(([month, val]) => ({
+        month,
+        revenue: val.revenue,
+        cost: val.cost,
+        profit: val.profit,
+      }));
+      generateMonthlyProfitPDF({
+        monthlyList,
+        totalOmset: totalRevenue,
+        totalModal: totalCost,
+        totalLaba: totalProfit,
+      });
+      toast.success("Laporan Rekap Bulanan (PDF) berhasil diunduh!");
+    } catch (e: any) {
+      console.error("PDF generation error:", e);
+      toast.error("Gagal mengunduh PDF: " + (e?.message || "Terjadi kesalahan"));
+    }
+  }
+
+  function handleExportOrdersPDF() {
+    try {
+      generateOrdersReportPDF(orders.data ?? []);
+      toast.success("Laporan Transaksi Pesanan (PDF) berhasil diunduh!");
+    } catch (e: any) {
+      console.error("PDF generation error:", e);
+      toast.error("Gagal mengunduh PDF: " + (e?.message || "Terjadi kesalahan"));
     }
   }
 
@@ -481,71 +427,79 @@ function AdminReports() {
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader eyebrow="Laporan" title="Laporan Finansial & Penjualan" />
 
-      {/* 4 Financial KPI Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="border-border">
-          <div className="flex items-center justify-between">
-            <span className="eyebrow text-muted-foreground">Total Omset</span>
-            <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+      {/* 4 Financial KPI Cards - 2 per row on mobile, 4 on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
+        <Card className="border-border p-3 sm:p-4 rounded-xl">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+              Total Omset
+            </span>
+            <span className="text-[9px] sm:text-[10px] font-extrabold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0">
               Lunas
             </span>
           </div>
-          <div className="display-md mt-2 text-2xl font-bold">{formatIDR(totalRevenue)}</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Dari {validOrders.length} pesanan berhasil
+          <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate">
+            {formatIDR(totalRevenue)}
+          </div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+            {validOrders.length} pesanan berhasil
           </p>
         </Card>
 
-        <Card className="border-border">
-          <div className="flex items-center justify-between">
-            <span className="eyebrow text-muted-foreground">Total Modal (COGS)</span>
-            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              Modal Terjual
+        <Card className="border-border p-3 sm:p-4 rounded-xl">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+              Total Modal
+            </span>
+            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0">
+              COGS
             </span>
           </div>
-          <div className="display-md mt-2 text-2xl font-bold text-muted-foreground">
+          <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-muted-foreground mt-2 truncate">
             {formatIDR(totalCost)}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Total biaya pokok dari {totalItemsSold} pcs
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+            Biaya pokok {totalItemsSold} pcs
           </p>
         </Card>
 
-        <Card className="border-border border-emerald-500/20 bg-emerald-500/[0.02]">
-          <div className="flex items-center justify-between">
-            <span className="eyebrow text-emerald-600 dark:text-emerald-400 font-bold">
-              Total Keuntungan Bersih
+        <Card className="border-border border-emerald-500/30 bg-emerald-500/[0.03] p-3 sm:p-4 rounded-xl">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
+              Keuntungan
             </span>
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-              Margin {avgMargin.toFixed(1)}%
+            <span className="text-[9px] sm:text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+              {avgMargin.toFixed(0)}%
             </span>
           </div>
-          <div className="display-md mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate">
             {formatIDR(totalProfit)}
           </div>
-          <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1 font-medium">
-            Laba kotor jersey yang sudah terjual
+          <p className="text-[10px] sm:text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 font-medium truncate">
+            Laba kotor bersih
           </p>
         </Card>
 
-        <Card className="border-border">
-          <div className="flex items-center justify-between">
-            <span className="eyebrow text-muted-foreground">Volume & Pelanggan</span>
-            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+        <Card className="border-border p-3 sm:p-4 rounded-xl">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+              Volume
+            </span>
+            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0">
               Pcs
             </span>
           </div>
-          <div className="display-md mt-2 text-2xl font-bold">
-            {totalItemsSold} <span className="text-sm font-normal text-muted-foreground">pcs</span>
+          <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate">
+            {totalItemsSold} pcs
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {customers.data?.length ?? 0} pelanggan terdaftar
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+            {customers.data?.length ?? 0} user terdaftar
           </p>
         </Card>
       </div>
 
       {/* Tabel Analisis Profitabilitas per Produk */}
-      <Card className="mb-6">
+      <Card className="mb-5">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
           <div>
             <h3 className="font-extrabold text-base">Analisis Keuntungan per Produk</h3>
@@ -556,34 +510,82 @@ function AdminReports() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              download(
-                "analisis-profit-produk.csv",
-                toCSV(
-                  processedProducts.map((p) => ({
-                    "Nama Produk": p.name,
-                    Tim: p.team,
-                    "Terjual (Pcs)": p.sold_count,
-                    "Sisa Stok": p.stock,
-                    "Modal / Pcs (Rp)": p.cost_price,
-                    "Harga Jual (Rp)": p.price,
-                    "Keuntungan / Pcs (Rp)": p.profit_per_pcs,
-                    "Total Omset (Rp)": p.total_omset,
-                    "Total Modal (Rp)": p.total_modal,
-                    "Total Keuntungan (Rp)": p.total_laba,
-                    "Margin (%)": `${p.profit_margin.toFixed(1)}%`,
-                  })),
-                ),
-              )
-            }
-            className="shrink-0"
+            onClick={handleExportProductProfitPDF}
+            className="w-full sm:w-auto h-8 text-xs font-bold gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shadow-sm"
           >
-            <Download className="size-3.5 mr-1.5" /> Ekspor Analisis Profit (CSV)
+            <FileText className="size-3.5" />
+            <span>Unduh Laporan PDF</span>
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[750px]">
+        {/* Mobile Product Profit Cards (< lg) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+          {sortedProcessedProducts.map((p) => (
+            <div
+              key={p.id}
+              className="p-3 rounded-xl border border-border bg-card/60 space-y-2.5 shadow-sm text-xs"
+            >
+              <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2">
+                <div className="min-w-0">
+                  <h4 className="font-bold text-foreground line-clamp-1">{p.name}</h4>
+                  <div className="text-[11px] text-muted-foreground truncate">{p.team || "—"}</div>
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] font-extrabold px-2 py-0.5 rounded-full border shrink-0",
+                    p.sold_count > 0
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                      : "bg-muted text-muted-foreground border-border",
+                  )}
+                >
+                  {p.sold_count} pcs terjual
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Modal / Jual</span>
+                  <span className="text-muted-foreground font-mono">{formatIDR(p.cost_price)}</span>
+                  <span className="text-foreground font-bold block">{formatIDR(p.price)}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-muted-foreground block">Total Omset</span>
+                  <span className="font-bold text-foreground">{formatIDR(p.total_omset)}</span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Modal: {formatIDR(p.total_modal)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
+                <span className="text-[11px] text-muted-foreground">Laba Bersih:</span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "font-extrabold",
+                      p.total_laba > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : p.total_laba < 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-muted-foreground",
+                    )}
+                  >
+                    {formatIDR(p.total_laba)}
+                  </span>
+                  {p.sold_count > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      {p.profit_margin.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View (>= lg) */}
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full text-sm">
             <thead>
               <tr className="text-left eyebrow text-muted-foreground border-b border-border">
                 {renderSortHeader("Produk", "name", "left")}
@@ -655,17 +657,17 @@ function AdminReports() {
         </div>
       </Card>
 
-      <Card className="mb-6 border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/10">
-        <div className="flex items-center justify-between mb-4">
+      <Card className="mb-5 border-primary/20 bg-gradient-to-br from-primary/5 via-card to-primary/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-5 text-primary" />
+            <Sparkles className="size-5 text-primary shrink-0" />
             <h3 className="font-extrabold text-base">Asisten Penjualan & Finansial AI</h3>
           </div>
           <Button
             size="sm"
             onClick={handleGenerateAnalysis}
             disabled={isAnalyzing}
-            className="gap-1.5"
+            className="gap-1.5 w-full sm:w-auto font-bold text-xs h-9 cursor-pointer shadow-sm"
           >
             {isAnalyzing ? (
               <>
@@ -683,24 +685,24 @@ function AdminReports() {
 
         {analysis ? (
           <div className="space-y-4">
-            <div className="text-sm text-muted-foreground whitespace-pre-line bg-background/60 p-4 rounded-lg border border-border/50 leading-relaxed">
+            <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line bg-background/60 p-3.5 rounded-lg border border-border/50 leading-relaxed">
               {analysis}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleDownloadPDF}
-                className="gap-1.5 border-primary/20 text-primary hover:bg-primary/5 h-9"
+                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5 h-8 text-xs font-bold flex-1 sm:flex-none cursor-pointer"
               >
-                <Download className="size-3.5" />
-                <span>Unduh PDF</span>
+                <FileText className="size-3.5" />
+                <span>Unduh PDF Laporan AI</span>
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleSaveAnalysis}
-                className="gap-1.5 border-primary/20 text-primary hover:bg-primary/5 h-9"
+                className="gap-1.5 border-primary/20 text-foreground hover:bg-muted h-8 text-xs font-semibold flex-1 sm:flex-none cursor-pointer"
               >
                 <Save className="size-3.5" />
                 <span>Simpan Analisis</span>
@@ -708,7 +710,7 @@ function AdminReports() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             Klik tombol di atas untuk menganalisis data penjualan Anda, memprediksi tren masa depan,
             dan mendapatkan strategi bisnis konkret.
           </p>
@@ -716,21 +718,21 @@ function AdminReports() {
       </Card>
 
       {savedAnalyses.length > 0 && (
-        <Card className="mb-6">
-          <h3 className="font-extrabold text-sm text-muted-foreground uppercase tracking-wider mb-4">
+        <Card className="mb-5">
+          <h3 className="font-extrabold text-xs text-muted-foreground uppercase tracking-wider mb-3">
             Riwayat Analisis Tersimpan
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {savedAnalyses.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200"
               >
                 <div className="space-y-0.5">
-                  <p className="text-xs text-muted-foreground">Analisis Penjualan</p>
-                  <p className="text-sm font-semibold text-foreground">{item.date}</p>
+                  <p className="text-[11px] text-muted-foreground">Analisis Penjualan</p>
+                  <p className="text-xs font-bold text-foreground">{item.date}</p>
                 </div>
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 self-end sm:self-center">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -738,7 +740,7 @@ function AdminReports() {
                       setAnalysis(item.content);
                       toast.success(`Berhasil memuat analisis tanggal ${item.date}`);
                     }}
-                    className="h-8 text-xs text-primary hover:text-primary hover:bg-primary/5 font-semibold"
+                    className="h-7 px-2.5 text-xs text-primary hover:text-primary hover:bg-primary/5 font-semibold cursor-pointer"
                   >
                     Buka
                   </Button>
@@ -746,9 +748,9 @@ function AdminReports() {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDeleteSaved(item.id)}
-                    className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/5 font-semibold"
+                    className="h-7 px-2.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/5 font-semibold cursor-pointer"
                   >
-                    <Trash2 className="size-3.5 mr-1" />
+                    <Trash2 className="size-3 mr-1" />
                     <span>Hapus</span>
                   </Button>
                 </div>
@@ -759,82 +761,121 @@ function AdminReports() {
       )}
 
       {/* Ringkasan Omset & Profit per Bulan */}
-      <Card className="mb-6">
-        <div className="flex justify-between items-center mb-4">
+      <Card className="mb-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 mb-4">
           <div>
-            <h3 className="font-extrabold">Omset & Profit per Bulan</h3>
+            <h3 className="font-extrabold text-base">Omset & Profit per Bulan</h3>
             <p className="text-xs text-muted-foreground">Rekap pendapatan, beban modal, dan laba per periode bulanan</p>
           </div>
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              download(
-                "profit-bulanan.csv",
-                toCSV(
-                  Object.entries(monthly).map(([k, v]) => ({
-                    bulan: k,
-                    omset: v.revenue,
-                    modal_cogs: v.cost,
-                    profit_bersih: v.profit,
-                    margin_persen: v.revenue > 0 ? `${((v.profit / v.revenue) * 100).toFixed(1)}%` : "0%",
-                  })),
-                ),
-              )
-            }
+            onClick={handleExportMonthlyProfitPDF}
+            className="w-full sm:w-auto h-8 text-xs font-bold gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shadow-sm"
           >
-            Ekspor CSV
+            <FileText className="size-3.5" />
+            <span>Unduh Laporan PDF</span>
           </Button>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left eyebrow text-muted-foreground border-b border-border">
-              <th className="py-2">Bulan</th>
-              <th className="text-right">Omset</th>
-              <th className="text-right">Modal</th>
-              <th className="text-right">Keuntungan</th>
-              <th className="text-right">Margin</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(monthly).map(([k, v]) => {
-              const mMargin = v.revenue > 0 ? (v.profit / v.revenue) * 100 : 0;
-              return (
-                <tr key={k} className="border-b border-border/50">
-                  <td className="py-2 font-medium">{k}</td>
-                  <td className="text-right tabular-nums">{formatIDR(v.revenue)}</td>
-                  <td className="text-right tabular-nums text-muted-foreground">{formatIDR(v.cost)}</td>
-                  <td className="text-right tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+
+        {/* Mobile Monthly Cards (< md) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
+          {Object.entries(monthly).map(([k, v]) => {
+            const mMargin = v.revenue > 0 ? (v.profit / v.revenue) * 100 : 0;
+            return (
+              <div
+                key={k}
+                className="p-3.5 rounded-xl border border-border bg-card/60 space-y-2.5 shadow-sm text-xs"
+              >
+                <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                  <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                    <Calendar className="size-3.5 text-primary" />
+                    <span>{k}</span>
+                  </span>
+                  <span className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold text-[10px]">
+                    Margin {mMargin.toFixed(0)}%
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Omset</span>
+                    <span className="font-extrabold text-sm text-foreground">{formatIDR(v.revenue)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-muted-foreground block">Modal (HPP)</span>
+                    <span className="font-medium text-muted-foreground">{formatIDR(v.cost)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
+                  <span className="text-[11px] text-muted-foreground">Keuntungan Bersih:</span>
+                  <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
                     {formatIDR(v.profit)}
-                  </td>
-                  <td className="text-right tabular-nums text-xs">
-                    <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-semibold">
-                      {mMargin.toFixed(0)}%
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table View (>= md) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+                <th className="py-2">Bulan</th>
+                <th className="text-right">Omset</th>
+                <th className="text-right">Modal</th>
+                <th className="text-right">Keuntungan</th>
+                <th className="text-right">Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(monthly).map(([k, v]) => {
+                const mMargin = v.revenue > 0 ? (v.profit / v.revenue) * 100 : 0;
+                return (
+                  <tr key={k} className="border-b border-border/50">
+                    <td className="py-2.5 font-medium">{k}</td>
+                    <td className="text-right tabular-nums">{formatIDR(v.revenue)}</td>
+                    <td className="text-right tabular-nums text-muted-foreground">{formatIDR(v.cost)}</td>
+                    <td className="text-right tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatIDR(v.profit)}
+                    </td>
+                    <td className="text-right tabular-nums text-xs">
+                      <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-semibold">
+                        {mMargin.toFixed(0)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <Card>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-extrabold">Laporan Pesanan</h3>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 mb-4">
+          <div>
+            <h3 className="font-extrabold text-base">Laporan Transaksi Pesanan</h3>
+            <p className="text-xs text-muted-foreground">Ekspor rekapitulasi data seluruh transaksi pesanan ke format PDF</p>
+          </div>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => download("orders.csv", toCSV(orders.data ?? []))}
+            onClick={handleExportOrdersPDF}
+            className="w-full sm:w-auto h-8 text-xs font-bold gap-1.5 shrink-0 border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shadow-sm"
           >
-            Ekspor Semua Pesanan (CSV)
+            <FileText className="size-3.5" />
+            <span>Unduh Laporan PDF</span>
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Ekspor data lengkap pesanan ke file CSV — dapat dibuka langsung di Excel.
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          Ekspor dokumen resmi riwayat transaksi pesanan dengan kop surat toko, status pengiriman, rincian pembayaran, dan tanda tangan pengesahan.
         </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Total pelanggan tercatat: {customers.data?.length ?? 0} ({formatDate(new Date())}).
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Total transaksi tercatat: {orders.data?.length ?? 0} pesanan · Pelanggan: {customers.data?.length ?? 0} ({formatDate(new Date())}).
         </p>
       </Card>
     </DashboardShell>

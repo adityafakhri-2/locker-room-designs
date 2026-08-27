@@ -360,7 +360,7 @@ function AdminOrders() {
                 placeholder="Cari nomor order, penerima..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full text-xs h-9"
+                className="h-9 text-xs placeholder:text-xs placeholder:text-muted-foreground/80"
               />
 
               <Select value={paymentFilter} onValueChange={setPaymentFilter}>
@@ -381,223 +381,363 @@ function AdminOrders() {
             </div>
 
             {filteredAndSortedList.length ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left eyebrow text-muted-foreground border-b border-border">
-                      <th className="py-2 w-10 text-center">
-                        <input
-                          type="checkbox"
-                          checked={
-                            q.data
-                              ? selectedIds.length === q.data.length && q.data.length > 0
-                              : false
-                          }
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer"
-                        />
-                      </th>
-                      <th
-                        className="py-2 cursor-pointer select-none group"
-                        onClick={() => handleSort("order_number")}
-                      >
-                        <div className="flex items-center">Order {sortIcon("order_number")}</div>
-                      </th>
-                      <th
-                        className="cursor-pointer select-none group"
-                        onClick={() => handleSort("created_at")}
-                      >
-                        <div className="flex items-center">Tanggal {sortIcon("created_at")}</div>
-                      </th>
-                      <th
-                        className="cursor-pointer select-none group"
-                        onClick={() => handleSort("recipient_name")}
-                      >
-                        <div className="flex items-center">
-                          Pelanggan {sortIcon("recipient_name")}
-                        </div>
-                      </th>
-                      <th
-                        className="cursor-pointer select-none group"
-                        onClick={() => handleSort("status")}
-                      >
-                        <div className="flex items-center">Status {sortIcon("status")}</div>
-                      </th>
-                      <th
-                        className="cursor-pointer select-none group"
-                        onClick={() => handleSort("payment_status")}
-                      >
-                        <div className="flex items-center">Bayar {sortIcon("payment_status")}</div>
-                      </th>
-                      <th
-                        className="text-right cursor-pointer select-none group"
-                        onClick={() => handleSort("grand_total")}
-                      >
-                        <div className="flex items-center justify-end">
-                          Total {sortIcon("grand_total")}
-                        </div>
-                      </th>
-                      <th className="w-12 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAndSortedList.map((o) => {
-                      const payment = Array.isArray(o.payments)
-                        ? o.payments[0]
-                        : (o.payments as unknown as { status: string } | null);
-                      const profile = o.profiles as {
-                        nama_lengkap?: string | null;
-                        email?: string | null;
-                      } | null;
-                      const isSelected = selectedIds.includes(o.id);
+              <>
+                {/* Mobile Card List (< md) */}
+                <div className="md:hidden space-y-3">
+                  {filteredAndSortedList.map((o) => {
+                    const payment = Array.isArray(o.payments)
+                      ? o.payments[0]
+                      : (o.payments as unknown as { status: string } | null);
+                    const profile = o.profiles as {
+                      nama_lengkap?: string | null;
+                      email?: string | null;
+                    } | null;
+                    const isSelected = selectedIds.includes(o.id);
 
-                      const displayStatus =
-                        o.status === "pending" && payment?.status === "waiting_verification"
-                          ? "waiting_verification"
-                          : o.status;
+                    const displayStatus =
+                      o.status === "pending" && payment?.status === "waiting_verification"
+                        ? "waiting_verification"
+                        : o.status;
 
-                      // Design status badges
-                      // 1. Order Status Badge
-                      let orderBadge = (
-                        <span className="text-xs text-muted-foreground">
-                          {statusLabel(displayStatus)}
+                    let orderBadge = (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                        {statusLabel(displayStatus)}
+                      </span>
+                    );
+                    if (displayStatus === "paid") {
+                      orderBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                          Pembayaran Diterima
                         </span>
                       );
-                      if (displayStatus === "pending") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-                            Menunggu Pembayaran
+                    } else if (displayStatus === "delivered") {
+                      orderBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                          Selesai
+                        </span>
+                      );
+                    } else if (displayStatus === "processing") {
+                      orderBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">
+                          Sedang Diproses
+                        </span>
+                      );
+                    } else if (displayStatus === "shipped") {
+                      orderBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                          Dikirim
+                        </span>
+                      );
+                    } else if (displayStatus === "cancelled") {
+                      orderBadge = (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
+                          Dibatalkan
+                        </span>
+                      );
+                    }
+
+                    let payBadge = <span className="text-xs text-muted-foreground">—</span>;
+                    if (payment) {
+                      if (payment.status === "waiting_payment") {
+                        payBadge = (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            Belum Bayar
                           </span>
                         );
-                      } else if (displayStatus === "waiting_verification") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">
-                            Sudah Dibayar (Menunggu Konfirmasi)
+                      } else if (payment.status === "waiting_verification") {
+                        payBadge = (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">
+                            Perlu Konfirmasi
                           </span>
                         );
-                      } else if (displayStatus === "paid") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                            Pembayaran Diterima
+                      } else if (payment.status === "approved" || payment.status === "paid") {
+                        payBadge = (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                            Disetujui
                           </span>
                         );
-                      } else if (displayStatus === "delivered") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                            Selesai
-                          </span>
-                        );
-                      } else if (displayStatus === "processing") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">
-                            Sedang Diproses
-                          </span>
-                        );
-                      } else if (displayStatus === "shipped") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
-                            Dikirim
-                          </span>
-                        );
-                      } else if (displayStatus === "cancelled") {
-                        orderBadge = (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
-                            Dibatalkan
+                      } else if (payment.status === "rejected") {
+                        payBadge = (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
+                            Ditolak
                           </span>
                         );
                       }
+                    }
 
-                      // 2. Payment Status Badge
-                      let payBadge = <span className="text-xs text-muted-foreground">—</span>;
-                      if (payment) {
-                        if (payment.status === "waiting_payment") {
-                          payBadge = (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                              Menunggu Pembayaran
-                            </span>
-                          );
-                        } else if (payment.status === "waiting_verification") {
-                          payBadge = (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">
-                              Sudah Dibayar (Menunggu Konfirmasi)
-                            </span>
-                          );
-                        } else if (payment.status === "approved" || payment.status === "paid") {
-                          payBadge = (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                              Disetujui
-                            </span>
-                          );
-                        } else if (payment.status === "rejected") {
-                          payBadge = (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
-                              Ditolak
-                            </span>
-                          );
-                        }
-                      }
-
-                      return (
-                        <tr
-                          key={o.id}
-                          className="border-b border-border/50 hover:bg-muted/10 transition-colors"
-                        >
-                          <td className="py-3 text-center">
+                    return (
+                      <div key={o.id} className="p-4 rounded-lg border border-border bg-card/60 flex flex-col gap-2.5 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={(e) => handleSelectRow(o.id, e.target.checked)}
                               className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer"
                             />
-                          </td>
-                          <td className="py-3">
                             <Link
                               to="/admin/pesanan/$orderNumber"
                               params={{ orderNumber: o.order_number }}
-                              className="font-mono text-xs text-primary hover:underline cursor-pointer"
+                              className="font-mono text-xs font-bold text-primary hover:underline"
                             >
                               {o.order_number}
                             </Link>
-                          </td>
-                          <td className="text-xs">{formatDate(o.created_at)}</td>
-                          <td className="text-xs">
-                            {profile?.nama_lengkap || profile?.email || "—"}
-                          </td>
-                          <td className="py-2">{orderBadge}</td>
-                          <td className="py-2">{payBadge}</td>
-                          <td className="text-right tabular-nums font-semibold">
+                          </div>
+                          <span className="text-[11px] text-muted-foreground">{formatDate(o.created_at)}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Pelanggan:</span>
+                          <span className="font-semibold text-foreground">{profile?.nama_lengkap || profile?.email || "—"}</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
+                          <div className="flex flex-wrap gap-1">
+                            {orderBadge}
+                            {payBadge}
+                          </div>
+                          <div className="font-extrabold text-sm text-foreground">
                             {formatIDR(o.grand_total)}
-                          </td>
-                          <td className="py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderForReceipt(o as any);
-                                  setReceiptModalOpen(true);
-                                }}
-                                className="p-1.5 rounded hover:bg-primary/10 text-primary hover:text-primary transition-colors cursor-pointer"
-                                title="Cetak Struk / Download Invoice"
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedOrderForReceipt(o as any);
+                              setReceiptModalOpen(true);
+                            }}
+                            className="h-8 text-xs gap-1"
+                          >
+                            <Printer className="size-3.5" /> Cetak Struk
+                          </Button>
+                          <Link
+                            to="/admin/pesanan/$orderNumber"
+                            params={{ orderNumber: o.order_number }}
+                          >
+                            <Button size="sm" className="h-8 text-xs">Detail ↗</Button>
+                          </Link>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteSingle(o.id)}
+                            disabled={deleteMutation.isPending}
+                            className="size-8 text-destructive hover:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+                        <th className="py-2 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={
+                              q.data
+                                ? selectedIds.length === q.data.length && q.data.length > 0
+                                : false
+                            }
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer"
+                          />
+                        </th>
+                        <th
+                          className="py-2 cursor-pointer select-none group"
+                          onClick={() => handleSort("order_number")}
+                        >
+                          <div className="flex items-center">Order {sortIcon("order_number")}</div>
+                        </th>
+                        <th
+                          className="cursor-pointer select-none group"
+                          onClick={() => handleSort("created_at")}
+                        >
+                          <div className="flex items-center">Tanggal {sortIcon("created_at")}</div>
+                        </th>
+                        <th
+                          className="cursor-pointer select-none group"
+                          onClick={() => handleSort("recipient_name")}
+                        >
+                          <div className="flex items-center">
+                            Pelanggan {sortIcon("recipient_name")}
+                          </div>
+                        </th>
+                        <th
+                          className="cursor-pointer select-none group"
+                          onClick={() => handleSort("status")}
+                        >
+                          <div className="flex items-center">Status {sortIcon("status")}</div>
+                        </th>
+                        <th
+                          className="cursor-pointer select-none group"
+                          onClick={() => handleSort("payment_status")}
+                        >
+                          <div className="flex items-center">Bayar {sortIcon("payment_status")}</div>
+                        </th>
+                        <th
+                          className="text-right cursor-pointer select-none group"
+                          onClick={() => handleSort("grand_total")}
+                        >
+                          <div className="flex items-center justify-end">
+                            Total {sortIcon("grand_total")}
+                          </div>
+                        </th>
+                        <th className="w-12 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAndSortedList.map((o) => {
+                        const payment = Array.isArray(o.payments)
+                          ? o.payments[0]
+                          : (o.payments as unknown as { status: string } | null);
+                        const profile = o.profiles as {
+                          nama_lengkap?: string | null;
+                          email?: string | null;
+                        } | null;
+                        const isSelected = selectedIds.includes(o.id);
+
+                        const displayStatus =
+                          o.status === "pending" && payment?.status === "waiting_verification"
+                            ? "waiting_verification"
+                            : o.status;
+
+                        let orderBadge = (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            {statusLabel(displayStatus)}
+                          </span>
+                        );
+                        if (displayStatus === "paid") {
+                          orderBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                              Pembayaran Diterima
+                            </span>
+                          );
+                        } else if (displayStatus === "delivered") {
+                          orderBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                              Selesai
+                            </span>
+                          );
+                        } else if (displayStatus === "processing") {
+                          orderBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">
+                              Sedang Diproses
+                            </span>
+                          );
+                        } else if (displayStatus === "shipped") {
+                          orderBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                              Dikirim
+                            </span>
+                          );
+                        } else if (displayStatus === "cancelled") {
+                          orderBadge = (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
+                              Dibatalkan
+                            </span>
+                          );
+                        }
+
+                        let payBadge = <span className="text-xs text-muted-foreground">—</span>;
+                        if (payment) {
+                          if (payment.status === "waiting_payment") {
+                            payBadge = (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                Menunggu Pembayaran
+                              </span>
+                            );
+                          } else if (payment.status === "waiting_verification") {
+                            payBadge = (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 animate-pulse">
+                                Sudah Dibayar (Menunggu Konfirmasi)
+                              </span>
+                            );
+                          } else if (payment.status === "approved" || payment.status === "paid") {
+                            payBadge = (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                                Disetujui
+                              </span>
+                            );
+                          } else if (payment.status === "rejected") {
+                            payBadge = (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
+                                Ditolak
+                              </span>
+                            );
+                          }
+                        }
+
+                        return (
+                          <tr
+                            key={o.id}
+                            className="border-b border-border/50 hover:bg-muted/10 transition-colors"
+                          >
+                            <td className="py-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => handleSelectRow(o.id, e.target.checked)}
+                                className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer"
+                              />
+                            </td>
+                            <td className="py-3">
+                              <Link
+                                to="/admin/pesanan/$orderNumber"
+                                params={{ orderNumber: o.order_number }}
+                                className="font-mono text-xs text-primary hover:underline cursor-pointer"
                               >
-                                <Printer className="size-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteSingle(o.id)}
-                                className="p-1.5 rounded hover:bg-destructive/10 text-destructive hover:opacity-70 transition-opacity cursor-pointer"
-                                disabled={deleteMutation.isPending}
-                                title="Hapus Pesanan"
-                              >
-                                <Trash2 className="size-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                {o.order_number}
+                              </Link>
+                            </td>
+                            <td className="text-xs">{formatDate(o.created_at)}</td>
+                            <td className="text-xs">
+                              {profile?.nama_lengkap || profile?.email || "—"}
+                            </td>
+                            <td className="py-2">{orderBadge}</td>
+                            <td className="py-2">{payBadge}</td>
+                            <td className="text-right tabular-nums font-semibold">
+                              {formatIDR(o.grand_total)}
+                            </td>
+                            <td className="py-3 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderForReceipt(o as any);
+                                    setReceiptModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded hover:bg-primary/10 text-primary hover:text-primary transition-colors cursor-pointer"
+                                  title="Cetak Struk / Download Invoice"
+                                >
+                                  <Printer className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSingle(o.id)}
+                                  className="p-1.5 rounded hover:bg-destructive/10 text-destructive hover:opacity-70 transition-opacity cursor-pointer"
+                                  disabled={deleteMutation.isPending}
+                                  title="Hapus Pesanan"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">
                 Tidak ada pesanan masuk yang cocok dengan kriteria pencarian / filter.

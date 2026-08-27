@@ -257,20 +257,20 @@ Terima kasih telah berbelanja di AA Jersey!`;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden receipt-modal-dialog">
+      <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-xl max-h-[92dvh] flex flex-col p-0 overflow-hidden receipt-modal-dialog rounded-2xl sm:rounded-xl">
         {/* Header Dialog (Hidden on Print) */}
-        <div className="p-5 border-b border-border flex items-center justify-between print:hidden">
+        <div className="p-3.5 sm:p-5 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 print:hidden">
           <div>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Receipt className="size-5 text-primary" />
-              Struk & Invoice Pesanan
+            <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <Receipt className="size-4 sm:size-5 text-primary shrink-0" />
+              <span>Struk & Invoice Pesanan</span>
             </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 font-mono">
               #{order.order_number} · {formatDateTime(order.created_at)}
             </p>
           </div>
 
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+          <div className="flex items-center gap-1 bg-muted/80 p-1 rounded-lg self-start sm:self-auto shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("thermal")}
@@ -297,7 +297,7 @@ Terima kasih telah berbelanja di AA Jersey!`;
         </div>
 
         {/* Scrollable Receipt Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-zinc-100/60 dark:bg-zinc-950 flex justify-center receipt-scroll-area">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-zinc-100/60 dark:bg-zinc-950 flex justify-center receipt-scroll-area">
           {viewMode === "thermal" ? (
             /* THERMAL RECEIPT VIEW (58mm / 80mm format) */
             <div
@@ -579,25 +579,25 @@ Terima kasih telah berbelanja di AA Jersey!`;
         </div>
 
         {/* Footer Actions (Hidden on Print) */}
-        <div className="p-4 border-t border-border bg-card flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div className="p-3.5 sm:p-4 border-t border-border bg-card flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 print:hidden">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleCopySummary}
-            className="gap-1.5 text-xs cursor-pointer"
+            className="gap-1.5 text-xs cursor-pointer w-full sm:w-auto h-8 font-semibold"
           >
             {copied ? <Check className="size-3.5 text-emerald-500" /> : <Share2 className="size-3.5" />}
             {copied ? "Tersalin!" : "Salin Format WhatsApp"}
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-end">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="text-xs cursor-pointer"
+              className="text-xs cursor-pointer h-8 flex-1 sm:flex-none"
             >
               Tutup
             </Button>
@@ -608,10 +608,10 @@ Terima kasih telah berbelanja di AA Jersey!`;
               variant="outline"
               size="sm"
               onClick={handlePrint}
-              className="gap-1.5 font-semibold text-xs border-zinc-300 dark:border-zinc-700 hover:bg-muted cursor-pointer"
+              className="gap-1.5 font-semibold text-xs border-zinc-300 dark:border-zinc-700 hover:bg-muted cursor-pointer h-8 flex-1 sm:flex-none"
             >
               <Printer className="size-3.5 text-zinc-700 dark:text-zinc-300" />
-              Cetak
+              <span>Cetak</span>
             </Button>
 
             {/* Tombol 2: Download Langsung PDF Otomatis */}
@@ -620,10 +620,10 @@ Terima kasih telah berbelanja di AA Jersey!`;
               size="sm"
               disabled={downloadingPdf}
               onClick={handleDownloadPdf}
-              className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs cursor-pointer shadow-sm"
+              className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs cursor-pointer shadow-sm h-8 flex-1 sm:flex-none"
             >
               <Download className="size-3.5" />
-              {downloadingPdf ? "Mengunduh..." : "Download PDF"}
+              <span>{downloadingPdf ? "Mengunduh..." : "Download PDF"}</span>
             </Button>
           </div>
         </div>

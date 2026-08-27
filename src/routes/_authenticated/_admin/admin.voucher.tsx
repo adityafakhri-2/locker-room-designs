@@ -392,124 +392,232 @@ function AdminVouchers() {
         {isLoading ? (
           <p className="text-sm text-muted-foreground py-4">Memuat data voucher...</p>
         ) : filteredVouchers.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left eyebrow text-muted-foreground border-b border-border">
-                  <th className="py-3 px-2">Voucher</th>
-                  <th className="py-3 px-2">Potongan</th>
-                  <th className="py-3 px-2">Syarat & Kuota</th>
-                  <th className="py-3 px-2 text-center">Status</th>
-                  <th className="py-3 px-2 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredVouchers.map((v) => {
-                  const statusInfo = getVoucherStatus(v);
-                  return (
-                    <tr
-                      key={v.id}
-                      className="border-b border-border/50 hover:bg-muted/20 transition-all"
-                    >
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <Ticket className="size-4 text-primary flex-shrink-0" />
-                          <div>
-                            <span className="font-mono font-bold text-sm bg-accent px-2 py-0.5 rounded border border-border">
-                              {v.code}
-                            </span>
-                            <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                              <Calendar className="size-3" />
-                              <span>
-                                {new Date(v.start_date).toLocaleDateString("id-ID", {
-                                  dateStyle: "short",
-                                })}
-                                {v.end_date
-                                  ? ` - ${new Date(v.end_date).toLocaleDateString("id-ID", { dateStyle: "short" })}`
-                                  : " (Selamanya)"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="font-semibold text-sm">
+          <>
+            {/* Mobile Voucher Cards (< lg) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+              {filteredVouchers.map((v) => {
+                const statusInfo = getVoucherStatus(v);
+                return (
+                  <div
+                    key={v.id}
+                    className="p-3.5 rounded-xl border border-border bg-card/60 space-y-3 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Ticket className="size-4 text-primary" />
+                        <span className="font-mono font-extrabold text-xs bg-accent px-2 py-0.5 rounded border border-border">
+                          {v.code}
+                        </span>
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${statusInfo.color}`}
+                      >
+                        {statusInfo.label}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block">Diskon</span>
+                        <span className="font-extrabold text-sm text-foreground">
                           {v.discount_type === "percentage"
                             ? `${v.discount_value}%`
                             : formatIDR(v.discount_value)}
-                        </div>
-                        {v.discount_type === "percentage" && v.max_discount && (
-                          <div className="text-[10px] text-muted-foreground">
-                            Maks. {formatIDR(v.max_discount)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="text-xs">
-                          Min. Belanja:{" "}
-                          <span className="font-medium">{formatIDR(v.min_purchase)}</span>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                          <Users className="size-3" />
-                          <span>
-                            Klaim: {v.usage_count} / {v.usage_limit ?? "∞"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-2 text-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.color}`}
-                        >
-                          {statusInfo.label}
                         </span>
-                      </td>
-                      <td className="py-3 px-2 text-right">
-                        <div className="flex justify-end items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(v)}
-                            title="Edit Voucher"
-                            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-1"
-                          >
-                            <Pencil className="size-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleStatus.mutate({ id: v.id, currentStatus: v.status })
-                            }
-                            disabled={toggleStatus.isPending}
-                            title={
-                              v.status === "active" ? "Nonaktifkan Voucher" : "Aktifkan Voucher"
-                            }
-                            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-1"
-                          >
-                            {v.status === "active" ? (
-                              <ToggleRight className="size-6 text-primary" />
-                            ) : (
-                              <ToggleLeft className="size-6" />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`Hapus voucher ${v.code}?`)) {
-                                deleteVoucher.mutate(v.id);
-                              }
-                            }}
-                            disabled={deleteVoucher.isPending}
-                            className="text-destructive hover:text-red-700 cursor-pointer transition-colors p-1"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
+                        {v.discount_type === "percentage" && v.max_discount && (
+                          <span className="text-[10px] text-muted-foreground block">
+                            Maks. {formatIDR(v.max_discount)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-muted-foreground block">Min. Belanja</span>
+                        <span className="font-medium text-foreground">{formatIDR(v.min_purchase)}</span>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Klaim: {v.usage_count} / {v.usage_limit ?? "∞"}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1 pt-2 border-t border-border/40">
+                      <Calendar className="size-3 shrink-0" />
+                      <span className="truncate">
+                        {new Date(v.start_date).toLocaleDateString("id-ID", { dateStyle: "short" })}
+                        {v.end_date
+                          ? ` - ${new Date(v.end_date).toLocaleDateString("id-ID", { dateStyle: "short" })}`
+                          : " (Selamanya)"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleStatus.mutate({ id: v.id, currentStatus: v.status })
+                          }
+                          disabled={toggleStatus.isPending}
+                          className="text-xs font-semibold flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          {v.status === "active" ? (
+                            <ToggleRight className="size-6 text-primary" />
+                          ) : (
+                            <ToggleLeft className="size-6" />
+                          )}
+                          <span>{v.status === "active" ? "Aktif" : "Non-aktif"}</span>
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEdit(v)}
+                          className="h-8 px-2.5 text-xs font-semibold gap-1"
+                        >
+                          <Pencil className="size-3.5" />
+                          Edit
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Hapus voucher ${v.code}?`)) {
+                              deleteVoucher.mutate(v.id);
+                            }
+                          }}
+                          disabled={deleteVoucher.isPending}
+                          className="size-8 rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 grid place-items-center cursor-pointer transition-colors"
+                          aria-label="Hapus Voucher"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table (>= lg) */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+                    <th className="py-3 px-2">Voucher</th>
+                    <th className="py-3 px-2">Potongan</th>
+                    <th className="py-3 px-2">Syarat & Kuota</th>
+                    <th className="py-3 px-2 text-center">Status</th>
+                    <th className="py-3 px-2 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredVouchers.map((v) => {
+                    const statusInfo = getVoucherStatus(v);
+                    return (
+                      <tr
+                        key={v.id}
+                        className="border-b border-border/50 hover:bg-muted/20 transition-all"
+                      >
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-2">
+                            <Ticket className="size-4 text-primary flex-shrink-0" />
+                            <div>
+                              <span className="font-mono font-bold text-sm bg-accent px-2 py-0.5 rounded border border-border">
+                                {v.code}
+                              </span>
+                              <div className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                <Calendar className="size-3" />
+                                <span>
+                                  {new Date(v.start_date).toLocaleDateString("id-ID", {
+                                    dateStyle: "short",
+                                  })}
+                                  {v.end_date
+                                    ? ` - ${new Date(v.end_date).toLocaleDateString("id-ID", { dateStyle: "short" })}`
+                                    : " (Selamanya)"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="font-semibold text-sm">
+                            {v.discount_type === "percentage"
+                              ? `${v.discount_value}%`
+                              : formatIDR(v.discount_value)}
+                          </div>
+                          {v.discount_type === "percentage" && v.max_discount && (
+                            <div className="text-[10px] text-muted-foreground">
+                              Maks. {formatIDR(v.max_discount)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-2">
+                          <div className="text-xs">
+                            Min. Belanja:{" "}
+                            <span className="font-medium">{formatIDR(v.min_purchase)}</span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Users className="size-3" />
+                            <span>
+                              Klaim: {v.usage_count} / {v.usage_limit ?? "∞"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusInfo.color}`}
+                          >
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <div className="flex justify-end items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(v)}
+                              title="Edit Voucher"
+                              className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-1"
+                            >
+                              <Pencil className="size-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleStatus.mutate({ id: v.id, currentStatus: v.status })
+                              }
+                              disabled={toggleStatus.isPending}
+                              title={
+                                v.status === "active" ? "Nonaktifkan Voucher" : "Aktifkan Voucher"
+                              }
+                              className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors p-1"
+                            >
+                              {v.status === "active" ? (
+                                <ToggleRight className="size-6 text-primary" />
+                              ) : (
+                                <ToggleLeft className="size-6" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Hapus voucher ${v.code}?`)) {
+                                  deleteVoucher.mutate(v.id);
+                                }
+                              }}
+                              disabled={deleteVoucher.isPending}
+                              className="text-destructive hover:text-red-700 cursor-pointer transition-colors p-1"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground py-6 text-center">
             Tidak ada voucher ditemukan.

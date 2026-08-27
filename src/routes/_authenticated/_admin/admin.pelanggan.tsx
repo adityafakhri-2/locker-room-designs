@@ -22,6 +22,7 @@ import {
   Store,
   Globe,
   TrendingUp,
+  MapPin,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -377,12 +378,12 @@ function AdminCustomers() {
               <span className="text-sm font-normal text-muted-foreground">Pelanggan</span>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-              <span className="flex items-center gap-1">
-                <Globe className="size-3 text-blue-500" /> Online: <strong>{stats.online}</strong>
+              <span>
+                Online: <strong>{stats.online}</strong>
               </span>
-              <span className="flex items-center gap-1">
-                <Store className="size-3 text-emerald-500" /> Offline / Kasir:{" "}
-                <strong>{stats.offline}</strong>
+              <span>·</span>
+              <span>
+                Offline: <strong>{stats.offline}</strong>
               </span>
             </div>
           </div>
@@ -414,37 +415,37 @@ function AdminCustomers() {
       </div>
 
       <Card>
-        {/* Filter Tabs & Search Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5">
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        {/* Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-6 pb-4 border-b border-border">
+          {/* Search Box */}
+          <div className="relative flex-1">
+            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
+              placeholder="Cari nama, email, no. HP, atau kota..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama, email, nomor HP, atau kota..."
-              className="pl-9 pr-9 h-9 text-xs"
+              className="pl-9 pr-9 h-9 w-full text-xs placeholder:text-xs placeholder:text-muted-foreground/80"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
-                <X className="size-4" />
+                ✕
               </button>
             )}
           </div>
 
-          {/* Type Filter Pills */}
-          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg border border-border">
+          {/* Type Filter Buttons - Full width symmetric on mobile */}
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border w-full sm:w-auto shrink-0">
             <button
               type="button"
               onClick={() => setTypeFilter("all")}
               className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer",
+                "flex-1 sm:flex-none px-3 py-1.5 sm:py-1 text-xs font-semibold rounded-md transition-all cursor-pointer text-center",
                 typeFilter === "all"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -454,27 +455,25 @@ function AdminCustomers() {
               type="button"
               onClick={() => setTypeFilter("online")}
               className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1",
+                "flex-1 sm:flex-none px-3 py-1.5 sm:py-1 text-xs font-semibold rounded-md transition-all cursor-pointer text-center",
                 typeFilter === "online"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Globe className="size-3 text-blue-500" />
               Online ({stats.online})
             </button>
             <button
               type="button"
               onClick={() => setTypeFilter("offline")}
               className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1",
+                "flex-1 sm:flex-none px-3 py-1.5 sm:py-1 text-xs font-semibold rounded-md transition-all cursor-pointer text-center",
                 typeFilter === "offline"
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Store className="size-3 text-emerald-500" />
-              Offline / Kasir ({stats.offline})
+              Offline ({stats.offline})
             </button>
           </div>
         </div>
@@ -490,193 +489,288 @@ function AdminCustomers() {
               {q.error instanceof Error ? q.error.message : String(q.error)}
             </p>
           </div>
-        ) : filteredAndSorted.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[760px]">
-              <thead>
-                <tr className="text-left eyebrow text-muted-foreground border-b border-border select-none">
-                  {/* Select All Checkbox */}
-                  <th className="py-2.5 px-3 w-10">
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = isSomeSelected;
-                      }}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer align-middle"
-                    />
-                  </th>
-                  <th
-                    className="py-2.5 pr-4 cursor-pointer hover:text-foreground group"
-                    onClick={() => handleSort("nama")}
+        ) : filteredAndSorted.length > 0 ? (
+          <>
+            {/* Mobile Customer Cards (< lg) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+              {filteredAndSorted.map((p) => {
+                const isChecked = selectedIds.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    className={cn(
+                      "p-3.5 rounded-xl border border-border bg-card/60 space-y-3 shadow-sm transition-all",
+                      isChecked && "border-primary bg-primary/[0.03]",
+                    )}
                   >
-                    <div className="flex items-center gap-1">
-                      Pelanggan
-                      {sortField === "nama" ? (
-                        sortAsc ? (
-                          <ArrowUp className="size-3 text-primary" />
-                        ) : (
-                          <ArrowDown className="size-3 text-primary" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
-                      )}
-                    </div>
-                  </th>
-                  <th className="py-2.5 pr-4">Kontak (Email / HP)</th>
-                  <th className="py-2.5 pr-4">Lokasi</th>
-                  <th
-                    className="py-2.5 pr-4 cursor-pointer hover:text-foreground group text-center"
-                    onClick={() => handleSort("jerseys")}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      Jersey Dibeli
-                      {sortField === "jerseys" ? (
-                        sortAsc ? (
-                          <ArrowUp className="size-3 text-primary" />
-                        ) : (
-                          <ArrowDown className="size-3 text-primary" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="py-2.5 pr-4 cursor-pointer hover:text-foreground group text-right"
-                    onClick={() => handleSort("spent")}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      Total Belanja
-                      {sortField === "spent" ? (
-                        sortAsc ? (
-                          <ArrowUp className="size-3 text-primary" />
-                        ) : (
-                          <ArrowDown className="size-3 text-primary" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="py-2.5 pr-4 cursor-pointer hover:text-foreground group text-right"
-                    onClick={() => handleSort("created_at")}
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      Terakhir Beli
-                      {sortField === "created_at" ? (
-                        sortAsc ? (
-                          <ArrowUp className="size-3 text-primary" />
-                        ) : (
-                          <ArrowDown className="size-3 text-primary" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
-                      )}
-                    </div>
-                  </th>
-                  <th className="py-2.5 pr-3 text-center w-14">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSorted.map((p) => {
-                  const isChecked = selectedIds.includes(p.id);
-                  return (
-                    <tr
-                      key={p.id}
-                      className={`border-b border-border/50 transition-colors ${
-                        isChecked ? "bg-primary/5" : "hover:bg-muted/20"
-                      }`}
-                    >
-                      <td className="py-3.5 px-3">
+                    <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={(e) => handleSelectRow(p.id, e.target.checked)}
-                          className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer align-middle"
+                          className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer shrink-0"
                         />
-                      </td>
-                      <td className="py-3.5 pr-4">
-                        <div className="font-bold text-xs sm:text-sm text-foreground">
-                          {p.nama_lengkap}
-                        </div>
-                        <div className="mt-0.5">
-                          {p.type === "online" ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
-                              <Globe className="size-2.5" />
-                              Akun Online
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                              <Store className="size-2.5" />
-                              Kasir / Offline
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="pr-4 text-xs space-y-0.5">
-                        <div className="font-mono text-muted-foreground">{p.email}</div>
-                        {p.no_hp && p.no_hp !== "—" && (
-                          <div className="text-[11px] font-semibold text-foreground">
-                            WA: {p.no_hp}
-                          </div>
-                        )}
-                      </td>
-                      <td className="text-xs pr-4 text-muted-foreground">
-                        <div className="font-medium text-foreground">{p.kota}</div>
-                        <div className="text-[11px] truncate max-w-[140px] text-muted-foreground">
-                          {p.alamat}
-                        </div>
-                      </td>
-
-                      {/* STATISTIK JERSEY DIBELI */}
-                      <td className="pr-4 text-center">
-                        <div className="inline-flex flex-col items-center justify-center">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black",
-                              p.totalJerseys > 0
-                                ? "bg-primary/10 text-primary border border-primary/20"
-                                : "bg-muted text-muted-foreground",
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-xs sm:text-sm text-foreground truncate">
+                            {p.nama_lengkap}
+                          </h4>
+                          <div className="mt-0.5">
+                            {p.type === "online" ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded border border-blue-500/20">
+                                <Globe className="size-2.5" />
+                                Akun Online
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
+                                <Store className="size-2.5" />
+                                Kasir / Offline
+                              </span>
                             )}
-                          >
-                            <Shirt className="size-3" />
-                            {p.totalJerseys} Jersey
-                          </span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">
-                            {p.totalOrders}x Transaksi
-                          </span>
+                          </div>
                         </div>
-                      </td>
+                      </div>
 
-                      {/* TOTAL BELANJA */}
-                      <td className="text-right pr-4 font-bold text-xs sm:text-sm text-foreground">
-                        {formatIDR(p.totalSpent)}
-                      </td>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSingle(p.id)}
+                        title="Hapus Pelanggan"
+                        className="size-8 rounded-lg border border-destructive/20 text-destructive hover:bg-destructive/10 grid place-items-center cursor-pointer transition-colors shrink-0"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
 
-                      {/* TANGGAL TERAKHIR BELI */}
-                      <td className="text-xs pr-4 text-right text-muted-foreground">
-                        {formatDate(p.lastOrderDate)}
-                      </td>
+                    <div className="space-y-1 text-xs">
+                      {p.email && p.email !== "—" && (
+                        <div className="text-muted-foreground font-mono truncate">{p.email}</div>
+                      )}
+                      {p.no_hp && p.no_hp !== "—" && (
+                        <div className="text-foreground font-medium text-[11px]">
+                          WA: {p.no_hp}
+                        </div>
+                      )}
+                      {p.kota && p.kota !== "—" && (
+                        <div className="text-muted-foreground text-[11px] truncate flex items-center gap-1">
+                          <MapPin className="size-3 text-muted-foreground shrink-0" />
+                          <span>{p.kota}</span>
+                        </div>
+                      )}
+                    </div>
 
-                      <td className="py-3.5 pr-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteSingle(p.id)}
-                          title="Hapus Pelanggan"
-                          className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground block">Jersey Dibeli</span>
+                        <span className="font-extrabold text-foreground flex items-center gap-1">
+                          <Shirt className="size-3 text-primary" />
+                          {p.totalJerseys} pcs
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block">
+                          {p.totalOrders}x transaksi
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-muted-foreground block">Total Belanja</span>
+                        <span className="font-extrabold text-sm text-foreground">
+                          {formatIDR(p.totalSpent)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block">
+                          Terakhir: {formatDate(p.lastOrderDate)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table (>= lg) */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left eyebrow text-muted-foreground border-b border-border">
+                    <th className="py-2.5 px-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isSomeSelected;
+                        }}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer align-middle"
+                      />
+                    </th>
+                    <th
+                      className="py-2.5 pr-4 cursor-pointer hover:text-foreground select-none group"
+                      onClick={() => handleSort("nama")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Pelanggan
+                        {sortField === "nama" ? (
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="py-2.5 pr-4">Kontak (Email / HP)</th>
+                    <th className="py-2.5 pr-4">Lokasi</th>
+                    <th
+                      className="py-2.5 pr-4 cursor-pointer hover:text-foreground select-none group text-center"
+                      onClick={() => handleSort("jerseys")}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        Jersey Dibeli
+                        {sortField === "jerseys" ? (
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="py-2.5 pr-4 cursor-pointer hover:text-foreground select-none group text-right"
+                      onClick={() => handleSort("spent")}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Total Belanja
+                        {sortField === "spent" ? (
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="py-2.5 pr-4 cursor-pointer hover:text-foreground select-none group text-right"
+                      onClick={() => handleSort("created_at")}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Terakhir Beli
+                        {sortField === "created_at" ? (
+                          sortAsc ? (
+                            <ArrowUp className="size-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="size-3 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="size-3 opacity-30 group-hover:opacity-75 transition-opacity" />
+                        )}
+                      </div>
+                    </th>
+                    <th className="py-2.5 pr-3 text-center w-14">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSorted.map((p) => {
+                    const isChecked = selectedIds.includes(p.id);
+                    return (
+                      <tr
+                        key={p.id}
+                        className={`border-b border-border/50 transition-colors ${
+                          isChecked ? "bg-primary/5" : "hover:bg-muted/20"
+                        }`}
+                      >
+                        <td className="py-3.5 px-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => handleSelectRow(p.id, e.target.checked)}
+                            className="rounded border-border size-4 text-primary focus:ring-primary cursor-pointer align-middle"
+                          />
+                        </td>
+                        <td className="py-3.5 pr-4">
+                          <div className="font-bold text-xs sm:text-sm text-foreground">
+                            {p.nama_lengkap}
+                          </div>
+                          <div className="mt-0.5">
+                            {p.type === "online" ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                <Globe className="size-2.5" />
+                                Akun Online
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                <Store className="size-2.5" />
+                                Kasir / Offline
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="pr-4 text-xs space-y-0.5">
+                          <div className="font-mono text-muted-foreground">{p.email}</div>
+                          {p.no_hp && p.no_hp !== "—" && (
+                            <div className="text-[11px] font-semibold text-foreground">
+                              WA: {p.no_hp}
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-xs pr-4 text-muted-foreground">
+                          <div className="font-medium text-foreground">{p.kota}</div>
+                          <div className="text-[11px] truncate max-w-[140px] text-muted-foreground">
+                            {p.alamat}
+                          </div>
+                        </td>
+
+                        {/* STATISTIK JERSEY DIBELI */}
+                        <td className="pr-4 text-center">
+                          <div className="inline-flex flex-col items-center justify-center">
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black",
+                                p.totalJerseys > 0
+                                  ? "bg-primary/10 text-primary border border-primary/20"
+                                  : "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              <Shirt className="size-3" />
+                              {p.totalJerseys} Jersey
+                            </span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                              {p.totalOrders}x Transaksi
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* TOTAL BELANJA */}
+                        <td className="text-right pr-4 font-bold text-xs sm:text-sm text-foreground">
+                          {formatIDR(p.totalSpent)}
+                        </td>
+
+                        {/* TANGGAL TERAKHIR BELI */}
+                        <td className="text-xs pr-4 text-right text-muted-foreground">
+                          {formatDate(p.lastOrderDate)}
+                        </td>
+
+                        <td className="py-3.5 pr-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSingle(p.id)}
+                            title="Hapus Pelanggan"
+                            className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="py-12 text-center">
             <UserX className="size-10 text-muted-foreground mx-auto mb-2 opacity-50" />

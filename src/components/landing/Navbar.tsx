@@ -134,50 +134,105 @@ export function Navbar({ overHero = false }: NavbarProps) {
           </Link>
         </div>
 
-        <button
-          aria-label={open ? "Tutup menu" : "Buka menu"}
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-          className="sm:hidden justify-self-end cursor-pointer size-11 flex items-center justify-center -mr-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-md"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="size-5" /> : <Menu className="size-5" />}
-        </button>
+        {/* Mobile Action Icons + Hamburger */}
+        <div className="flex sm:hidden items-center justify-end gap-1 -mr-1">
+          <Link
+            to="/search"
+            search={{ q: "" }}
+            aria-label="Cari Produk"
+            className="size-10 flex items-center justify-center cursor-pointer hover:opacity-60 transition-opacity rounded-md"
+          >
+            <Search className="size-4" strokeWidth={1.75} />
+          </Link>
+          <Link
+            to="/cart"
+            aria-label={`Keranjang Belanja, ${cartCount} item`}
+            className="size-10 flex items-center justify-center relative cursor-pointer hover:opacity-60 transition-opacity rounded-md"
+          >
+            <ShoppingBag className="size-4" strokeWidth={1.75} />
+            {cartCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 text-[9px] font-bold bg-primary text-primary-foreground rounded-full size-4 grid place-items-center">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+          <button
+            aria-label={open ? "Tutup menu" : "Buka menu"}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            className="size-10 flex items-center justify-center cursor-pointer hover:opacity-60 transition-opacity rounded-md"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (
         <div
           id="mobile-menu"
-          className="sm:hidden border-t border-border bg-background text-foreground"
+          className="sm:hidden border-t border-border bg-background text-foreground shadow-2xl animate-in slide-in-from-top-2 duration-200 max-h-[calc(100dvh-4rem)] overflow-y-auto"
         >
-          <nav aria-label="Navigasi Mobile" className="container-swiss py-6 flex flex-col gap-1">
+          <nav aria-label="Navigasi Mobile" className="container-swiss py-5 flex flex-col gap-1.5">
             {NAV.map((n) => (
               <Link
                 key={n.label}
                 to={n.to}
                 onClick={() => setOpen(false)}
-                className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm px-2"
+                className="text-base font-semibold py-2.5 px-3 hover:bg-muted rounded-lg transition-colors cursor-pointer block"
               >
                 {n.label}
               </Link>
             ))}
             <Link
+              to={user ? "/dashboard/wishlist" : "/auth"}
+              onClick={() => setOpen(false)}
+              className="text-base font-semibold py-2.5 px-3 hover:bg-muted rounded-lg transition-colors cursor-pointer flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <Heart className="size-4 text-muted-foreground" />
+                Wishlist
+              </span>
+              {wlCount > 0 && (
+                <span className="text-xs font-bold bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                  {wlCount}
+                </span>
+              )}
+            </Link>
+            <Link
               to="/cart"
               onClick={() => setOpen(false)}
-              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm px-2"
+              className="text-base font-semibold py-2.5 px-3 hover:bg-muted rounded-lg transition-colors cursor-pointer flex items-center justify-between"
             >
-              Keranjang ({cartCount})
+              <span className="flex items-center gap-2">
+                <ShoppingBag className="size-4 text-muted-foreground" />
+                Keranjang Belanja
+              </span>
+              {cartCount > 0 && (
+                <span className="text-xs font-bold bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                  {cartCount}
+                </span>
+              )}
             </Link>
+            <div className="my-2 border-t border-border/60" />
             <Link
               to={user ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
               onClick={() => setOpen(false)}
-              className="text-base font-semibold py-2.5 hover:opacity-60 transition-opacity cursor-pointer block focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-sm px-2"
+              className="text-base font-bold py-2.5 px-3 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors cursor-pointer flex items-center justify-between"
             >
-              {user
-                ? isAdmin
-                  ? `Admin Panel (${displayName})`
-                  : `Dashboard (${displayName})`
-                : "Login / Daftar"}
+              <span className="flex items-center gap-2">
+                <User className="size-4" />
+                {user
+                  ? isAdmin
+                    ? `Admin Panel (${displayName})`
+                    : `Dashboard Akun (${displayName})`
+                  : "Masuk / Daftar Akun"}
+              </span>
+              {user && isAdmin && (
+                <span className="text-[10px] bg-primary text-primary-foreground font-extrabold px-1.5 py-0.5 rounded">
+                  Admin
+                </span>
+              )}
             </Link>
           </nav>
         </div>

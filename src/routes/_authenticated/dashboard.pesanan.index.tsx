@@ -96,15 +96,15 @@ function OrdersPage() {
       <PageHeader eyebrow="Pesanan" title="Pesanan Saya" />
 
       {/* Order Status Tabs */}
-      <div className="border-b border-border -mx-5 md:-mx-6 px-5 md:px-6 mb-6 overflow-x-auto scrollbar-none flex gap-6">
+      <div className="border-b border-border -mx-3 px-3 sm:mx-0 sm:px-0 mb-6 overflow-x-auto scrollbar-none flex gap-2 sm:gap-4 pb-1 touch-pan-x">
         {[
           { value: "all", label: "Semua", count: counts.all },
-          { value: "pending", label: "Menunggu Pembayaran", count: counts.pending },
-          { value: "paid", label: "Sudah Dibayar", count: counts.paid },
-          { value: "processing", label: "Sedang Diproses", count: counts.processing },
+          { value: "pending", label: "Belum Bayar", count: counts.pending },
+          { value: "paid", label: "Dibayar", count: counts.paid },
+          { value: "processing", label: "Diproses", count: counts.processing },
           { value: "shipped", label: "Dikirim", count: counts.shipped },
           { value: "delivered", label: "Selesai", count: counts.delivered },
-          { value: "cancelled", label: "Dibatalkan", count: counts.cancelled },
+          { value: "cancelled", label: "Batal", count: counts.cancelled },
         ].map((tab) => {
           const isActive = orderFilter === tab.value;
           return (
@@ -112,7 +112,7 @@ function OrdersPage() {
               key={tab.value}
               onClick={() => setOrderFilter(tab.value)}
               className={cn(
-                "pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap focus:outline-none",
+                "pb-2.5 px-2 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 focus:outline-none",
                 isActive
                   ? "border-primary text-primary font-bold"
                   : "border-transparent text-muted-foreground hover:text-foreground",
@@ -121,7 +121,7 @@ function OrdersPage() {
               <span>{tab.label}</span>
               <span
                 className={cn(
-                  "px-2 py-0.5 text-[10px] rounded-full font-bold transition-colors",
+                  "px-1.5 py-0.2 text-[10px] rounded-full font-bold transition-colors",
                   isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                 )}
               >
@@ -171,8 +171,8 @@ function OrdersPage() {
               return (
                 <Card key={o.id} className="space-y-4 hover:shadow-sm transition-shadow">
                   {/* Top Bar: Order ID, Date, and Status */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-xs font-bold text-muted-foreground">
                         No. Pesanan:
                       </span>
@@ -196,8 +196,8 @@ function OrdersPage() {
 
                   {/* Body: Product details */}
                   {firstItem && (
-                    <div className="flex gap-4 py-1">
-                      <div className="size-16 bg-muted border border-border rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    <div className="flex gap-3 sm:gap-4 py-1">
+                      <div className="size-14 sm:size-16 bg-muted border border-border rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
                         {firstItem.image_url ? (
                           <img
                             src={firstItem.image_url}
@@ -209,7 +209,7 @@ function OrdersPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-foreground truncate">
+                        <h4 className="font-bold text-xs sm:text-sm text-foreground truncate">
                           {firstItem.product_name}
                         </h4>
                         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
@@ -223,7 +223,7 @@ function OrdersPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-right tabular-nums self-center">
+                      <div className="text-xs sm:text-sm font-semibold text-right tabular-nums self-center shrink-0">
                         {formatIDR(firstItem.subtotal)}
                       </div>
                     </div>
@@ -237,25 +237,25 @@ function OrdersPage() {
                   )}
 
                   {/* Bottom Bar: Total Price and CTA button */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border/50">
-                    <div className="text-xs">
-                      <span className="text-muted-foreground">Total Pesanan: </span>
-                      <strong className="text-base font-extrabold text-foreground tabular-nums">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border/50">
+                    <div className="text-xs flex items-baseline justify-between sm:justify-start gap-2">
+                      <span className="text-muted-foreground">Total Pesanan:</span>
+                      <strong className="text-sm sm:text-base font-extrabold text-foreground tabular-nums">
                         {formatIDR(o.grand_total)}
                       </strong>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 text-xs cursor-pointer"
+                        className="h-9 text-xs cursor-pointer w-full sm:w-auto"
                         asChild
                       >
                         <Link
                           to="/dashboard/pesanan/$orderNumber"
                           params={{ orderNumber: o.order_number }}
                         >
-                          Lihat Detail Pesanan
+                          Lihat Detail Pesanan ↗
                         </Link>
                       </Button>
                     </div>

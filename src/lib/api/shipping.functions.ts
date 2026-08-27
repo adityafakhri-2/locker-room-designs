@@ -541,6 +541,12 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
     }
   });
 
+// Schema input untuk Lacak Resi (Waybill Tracking)
+const trackWaybillInput = z.object({
+  awb: z.string(),
+  courier: z.string(),
+});
+
 // Server function untuk Lacak Resi Otomatis (Waybill Tracking)
 export const trackWaybill = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
