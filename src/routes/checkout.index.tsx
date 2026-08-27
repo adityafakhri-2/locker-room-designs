@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
@@ -121,27 +121,40 @@ function CheckoutPage() {
     staleTime: 0,
   });
 
+  // Gabungkan data dari tabel profiles dengan fallback metadata akun Supabase Auth
+  const profileData = useMemo(() => {
+    const meta = user?.user_metadata || {};
+    const p = profileQuery.data || {};
+    return {
+      nama_lengkap: p.nama_lengkap || meta.nama_lengkap || meta.full_name || meta.name || "",
+      no_hp: p.no_hp || meta.no_hp || meta.phone || "",
+      alamat: p.alamat || meta.alamat || "",
+      kota: p.kota || meta.kota || "",
+      provinsi: p.provinsi || meta.provinsi || "",
+      kode_pos: p.kode_pos || meta.kode_pos || "",
+    };
+  }, [profileQuery.data, user]);
+
   function fillFromProfile() {
-    if (!profileQuery.data) {
-      toast.error("Data profil tidak ditemukan");
+    const p = profileData;
+    if (!p.nama_lengkap && !p.alamat && !p.kota && !p.no_hp) {
+      toast.error("Data profil belum lengkap. Silakan isi form di bawah.");
       return;
     }
-    const p = profileQuery.data;
-    const metadataName = user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || "";
     const parsed = parseAlamat(p.alamat || "");
     setForm((f) => ({
       ...f,
-      recipient_name: p.nama_lengkap || metadataName || f.recipient_name,
-      recipient_no_hp: p.no_hp || "",
-      recipient_alamat: p.alamat || "",
-      recipient_kota: p.kota || "",
-      recipient_provinsi: p.provinsi || "",
-      recipient_kode_pos: p.kode_pos || "",
+      recipient_name: p.nama_lengkap || f.recipient_name,
+      recipient_no_hp: p.no_hp || f.recipient_no_hp,
+      recipient_alamat: p.alamat || f.recipient_alamat,
+      recipient_kota: p.kota || f.recipient_kota,
+      recipient_provinsi: p.provinsi || f.recipient_provinsi,
+      recipient_kode_pos: p.kode_pos || f.recipient_kode_pos,
     }));
     setAlamatDetail(parsed.street);
     setKecamatan(parsed.kecamatan);
     setKelurahan(parsed.kelurahan);
-    toast.success("Data alamat disalin dari profil Anda");
+    toast.success("Data alamat berhasil disalin dari profil Anda");
   }
 
   useEffect(() => {
@@ -150,26 +163,27 @@ function CheckoutPage() {
     }
   }, [user, authLoading, navigate]);
 
+  // Otomatis pre-fill data penerima & alamat saat profil customer termuat
   useEffect(() => {
-    if (user && profileQuery.data) {
-      const p = profileQuery.data;
-      const metadataName =
-        user.user_metadata?.nama_lengkap || user.user_metadata?.full_name || "";
-      const parsed = parseAlamat(p.alamat || "");
-      setForm((f) => ({
-        ...f,
-        recipient_name: f.recipient_name || p.nama_lengkap || metadataName,
-        recipient_no_hp: f.recipient_no_hp || p.no_hp || "",
-        recipient_alamat: f.recipient_alamat || p.alamat || "",
-        recipient_kota: f.recipient_kota || p.kota || "",
-        recipient_provinsi: f.recipient_provinsi || p.provinsi || "",
-        recipient_kode_pos: f.recipient_kode_pos || p.kode_pos || "",
-      }));
-      if (parsed.street && !alamatDetail) setAlamatDetail(parsed.street);
-      if (parsed.kecamatan && !kecamatan) setKecamatan(parsed.kecamatan);
-      if (parsed.kelurahan && !kelurahan) setKelurahan(parsed.kelurahan);
+    if (user) {
+      const p = profileData;
+      if (p.nama_lengkap || p.alamat || p.kota || p.no_hp) {
+        const parsed = parseAlamat(p.alamat || "");
+        setForm((f) => ({
+          ...f,
+          recipient_name: f.recipient_name || p.nama_lengkap,
+          recipient_no_hp: f.recipient_no_hp || p.no_hp,
+          recipient_alamat: f.recipient_alamat || p.alamat,
+          recipient_kota: f.recipient_kota || p.kota,
+          recipient_provinsi: f.recipient_provinsi || p.provinsi,
+          recipient_kode_pos: f.recipient_kode_pos || p.kode_pos,
+        }));
+        setAlamatDetail((curr) => curr || parsed.street);
+        setKecamatan((curr) => curr || parsed.kecamatan);
+        setKelurahan((curr) => curr || parsed.kelurahan);
+      }
     }
-  }, [profileQuery.data, user]);
+  }, [profileData, user]);
 
   useEffect(() => {
     if (!cart.isLoading && cart.data && cart.data.length === 0) {
@@ -667,9 +681,14 @@ function CheckoutPage() {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-sm text-foreground">{r.name}</span>
                         <img
-                          src="https://upload.wikimedia.org/wikipedia/commons/9/92/New_Logo_JNE.png"
+                          src="/images/jne-logo.png"
                           alt="JNE"
+                          referrerPolicy="no-referrer"
                           className="h-4 object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "https://upload.wikimedia.org/wikipedia/commons/9/92/New_Logo_JNE.png";
+                          }}
                         />
                       </div>
                       <div className="text-sm font-extrabold text-foreground mt-1.5">
@@ -695,9 +714,14 @@ function CheckoutPage() {
               <div className="flex items-center gap-4">
                 <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
                   <img
-                    src="https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png"
+                    src="/images/mayar-logo.png"
                     alt="Mayar"
+                    referrerPolicy="no-referrer"
                     className="h-7 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png";
+                    }}
                   />
                 </div>
                 <div className="text-sm">

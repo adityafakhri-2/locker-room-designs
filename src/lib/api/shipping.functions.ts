@@ -56,12 +56,12 @@ async function getAdminOrigin(): Promise<{
   province: string;
   kecamatan: string;
 }> {
-  // Default fallback: Jakarta Selatan (153)
+  // Default fallback: Kota Cimahi (107) - Alamat Toko AA Jersey
   const defaultOrigin = {
-    city_id: "153",
-    city_name: "Jakarta Selatan",
-    province: "DKI Jakarta",
-    kecamatan: "",
+    city_id: "107",
+    city_name: "Kota Cimahi",
+    province: "Jawa Barat",
+    kecamatan: "Cimahi Tengah",
   };
 
   try {
@@ -78,7 +78,7 @@ async function getAdminOrigin(): Promise<{
 
     if (roleError || !userRole) {
       console.warn(
-        "[Shipping API] Tidak ada user dengan role admin. Menggunakan origin default (Jakarta Selatan).",
+        "[Shipping API] Tidak ada user dengan role admin. Menggunakan origin default (Kota Cimahi).",
       );
       return defaultOrigin;
     }
@@ -99,12 +99,6 @@ async function getAdminOrigin(): Promise<{
 
     // 3. Cocokkan kota admin ke RajaOngkir ID
     const matchedCity = findRajaOngkirCity(profile.provinsi || "", profile.kota);
-    if (!matchedCity) {
-      console.warn(
-        `[Shipping API] Kota admin "${profile.kota}" tidak cocok dengan data RajaOngkir. Menggunakan origin default.`,
-      );
-      return defaultOrigin;
-    }
 
     // Ekstrak kecamatan dari alamat admin
     let kecamatan = "";
@@ -120,14 +114,19 @@ async function getAdminOrigin(): Promise<{
       }
     }
 
+    const resolvedCityName =
+      profile.kota || (matchedCity ? `${matchedCity.type} ${matchedCity.city_name}` : "Kota Cimahi");
+    const resolvedProvince = profile.provinsi || matchedCity?.province || "Jawa Barat";
+
     console.log(
-      `[Shipping API] Kota asal admin berhasil dideteksi secara dinamis: ${matchedCity.city_name} (Kecamatan: ${kecamatan})`,
+      `[Shipping API] Kota asal admin berhasil dideteksi secara dinamis dari Pengaturan Toko: ${resolvedCityName}, ${resolvedProvince} (Kecamatan: ${kecamatan || "Cimahi Tengah"})`,
     );
+
     return {
-      city_id: matchedCity.city_id,
-      city_name: matchedCity.city_name,
-      province: matchedCity.province,
-      kecamatan,
+      city_id: matchedCity?.city_id || "107",
+      city_name: resolvedCityName,
+      province: resolvedProvince,
+      kecamatan: kecamatan || "Cimahi Tengah",
     };
   } catch (err) {
     console.error("[Shipping API] Error saat mendapatkan kota asal admin:", err);
@@ -265,12 +264,12 @@ function calculateOfflineRates(
 // Server function untuk menghitung tarif pengiriman JNE
 export const calculateShippingRates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(calculateShippingRatesInput)
+  .validator(calculateShippingRatesInput)
   .handler(async ({ data }) => {
     const apiKey = process.env.RAJAONGKIR_API_KEY;
 
-    // Estimasi berat jersey: 200 gram per pcs
-    const weightGrams = data.totalQuantity * 200;
+    // Estimasi berat jersey: 250 gram per pcs
+    const weightGrams = data.totalQuantity * 250;
 
     // 1. Dapatkan kota asal (Admin) secara dinamis
     const origin = await getAdminOrigin();
@@ -405,22 +404,22 @@ export const calculateShippingRates = createServerFn({ method: "POST" })
     }
   });
 
-export const getStoreOrigin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async () => {
+export const getStoreOrigin = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const origin = await getAdminOrigin();
     return {
       success: true,
       city: origin.city_name,
       province: origin.province,
+      kecamatan: origin.kecamatan,
     };
   } catch (err) {
     console.error("Error getting store origin:", err);
     return {
       success: true,
-      city: "Jakarta Selatan",
-      province: "DKI Jakarta",
+      city: "Kota Cimahi",
+      province: "Jawa Barat",
+      kecamatan: "Cimahi Tengah",
     };
   }
 });

@@ -149,9 +149,9 @@ export function IndonesiaRegionSelector({
 
   // 2. Cascade 1: Find Province code when initial provinsi value exists
   useEffect(() => {
-    if (provinces.length > 0 && provinsi && !provCode) {
+    if (provinces.length > 0 && provinsi) {
       const match = provinces.find((p) => stringsMatch(p.name, provinsi));
-      if (match) {
+      if (match && match.id !== provCode) {
         setProvCode(match.id);
       }
     }
@@ -181,9 +181,9 @@ export function IndonesiaRegionSelector({
 
   // 4. Cascade 3: Match Regency code when initial kota value exists
   useEffect(() => {
-    if (regencies.length > 0 && kota && !regCode) {
+    if (regencies.length > 0 && kota) {
       const match = regencies.find((r) => stringsMatch(r.name, kota));
-      if (match) {
+      if (match && match.id !== regCode) {
         setRegCode(match.id);
       }
     }
@@ -213,9 +213,9 @@ export function IndonesiaRegionSelector({
 
   // 6. Cascade 5: Match District code when initial kecamatan value exists
   useEffect(() => {
-    if (districts.length > 0 && kecamatan && !distCode) {
+    if (districts.length > 0 && kecamatan) {
       const match = districts.find((d) => stringsMatch(d.name, kecamatan));
-      if (match) {
+      if (match && match.id !== distCode) {
         setDistCode(match.id);
       }
     }
@@ -245,9 +245,9 @@ export function IndonesiaRegionSelector({
 
   // 8. Cascade 7: Match Village code when initial kelurahan value exists
   useEffect(() => {
-    if (villages.length > 0 && kelurahan && !villageCode) {
+    if (villages.length > 0 && kelurahan) {
       const match = villages.find((v) => stringsMatch(v.name, kelurahan));
-      if (match) {
+      if (match && match.id !== villageCode) {
         setVillageCode(match.id);
       }
     }
