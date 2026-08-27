@@ -168,31 +168,40 @@ export const analyzeSalesData = createServerFn({ method: "POST" })
     const cityText = data.cityDistribution.map((c) => `- ${c.city}: ${c.count} pesanan`).join("\n");
 
     const promptText = `
-Anda adalah seorang asisten penjualan pintar dan analis data profesional untuk "AA Jersey", sebuah toko online yang menjual jersey sepak bola premium dan klasik.
-Tolong analisis data penjualan berikut dan berikan laporan strategi bisnis serta rekomendasi konkret untuk masa depan.
+Anda adalah seorang asisten penjualan pintar dan analis bisnis profesional untuk "AA Jersey", toko online & offline jersey sepak bola authentic, premium, dan retro di Indonesia.
+Tolong analisis data penjualan aktual berikut dan buatkan Laporan Strategis & Rekomendasi Bisnis dalam Bahasa Indonesia yang terstruktur rapi, elegan, dan berbobot.
 
-DATA LAPORAN PENJUALAN:
-- Total Pendapatan (Revenue): Rp ${data.totalRevenue.toLocaleString("id-ID")}
-- Jumlah Pesanan Valid: ${data.validOrdersCount}
-- Jumlah Pelanggan Terdaftar: ${data.totalCustomersCount}
+DATA LAPORAN PENJUALAN TOKO:
+- Total Pendapatan (Omset): Rp ${data.totalRevenue.toLocaleString("id-ID")}
+- Jumlah Pesanan Berhasil: ${data.validOrdersCount} pesanan
+- Total Pelanggan Terdata: ${data.totalCustomersCount} pelanggan
 
 Tren Pendapatan Bulanan:
 ${monthlyText || "Belum ada data bulanan"}
 
-Produk Terlaris (Best Sellers):
-${bestSellersText || "Belum ada data produk terlaris"}
+Produk Terlaris & Performa Stok:
+${bestSellersText || "Belum ada data produk"}
 
-Distribusi Geografis Pelanggan (Kota Terpopuler):
+Distribusi Wilayah Pembeli:
 ${cityText || "Belum ada data kota"}
 
-Tolong berikan analisis komprehensif Anda dalam Bahasa Indonesia yang ramah, sopan, profesional, dan bersifat suportif (tidak terkesan menekan atau mendikte).
-Format respons Anda harus bersih, rapi, dan mudah dibaca:
-1. GUNAKAN paragraf normal, spasi baris kosong untuk pemisah paragraf, dan daftar bernomor/bullet biasa (tanda strip "-") untuk daftar rekomendasi.
-2. JANGAN GUNAKAN format teks tebal (seperti tanda bintang ganda ** atau asteriks tunggal *) di bagian mana pun dalam teks. Buat seluruh teks menjadi tulisan biasa yang normal namun terstruktur rapi dengan judul/pemisah sederhana.
-3. Struktur laporan harus mencakup:
-   - Analisis Kinerja Penjualan Saat Ini: Tinjau pencapaian total pendapatan, performa bulanan, dan produk terlaris secara ringkas.
-   - Prediksi Tren & Permintaan Masa Depan: Estimasi jersey tim atau kategori mana yang berpotensi tinggi ke depannya berdasarkan data stok, penjualan, atau daerah pemasaran.
-   - Saran Strategi Bisnis Konkret: Berikan 3-4 rekomendasi bisnis yang praktis dan bisa langsung dijalankan (misalnya pengelolaan stok jersey terpopuler, promosi khusus di daerah dengan penjualan tinggi, taktik bundling, atau strategi retensi pelanggan).
+PANDUAN FORMAT LAPORAN (WAJIB DIIKUTI DENGAN SANGAT DISIPLIN):
+1. Gunakan format Markdown yang kaya dan terstruktur:
+   - Gunakan format heading level 2 (##) untuk setiap bab/judul bagian utama.
+   - Gunakan format teks tebal (**teks penting**) untuk menyorot angka pendapatan, nama jersey tim populer, persentase, kota utama, atau kata kunci strategi penting.
+   - Gunakan bullet points (- ) untuk menjabarkan poin-poin analisis, wawasan data, dan daftar saran strategi.
+2. Struktur Laporan:
+   ## 1. Analisis Kinerja & Performa Penjualan
+   Tinjau pencapaian omset, rata-rata pesanan per pelanggan, dan produk yang menjadi bintang penjualan secara ringkas dan lugas.
+
+   ## 2. Pola Permintaan & Potensi Wilayah
+   Identifikasi jersey klub mana yang paling diminati pembeli, analisis konsentrasi wilayah pesanan, dan status sisa stok produk.
+
+   ## 3. Rekomendasi Strategi Bisnis Konkret
+   Berikan 3-4 rekomendasi taktis yang siap dieksekusi (misal: strategi restock jersey tim besar, promo ongkir/bundling untuk kota tertentu, strategi aktivasi pelanggan offline/online).
+
+   ## 4. Kesimpulan & Rencana Aksi Prioritas
+   Rangkum langkah cepat utama yang disarankan untuk segera dijalankan oleh tim AA Jersey.
     `;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;

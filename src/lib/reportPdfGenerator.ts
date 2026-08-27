@@ -883,7 +883,7 @@ export function generateAIReportPDF(analysisText: string) {
     "LAPORAN STRATEGIS ANALISIS PENJUALAN AI",
     "Laporan Intelijen Bisnis",
     pageWidth,
-    { period: "Analisis Algoritma AI Penjualan" },
+    { period: "Analisis Intelijen & Rekomendasi Bisnis" },
   );
 
   // Intro Callout Box
@@ -906,18 +906,11 @@ export function generateAIReportPDF(analysisText: string) {
     currentY + 9,
   );
 
-  currentY += 17;
+  currentY += 16;
 
-  // Analysis Content (Word Wrapped)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
-
-  const lines = doc.splitTextToSize(analysisText, contentWidth - 4);
-  const lineHeight = 4.5;
-
-  lines.forEach((line: string) => {
-    if (currentY + lineHeight > pageHeight - 22) {
+  // Function to ensure page break if needed
+  function checkPageBreak(neededHeight: number) {
+    if (currentY + neededHeight > pageHeight - 22) {
       doc.addPage();
       currentY = drawBrandedHeader(
         doc,
@@ -926,41 +919,112 @@ export function generateAIReportPDF(analysisText: string) {
         pageWidth,
       );
       currentY += 4;
-      doc.setFont("helvetica", "normal");
+    }
+  }
+
+  // Parse lines of markdown text
+  const rawLines = analysisText.split("\n");
+
+  rawLines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) {
+      currentY += 2;
+      return;
+    }
+
+    // 1. Heading 2 (## ...)
+    if (line.startsWith("## ")) {
+      checkPageBreak(14);
+      currentY += 3;
+      const headingText = line.replace(/^##\s+/, "").replace(/\*\*/g, "");
+
+      // Draw emerald accent pill/bar on left of heading
+      doc.setFillColor(BRAND_PRIMARY[0], BRAND_PRIMARY[1], BRAND_PRIMARY[2]);
+      doc.rect(marginX, currentY, 2.5, 5.5, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(BRAND_PRIMARY[0], BRAND_PRIMARY[1], BRAND_PRIMARY[2]);
+      doc.text(headingText, marginX + 5, currentY + 4.2);
+
+      currentY += 7.5;
+      return;
+    }
+
+    // 2. Heading 3 (### ...)
+    if (line.startsWith("### ")) {
+      checkPageBreak(10);
+      currentY += 2;
+      const headingText = line.replace(/^###\s+/, "").replace(/\*\*/g, "");
+
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
       doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
+      doc.text(headingText, marginX, currentY + 3.5);
+
+      currentY += 6;
+      return;
     }
 
-    // Bold headers if starting with numbers or bullet points
-    if (line.match(/^(\d+\.|[A-Z\s]{4,}:|\*|\#)/)) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(BRAND_PRIMARY[0], BRAND_PRIMARY[1], BRAND_PRIMARY[2]);
-      doc.text(line, marginX, currentY);
+    // 3. Bullet Point (- ... or * ... or 1. ...)
+    if (line.startsWith("- ") || line.startsWith("* ") || line.match(/^\d+\.\s/)) {
+      const cleanItem = line.replace(/^([-*]|\d+\.)\s+/, "").replace(/\*\*/g, "");
+      const wrappedLines = doc.splitTextToSize(cleanItem, contentWidth - 8);
+      const itemHeight = wrappedLines.length * 4.2;
+
+      checkPageBreak(itemHeight + 2);
+
+      // Draw emerald bullet dot
+      doc.setFillColor(BRAND_EMERALD[0], BRAND_EMERALD[1], BRAND_EMERALD[2]);
+      doc.circle(marginX + 2.5, currentY + 2.2, 0.8, "F");
+
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
       doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
-    } else {
-      doc.text(line, marginX, currentY);
+
+      wrappedLines.forEach((wl: string) => {
+        doc.text(wl, marginX + 6, currentY + 3);
+        currentY += 4.2;
+      });
+
+      currentY += 1;
+      return;
     }
 
-    currentY += lineHeight;
+    // 4. Regular Paragraph Text
+    const cleanText = line.replace(/\*\*/g, "");
+    const wrappedLines = doc.splitTextToSize(cleanText, contentWidth);
+    const paraHeight = wrappedLines.length * 4.2;
+
+    checkPageBreak(paraHeight + 2);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
+
+    wrappedLines.forEach((wl: string) => {
+      doc.text(wl, marginX, currentY + 3);
+      currentY += 4.2;
+    });
+
+    currentY += 2;
   });
 
   // Signature Block
-  currentY += 10;
-  if (currentY + 25 < pageHeight - 15) {
-    const signX = pageWidth - marginX - 60;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(COLOR_TEXT_MUTED[0], COLOR_TEXT_MUTED[1], COLOR_TEXT_MUTED[2]);
-    doc.text("Diverifikasi & Diterbitkan,", signX, currentY);
-    doc.text("Divisi Analitik AA Jersey Store", signX, currentY + 4);
+  checkPageBreak(25);
+  currentY += 8;
+  const signX = pageWidth - marginX - 60;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(COLOR_TEXT_MUTED[0], COLOR_TEXT_MUTED[1], COLOR_TEXT_MUTED[2]);
+  doc.text("Diverifikasi & Diterbitkan,", signX, currentY);
+  doc.text("Divisi Analitik AA Jersey Store", signX, currentY + 4);
 
-    doc.setDrawColor(COLOR_BORDER[0], COLOR_BORDER[1], COLOR_BORDER[2]);
-    doc.line(signX, currentY + 18, signX + 50, currentY + 18);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
-    doc.text("( Automated AI Officer )", signX, currentY + 22);
-  }
+  doc.setDrawColor(COLOR_BORDER[0], COLOR_BORDER[1], COLOR_BORDER[2]);
+  doc.line(signX, currentY + 18, signX + 50, currentY + 18);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
+  doc.text("( Automated AI Officer )", signX, currentY + 22);
 
   drawFooter(doc, pageWidth, pageHeight, doc.getNumberOfPages());
   doc.save(`Laporan-Analisis-AI-AAJersey-${Date.now().toString().slice(-6)}.pdf`);

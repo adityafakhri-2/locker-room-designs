@@ -685,8 +685,8 @@ function AdminReports() {
 
         {analysis ? (
           <div className="space-y-4">
-            <div className="text-xs sm:text-sm text-muted-foreground whitespace-pre-line bg-background/60 p-3.5 rounded-lg border border-border/50 leading-relaxed">
-              {analysis}
+            <div className="bg-background/80 p-4 sm:p-5 rounded-xl border border-border shadow-xs">
+              <FormattedMarkdownReport content={analysis} />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -881,3 +881,94 @@ function AdminReports() {
     </DashboardShell>
   );
 }
+
+/**
+ * Komponen untuk merender output laporan Markdown dari AI dengan rapi:
+ * - ## Header 2: Judul Bab Berwarna Hijau Brand dengan Aksen
+ * - ### Header 3: Subheader Bold
+ * - **Teks Bold**: Font tebal tegas
+ * - - Bullet Points: List rapi dengan bullet emerald
+ */
+function FormattedMarkdownReport({ content }: { content: string }) {
+  const lines = content.split("\n");
+
+  const renderInline = (text: string) => {
+    // Membagi teks berdasarkan pola **bold**
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={idx} className="font-extrabold text-foreground tracking-tight">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  };
+
+  const elements: React.ReactNode[] = [];
+  let currentList: string[] = [];
+
+  const flushList = (key: string) => {
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key={key} className="space-y-2 my-2.5 pl-1">
+          {currentList.map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <span className="size-1.5 rounded-full bg-primary mt-2 shrink-0" />
+              <div className="flex-1">{renderInline(item)}</div>
+            </li>
+          ))}
+        </ul>,
+      );
+      currentList = [];
+    }
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushList(`list-${index}`);
+      return;
+    }
+
+    if (trimmed.startsWith("## ")) {
+      flushList(`list-${index}`);
+      elements.push(
+        <div
+          key={`h2-${index}`}
+          className="mt-5 mb-2.5 first:mt-0 pt-3 border-t border-border/40 first:border-0 first:pt-0"
+        >
+          <h4 className="text-sm sm:text-base font-extrabold text-primary flex items-center gap-2">
+            <span className="size-2 rounded-sm bg-primary/80 shrink-0" />
+            <span>{trimmed.replace(/^##\s+/, "")}</span>
+          </h4>
+        </div>,
+      );
+    } else if (trimmed.startsWith("### ")) {
+      flushList(`list-${index}`);
+      elements.push(
+        <h5 key={`h3-${index}`} className="text-xs sm:text-sm font-bold text-foreground mt-3 mb-1.5">
+          {trimmed.replace(/^###\s+/, "")}
+        </h5>
+      );
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.match(/^\d+\.\s/)) {
+      const cleanItem = trimmed.replace(/^([-*]|\d+\.)\s+/, "");
+      currentList.push(cleanItem);
+    } else {
+      flushList(`list-${index}`);
+      elements.push(
+        <p key={`p-${index}`} className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-2.5">
+          {renderInline(trimmed)}
+        </p>,
+      );
+    }
+  });
+
+  flushList("list-end");
+
+  return <div className="space-y-0.5">{elements}</div>;
+}
+
