@@ -903,13 +903,21 @@ export function CreateManualOrderDialog({
 
                         <div>
                           <Label className="text-[11px] text-muted-foreground block mb-1">
-                            Harga Satuan (Asli)
+                            Harga Satuan (Rp)
                           </Label>
                           <Input
-                            type="text"
-                            disabled
-                            value={formatIDR(item.unitPrice)}
-                            className="h-8 text-xs font-mono font-bold bg-muted/60 text-muted-foreground cursor-not-allowed opacity-90"
+                            type="number"
+                            min={0}
+                            value={item.unitPrice}
+                            onChange={(e) =>
+                              handleUpdateItem(
+                                idx,
+                                "unitPrice",
+                                Math.max(0, parseInt(e.target.value) || 0),
+                              )
+                            }
+                            className="h-8 text-xs font-mono font-bold"
+                            title="Harga satuan jersey (dapat disesuaikan jika ada nego per item)"
                           />
                         </div>
 
@@ -917,8 +925,23 @@ export function CreateManualOrderDialog({
                           <Label className="text-[11px] text-muted-foreground block mb-1">
                             Subtotal
                           </Label>
-                          <div className="h-8 px-2 rounded border border-border bg-muted/40 flex items-center font-bold font-mono text-xs text-foreground">
-                            {formatIDR(item.unitPrice * item.quantity)}
+                          <div className="h-8 px-2 rounded border border-border bg-muted/40 flex flex-col justify-center font-mono text-xs">
+                            <span className="font-bold text-foreground">
+                              {formatIDR(item.unitPrice * item.quantity)}
+                            </span>
+                            {discountAmount > 0 && subtotal > 0 && (
+                              <span className="text-[9px] text-rose-600 dark:text-rose-400 font-medium">
+                                Net: {formatIDR(
+                                  Math.round(
+                                    Math.max(
+                                      0,
+                                      item.unitPrice * item.quantity -
+                                        (discountAmount * (item.unitPrice * item.quantity)) / subtotal,
+                                    ),
+                                  ),
+                                )}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -942,6 +965,11 @@ export function CreateManualOrderDialog({
                   onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
                   className="h-9 text-xs font-mono"
                 />
+                {discountAmount > 0 && items.length > 1 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    * Didistribusikan proporsional ke {items.length} jersey untuk akurasi laporan laba produk.
+                  </p>
+                )}
               </div>
 
               <div>

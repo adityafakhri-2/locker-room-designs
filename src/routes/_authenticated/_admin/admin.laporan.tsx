@@ -85,6 +85,15 @@ function AdminReports() {
 
   validOrders.forEach((o) => {
     const items = (o as any).order_items || [];
+    const orderDiscount = Number((o as any).discount_amount) || 0;
+
+    // Hitung subtotal kotor item pada order ini untuk dasar pembagian diskon proporsional
+    const orderItemsGrossSubtotal = items.reduce((sum: number, it: any) => {
+      const qty = Number(it.quantity) || 1;
+      const unitSell = Number(it.unit_price) || 0;
+      return sum + (Number(it.subtotal) || unitSell * qty);
+    }, 0);
+
     items.forEach((item: any) => {
       const qty = Number(item.quantity) || 1;
       const key = item.product_id || item.product_name;
@@ -103,14 +112,24 @@ function AdminReports() {
             : prodInfo?.defaultCost || 0;
 
       const unitSell = Number(item.unit_price) || 0;
-      const itemRevenue = Number(item.subtotal) || unitSell * qty;
+      const rawItemSubtotal = Number(item.subtotal) || unitSell * qty;
       const itemCost = unitCost * qty;
+
+      // Alokasi diskon proporsional (Pro-Rata):
+      // Jika beli 1 jersey -> 100% diskon dialokasikan ke jersey tersebut
+      // Jika beli >= 2 jersey -> diskon didistribusikan proporsional sesuai nilai subtotal masing-masing
+      let itemDiscount = 0;
+      if (orderDiscount > 0 && orderItemsGrossSubtotal > 0) {
+        const itemRatio = rawItemSubtotal / orderItemsGrossSubtotal;
+        itemDiscount = orderDiscount * itemRatio;
+      }
+      const itemNetRevenue = Math.max(0, rawItemSubtotal - itemDiscount);
 
       totalItemsSold += qty;
       totalCost += itemCost;
 
       productSalesMap[key].soldCount += qty;
-      productSalesMap[key].totalOmset += itemRevenue;
+      productSalesMap[key].totalOmset += itemNetRevenue;
       productSalesMap[key].totalModal += itemCost;
       if (item.size) {
         productSalesMap[key].sizesSold[item.size] =
