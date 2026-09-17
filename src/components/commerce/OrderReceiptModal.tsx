@@ -321,7 +321,7 @@ Terima kasih telah berbelanja di AA Jersey!`;
                   {storeLocation}
                 </p>
                 <p className="text-[9px] text-zinc-500 font-sans">
-                  WA: {storePhone} · hello@jerseyaa.com
+                  WA: {storePhone} · lavafaaa@gmail.com
                 </p>
               </div>
 
@@ -438,7 +438,7 @@ Terima kasih telah berbelanja di AA Jersey!`;
                         {storeLocation}
                       </p>
                       <p className="text-zinc-500 text-[11px]">
-                        WhatsApp: {storePhone} · Email: hello@jerseyaa.com
+                        WhatsApp: {storePhone} · Email: lavafaaa@gmail.com
                       </p>
                     </div>
                   </div>

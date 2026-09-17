@@ -7,14 +7,18 @@ export function Footer() {
     encodeURIComponent("Halo Admin AA Jersey, saya tertarik untuk bertanya seputar katalog produk jersey...");
 
   const emailUrl =
-    "mailto:hello@jerseyaa.com?subject=" +
+    "mailto:lavafaaa@gmail.com?subject=" +
     encodeURIComponent("Tanya Produk — AA Jersey") +
     "&body=" +
     encodeURIComponent("Halo Admin AA Jersey,\n\nSaya ingin bertanya mengenai:");
 
-  const mapUrl =
+  const mapCimahiUrl =
     "https://www.google.com/maps/search/?api=1&query=" +
     encodeURIComponent("Jl. KH Usman Domiri, Padasuka, Cimahi Tengah, Kota Cimahi, Jawa Barat");
+
+  const mapSukabumiUrl =
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent("Villa Adiprima, Kec. Sukaraja, Kab. Sukabumi, Jawa Barat");
 
   return (
     <footer className="bg-foreground text-background">
@@ -167,7 +171,7 @@ export function Footer() {
                   >
                     <Mail className="size-4 text-primary shrink-0 mt-0.5" />
                     <span className="inline-flex items-center gap-1 font-mono text-xs">
-                      hello@jerseyaa.com
+                      lavafaaa@gmail.com
                       <ArrowUpRight className="size-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform text-primary" />
                     </span>
                   </a>
@@ -192,21 +196,40 @@ export function Footer() {
                   </a>
                 </li>
 
-                {/* Alamat */}
+                {/* Alamat 1 - Cimahi */}
                 <li>
                   <a
-                    href={mapUrl}
+                    href={mapCimahiUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-start gap-2 text-sm text-background/85 hover:text-primary transition-colors"
                   >
                     <MapPin className="size-4 text-rose-400 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Outlet 1 (Cimahi)</span>
                       <span className="inline-flex items-center gap-1 text-xs text-white/90 group-hover:text-primary leading-relaxed">
-                        Jl. KH Usman Domiri, Padasuka, Cimahi Tengah, Kota Cimahi, Jawa Barat
+                        Jl. KH Usman Domiri, Cimahi
                         <ArrowUpRight className="size-3.5 shrink-0 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform text-primary" />
                       </span>
-                      <span className="text-[10px] text-white/50 mt-0.5">Buka di Google Maps</span>
+                    </div>
+                  </a>
+                </li>
+
+                {/* Alamat 2 - Sukabumi */}
+                <li>
+                  <a
+                    href={mapSukabumiUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-start gap-2 text-sm text-background/85 hover:text-primary transition-colors"
+                  >
+                    <MapPin className="size-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Outlet 2 (Sukabumi)</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-white/90 group-hover:text-primary leading-relaxed">
+                        Villa Adiprima, Sukaraja, Kab. Sukabumi
+                        <ArrowUpRight className="size-3.5 shrink-0 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform text-primary" />
+                      </span>
                     </div>
                   </a>
                 </li>
