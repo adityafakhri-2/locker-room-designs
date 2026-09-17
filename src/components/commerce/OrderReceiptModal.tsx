@@ -177,25 +177,61 @@ export function OrderReceiptModal({
       const { default: html2canvas } = await import("html2canvas-pro");
       const { jsPDF } = await import("jspdf");
 
+      // Temporarily reset scroll to 0 so html2canvas starts from top without clipping
+      const scrollContainer = document.querySelector(".receipt-scroll-area");
+      const prevScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+      if (scrollContainer) scrollContainer.scrollTop = 0;
+
+      const fullHeight = element.scrollHeight;
+      const fullWidth = element.scrollWidth;
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
+        height: fullHeight,
+        windowHeight: fullHeight + 200,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc: Document) => {
+          const clonedElement = clonedDoc.getElementById(elementId);
+          if (clonedElement) {
+            clonedElement.style.height = "auto";
+            clonedElement.style.maxHeight = "none";
+            clonedElement.style.overflow = "visible";
+            clonedElement.style.position = "static";
+            clonedElement.style.transform = "none";
+            clonedElement.style.margin = "0 auto";
+            clonedElement.style.paddingBottom = "32px";
+          }
+          // Remove overflow restrictions on all ancestor elements in clonedDoc
+          const ancestors = clonedDoc.querySelectorAll(
+            ".receipt-scroll-area, .receipt-modal-dialog, [role='dialog'], .overflow-y-auto, .overflow-hidden",
+          );
+          ancestors.forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            htmlEl.style.overflow = "visible";
+            htmlEl.style.maxHeight = "none";
+            htmlEl.style.height = "auto";
+          });
+        },
       });
+
+      if (scrollContainer) scrollContainer.scrollTop = prevScrollTop;
 
       const imgData = canvas.toDataURL("image/jpeg", 0.98);
 
       if (viewMode === "thermal") {
-        // Thermal receipt: 80mm width, dynamic height matching aspect ratio
+        // Thermal receipt: 80mm width, dynamic height matching aspect ratio + padding
         const pdfWidth = 80;
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         const doc = new jsPDF({
           orientation: "portrait",
           unit: "mm",
-          format: [pdfWidth, pdfHeight + 4],
+          format: [pdfWidth, pdfHeight + 8],
         });
-        doc.addImage(imgData, "JPEG", 0, 2, pdfWidth, pdfHeight);
+        doc.addImage(imgData, "JPEG", 0, 4, pdfWidth, pdfHeight);
         doc.save(`Struk-${order.order_number}.pdf`);
       } else {
         // A4 Invoice - Standard A4 210mm x 297mm
@@ -297,12 +333,12 @@ Terima kasih telah berbelanja di AA Jersey!`;
         </div>
 
         {/* Scrollable Receipt Area */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-zinc-100/60 dark:bg-zinc-950 flex justify-center receipt-scroll-area">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 bg-zinc-100/60 dark:bg-zinc-950 flex justify-center items-start receipt-scroll-area">
           {viewMode === "thermal" ? (
             /* THERMAL RECEIPT VIEW (58mm / 80mm format) */
             <div
               id="printable-receipt"
-              className="w-full max-w-[340px] bg-white text-zinc-900 p-6 rounded-lg shadow-sm border border-zinc-200 font-mono text-xs leading-relaxed printable-document print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 print:m-0"
+              className="w-full max-w-[340px] bg-white text-zinc-900 p-6 pb-8 rounded-lg shadow-sm border border-zinc-200 font-mono text-xs leading-relaxed printable-document print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 print:m-0 shrink-0 my-2"
             >
               {/* Logo & Store Header */}
               <div className="text-center pb-4 border-b border-dashed border-zinc-300">
@@ -401,7 +437,7 @@ Terima kasih telah berbelanja di AA Jersey!`;
               </div>
 
               {/* Footer Note */}
-              <div className="text-center pt-4 border-t border-dashed border-zinc-300 font-sans text-[10px] text-zinc-500 space-y-1.5">
+              <div className="text-center pt-4 pb-2 border-t border-dashed border-zinc-300 font-sans text-[10px] text-zinc-500 space-y-1.5">
                 <p className="font-semibold text-zinc-800">
                   Terima kasih atas pesanan Anda!
                 </p>
