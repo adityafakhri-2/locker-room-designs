@@ -170,7 +170,16 @@ function AdminOrderDetail() {
           proofUploadedAt = proofs[0].uploaded_at;
         }
       }
-      return { order: data, payment, proofUrl, proofUploadedAt };
+      let buyerProfile = null;
+      if (data?.user_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id, email, nama_lengkap, no_hp")
+          .eq("id", data.user_id)
+          .maybeSingle();
+        buyerProfile = prof;
+      }
+      return { order: data, payment, proofUrl, proofUploadedAt, buyerProfile };
     },
   });
 
@@ -180,7 +189,7 @@ function AdminOrderDetail() {
         Memuat...
       </DashboardShell>
     );
-  const { order, payment, proofUrl, proofUploadedAt } = q.data;
+  const { order, payment, proofUrl, proofUploadedAt, buyerProfile } = q.data;
 
   async function approve() {
     if (!payment) return toast.error("Data pembayaran tidak ditemukan");
@@ -356,18 +365,58 @@ function AdminOrderDetail() {
           </Card>
 
           <Card>
-            <h3 className="font-extrabold mb-3">Penerima</h3>
-            <p className="text-sm">
-              {order.recipient_name} · {order.recipient_no_hp}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {order.recipient_alamat}, {order.recipient_kota}, {order.recipient_provinsi}{" "}
-              {order.recipient_kode_pos}
-            </p>
-            {order.note && (
-              <p className="text-sm mt-3">
-                <strong>Catatan:</strong> {order.note}
-              </p>
+            <h3 className="font-extrabold mb-3">
+              {order.order_number?.startsWith("POS-")
+                ? "Data Pelanggan (Kasir / Walk-in)"
+                : "Informasi Pelanggan & Penerima"}
+            </h3>
+            {order.order_number?.startsWith("POS-") ? (
+              <div className="space-y-1.5 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground block">Nama Pembeli / Pelanggan:</span>
+                  <span className="font-semibold text-foreground">{order.recipient_name}</span>
+                </div>
+                {order.recipient_no_hp && order.recipient_no_hp !== "-" && (
+                  <div>
+                    <span className="text-xs text-muted-foreground block">No. WhatsApp / HP:</span>
+                    <span className="font-medium text-foreground">{order.recipient_no_hp}</span>
+                  </div>
+                )}
+                {order.note && (
+                  <p className="text-xs text-muted-foreground pt-2 border-t border-border/40 mt-2">
+                    <strong className="text-foreground">Catatan:</strong> {order.note}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground block">Akun Pemesan (Online):</span>
+                  <span className="font-semibold text-foreground">
+                    {buyerProfile?.nama_lengkap || "—"}
+                    {buyerProfile?.email ? (
+                      <span className="text-xs text-muted-foreground font-normal ml-1">
+                        ({buyerProfile.email})
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-border/50">
+                  <span className="text-xs text-muted-foreground block">Penerima & Alamat Kirim:</span>
+                  <p className="font-semibold">
+                    {order.recipient_name} · {order.recipient_no_hp}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {order.recipient_alamat}, {order.recipient_kota}, {order.recipient_provinsi}{" "}
+                    {order.recipient_kode_pos}
+                  </p>
+                </div>
+                {order.note && (
+                  <p className="text-xs pt-1">
+                    <strong className="text-foreground">Catatan:</strong> {order.note}
+                  </p>
+                )}
+              </div>
             )}
           </Card>
         </div>

@@ -30,6 +30,19 @@ import {
 import { CreateManualOrderDialog } from "@/components/admin/CreateManualOrderDialog";
 import { OrderReceiptModal, OrderReceiptData } from "@/components/commerce/OrderReceiptModal";
 
+export function getCustomerDisplayName(order: {
+  order_number?: string | null;
+  recipient_name?: string | null;
+  profiles?: { nama_lengkap?: string | null; email?: string | null } | null;
+}) {
+  const isPos = order.order_number?.startsWith("POS-");
+  if (isPos) {
+    return order.recipient_name?.trim() || "Pelanggan Toko (Walk-in)";
+  }
+  const profile = order.profiles;
+  return profile?.nama_lengkap?.trim() || profile?.email?.trim() || order.recipient_name?.trim() || "—";
+}
+
 export const Route = createFileRoute("/_authenticated/_admin/admin/pesanan/")({
   component: AdminOrders,
 });
@@ -143,8 +156,10 @@ function AdminOrders() {
           nama_lengkap?: string | null;
           email?: string | null;
         } | null;
+        const customerName = getCustomerDisplayName(o).toLowerCase();
         return (
           o.order_number.toLowerCase().includes(s) ||
+          customerName.includes(s) ||
           o.recipient_name.toLowerCase().includes(s) ||
           (profile?.nama_lengkap && profile.nama_lengkap.toLowerCase().includes(s)) ||
           (profile?.email && profile.email.toLowerCase().includes(s))
@@ -195,8 +210,8 @@ function AdminOrders() {
         valA = new Date(a.created_at).getTime();
         valB = new Date(b.created_at).getTime();
       } else if (sortField === "recipient_name") {
-        valA = (a.recipient_name || "").toLowerCase();
-        valB = (b.recipient_name || "").toLowerCase();
+        valA = getCustomerDisplayName(a).toLowerCase();
+        valB = getCustomerDisplayName(b).toLowerCase();
       } else if (sortField === "status") {
         const payA = Array.isArray(a.payments)
           ? a.payments[0]
@@ -488,7 +503,9 @@ function AdminOrders() {
 
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">Pelanggan:</span>
-                          <span className="font-semibold text-foreground">{profile?.nama_lengkap || profile?.email || "—"}</span>
+                          <span className="font-semibold text-foreground">
+                            {getCustomerDisplayName(o)}
+                          </span>
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1">
@@ -699,8 +716,8 @@ function AdminOrders() {
                               </Link>
                             </td>
                             <td className="text-xs">{formatDate(o.created_at)}</td>
-                            <td className="text-xs">
-                              {profile?.nama_lengkap || profile?.email || "—"}
+                            <td className="text-xs font-medium text-foreground">
+                              {getCustomerDisplayName(o)}
                             </td>
                             <td className="py-2">{orderBadge}</td>
                             <td className="py-2">{payBadge}</td>
