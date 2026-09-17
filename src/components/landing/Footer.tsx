@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Youtube, ArrowUpRight, MessageCircle, Mail, MapPin } from "lucide-react";
+import { Instagram, ArrowUpRight, MessageCircle, Mail, MapPin } from "lucide-react";
 
 export function Footer() {
   const waUrl =
@@ -42,33 +42,17 @@ export function Footer() {
             <p className="text-xs text-white/60 mt-3 max-w-sm leading-relaxed">
               Koleksi jersey 100% Original & Grade Ori Import Thailand 1:1 terlengkap di Indonesia. Siap kirim cepat ke seluruh nusantara.
             </p>
-            <div className="mt-8 flex items-center gap-4 text-background/80">
+            <div className="mt-8 flex items-center gap-3">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/aajersey.id"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Instagram AA Jersey"
-                className="hover:text-primary transition-colors p-2 rounded-full bg-white/5 hover:bg-white/10"
+                aria-label="Instagram @aajersey.id"
+                className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white hover:text-primary transition-all group"
               >
-                <Instagram className="size-4" strokeWidth={1.5} />
-              </a>
-              <a
-                href="https://tiktok.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="TikTok AA Jersey"
-                className="hover:text-primary transition-colors text-xs font-bold tracking-wider px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10"
-              >
-                TIKTOK
-              </a>
-              <a
-                href="https://youtube.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="YouTube AA Jersey"
-                className="hover:text-primary transition-colors p-2 rounded-full bg-white/5 hover:bg-white/10"
-              >
-                <Youtube className="size-4" strokeWidth={1.5} />
+                <Instagram className="size-4 text-rose-400 group-hover:scale-110 transition-transform" strokeWidth={1.75} />
+                <span>@aajersey.id</span>
+                <ArrowUpRight className="size-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform text-primary" />
               </a>
             </div>
           </div>
