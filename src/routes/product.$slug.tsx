@@ -6,12 +6,12 @@ import { toast } from "sonner";
 import {
   Heart,
   ShieldCheck,
-  Star,
   Shirt,
   Gem,
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
@@ -478,21 +478,6 @@ function ProductDetail() {
                       ["Negara", p.country],
                       ["Tahun", p.release_year],
                       ["Kondisi", p.condition],
-                      [
-                        "Collector Score",
-                        <span
-                          key="collector-score"
-                          aria-label={`${p.collector_score} dari 5 bintang skor kolektor`}
-                          className="flex items-center gap-0.5"
-                        >
-                          {Array.from({ length: p.collector_score || 0 }).map((_, i) => (
-                            <Star key={i} className="size-3.5 fill-amber-400 text-amber-400" />
-                          ))}
-                          {Array.from({ length: Math.max(0, 5 - (p.collector_score || 0)) }).map((_, i) => (
-                            <Star key={`empty-${i}`} className="size-3.5 text-muted-foreground/30" />
-                          ))}
-                        </span>,
-                      ],
                     ].map(([k, v]) => (
                       <div key={k as string} className="contents">
                         <dt className="text-muted-foreground">{k}</dt>

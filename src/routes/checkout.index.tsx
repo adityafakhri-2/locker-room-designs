@@ -124,14 +124,14 @@ function CheckoutPage() {
   // Gabungkan data dari tabel profiles dengan fallback metadata akun Supabase Auth
   const profileData = useMemo(() => {
     const meta = user?.user_metadata || {};
-    const p = profileQuery.data || {};
+    const p = profileQuery.data;
     return {
-      nama_lengkap: p.nama_lengkap || meta.nama_lengkap || meta.full_name || meta.name || "",
-      no_hp: p.no_hp || meta.no_hp || meta.phone || "",
-      alamat: p.alamat || meta.alamat || "",
-      kota: p.kota || meta.kota || "",
-      provinsi: p.provinsi || meta.provinsi || "",
-      kode_pos: p.kode_pos || meta.kode_pos || "",
+      nama_lengkap: p?.nama_lengkap || meta.nama_lengkap || meta.full_name || meta.name || "",
+      no_hp: p?.no_hp || meta.no_hp || meta.phone || "",
+      alamat: p?.alamat || meta.alamat || "",
+      kota: p?.kota || meta.kota || "",
+      provinsi: p?.provinsi || meta.provinsi || "",
+      kode_pos: p?.kode_pos || meta.kode_pos || "",
     };
   }, [profileQuery.data, user]);
 

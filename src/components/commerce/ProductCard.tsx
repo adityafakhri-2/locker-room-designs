@@ -7,6 +7,8 @@ import { useToggleWishlist, useWishlist } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
+import type { Json } from "@/integrations/supabase/types";
+
 export interface ProductCardData {
   id: string;
   slug: string;
@@ -20,7 +22,7 @@ export interface ProductCardData {
   sold_count?: number | null;
   stock?: number | null;
   sizes?: string[] | string | null;
-  size_stock?: Record<string, any> | null;
+  size_stock?: Record<string, any> | Json | null;
 }
 
 const BADGE_LABEL: Record<string, string> = {
