@@ -8,7 +8,38 @@ import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Sparkles, Loader2, Wand2, Download, Save, Trash2, ArrowUpDown, ArrowUp, ArrowDown, FileText, Printer, Calendar } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  Wand2,
+  Download,
+  Save,
+  Trash2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  FileText,
+  Printer,
+  Calendar,
+  ExternalLink,
+  ChevronRight,
+  TrendingUp,
+  Coins,
+  PackageCheck,
+  ShoppingBag,
+  Users,
+  Info,
+  Layers,
+  ArrowRight,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Link } from "@tanstack/react-router";
 import { analyzeSalesData } from "@/lib/api/ai.functions";
 import {
   generateProductProfitPDF,
@@ -442,77 +473,114 @@ function AdminReports() {
     }
   }
 
+  // State untuk modal drill-down detail KPI cards
+  const [activeCardDetail, setActiveCardDetail] = useState<
+    "omset" | "modal" | "profit" | "volume" | null
+  >(null);
+
   return (
     <DashboardShell items={ADMIN_NAV} title="Admin Panel">
       <PageHeader eyebrow="Laporan" title="Laporan Finansial & Penjualan" />
 
-      {/* 4 Financial KPI Cards - 2 per row on mobile, 4 on desktop */}
+      {/* 4 Financial KPI Cards - Clickable for details */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
-        <Card className="border-border p-3 sm:p-4 rounded-xl">
+        {/* CARD 1: TOTAL OMSET */}
+        <Card
+          onClick={() => setActiveCardDetail("omset")}
+          className="group border-border p-3 sm:p-4 rounded-xl cursor-pointer hover:border-primary/50 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden"
+        >
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors truncate">
               Total Omset
             </span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-extrabold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0 flex items-center gap-1">
               Lunas
+              <ChevronRight className="size-2.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
             </span>
           </div>
           <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate">
             {formatIDR(totalRevenue)}
           </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-            {validOrders.length} pesanan berhasil
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+            <span>{validOrders.length} pesanan berhasil</span>
+            <span className="text-[9px] text-primary/80 font-medium group-hover:underline hidden sm:inline">
+              Detail &rarr;
+            </span>
           </p>
         </Card>
 
-        <Card className="border-border p-3 sm:p-4 rounded-xl">
+        {/* CARD 2: TOTAL MODAL (COGS) */}
+        <Card
+          onClick={() => setActiveCardDetail("modal")}
+          className="group border-border p-3 sm:p-4 rounded-xl cursor-pointer hover:border-amber-500/50 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden"
+        >
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate">
               Total Modal
             </span>
-            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0 flex items-center gap-1">
               COGS
+              <ChevronRight className="size-2.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
             </span>
           </div>
           <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-muted-foreground mt-2 truncate">
             {formatIDR(totalCost)}
           </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-            Biaya pokok {totalItemsSold} pcs
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+            <span>Biaya pokok {totalItemsSold} pcs</span>
+            <span className="text-[9px] text-amber-600 dark:text-amber-400 font-medium group-hover:underline hidden sm:inline">
+              Detail &rarr;
+            </span>
           </p>
         </Card>
 
-        <Card className="border-border border-emerald-500/30 bg-emerald-500/[0.03] p-3 sm:p-4 rounded-xl">
+        {/* CARD 3: KEUNTUNGAN */}
+        <Card
+          onClick={() => setActiveCardDetail("profit")}
+          className="group border-border border-emerald-500/30 bg-emerald-500/[0.03] p-3 sm:p-4 rounded-xl cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden"
+        >
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
               Keuntungan
             </span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0 flex items-center gap-1">
               {avgMargin.toFixed(0)}%
+              <ChevronRight className="size-2.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
             </span>
           </div>
           <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 mt-2 truncate">
             {formatIDR(totalProfit)}
           </div>
-          <p className="text-[10px] sm:text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 font-medium truncate">
-            Laba kotor bersih
+          <p className="text-[10px] sm:text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 font-medium truncate flex items-center justify-between">
+            <span>Laba kotor bersih</span>
+            <span className="text-[9px] text-emerald-600 font-bold group-hover:underline hidden sm:inline">
+              Detail &rarr;
+            </span>
           </p>
         </Card>
 
-        <Card className="border-border p-3 sm:p-4 rounded-xl">
+        {/* CARD 4: VOLUME */}
+        <Card
+          onClick={() => setActiveCardDetail("volume")}
+          className="group border-border p-3 sm:p-4 rounded-xl cursor-pointer hover:border-sky-500/50 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden"
+        >
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate">
               Volume
             </span>
-            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border shrink-0 flex items-center gap-1">
               Pcs
+              <ChevronRight className="size-2.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
             </span>
           </div>
           <div className="text-sm sm:text-xl md:text-2xl font-extrabold tracking-tight text-foreground mt-2 truncate">
             {totalItemsSold} pcs
           </div>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-            {customers.data?.length ?? 0} user terdaftar
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+            <span>{customers.data?.length ?? 0} user terdaftar</span>
+            <span className="text-[9px] text-sky-600 dark:text-sky-400 font-medium group-hover:underline hidden sm:inline">
+              Detail &rarr;
+            </span>
           </p>
         </Card>
       </div>
@@ -897,6 +965,457 @@ function AdminReports() {
           Total transaksi tercatat: {orders.data?.length ?? 0} pesanan · Pelanggan: {customers.data?.length ?? 0} ({formatDate(new Date())}).
         </p>
       </Card>
+      {/* MODAL DRILL-DOWN DETAIL STATISTIK KPI */}
+      <Dialog
+        open={activeCardDetail !== null}
+        onOpenChange={(open) => !open && setActiveCardDetail(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+          {activeCardDetail === "omset" && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <TrendingUp className="size-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground">
+                      Rincian Total Omset Penjualan
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Total penerimaan dari pesanan yang telah lunas &amp; selesai diproses
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Stat Summary Box */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-muted/40 border border-border">
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Total Omset Bersih
+                  </div>
+                  <div className="text-base sm:text-lg font-black text-primary">
+                    {formatIDR(totalRevenue)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Pesanan Berhasil
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {validOrders.length} Transaksi
+                  </div>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Rata-rata / Pesanan
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {validOrders.length > 0
+                      ? formatIDR(Math.round(totalRevenue / validOrders.length))
+                      : "Rp 0"}
+                  </div>
+                </div>
+              </div>
+
+              {/* List Transaksi yang Menyumbang Omset */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Daftar Pesanan Berhasil
+                  </h4>
+                  <Link
+                    to="/admin/pesanan"
+                    className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <span>Kelola Semua Pesanan</span>
+                    <ExternalLink className="size-3" />
+                  </Link>
+                </div>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {validOrders.length === 0 ? (
+                    <div className="text-center py-6 text-xs text-muted-foreground">
+                      Belum ada transaksi berstatus lunas.
+                    </div>
+                  ) : (
+                    validOrders.map((o) => {
+                      const netOrder = Math.max(
+                        0,
+                        Number(o.subtotal || o.grand_total) -
+                          Number((o as any).discount_amount || 0),
+                      );
+                      const discount = Number((o as any).discount_amount) || 0;
+                      const itemsCount = (o as any).order_items?.reduce(
+                        (sum: number, it: any) => sum + (Number(it.quantity) || 1),
+                        0,
+                      ) || 0;
+
+                      return (
+                        <div
+                          key={o.id}
+                          className="flex items-center justify-between p-2.5 rounded-lg border border-border/70 bg-card hover:bg-muted/30 transition-colors text-xs"
+                        >
+                          <div className="min-w-0 pr-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-foreground">
+                                {o.order_number}
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-primary/10 text-primary border border-primary/20 capitalize">
+                                {o.status}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              {o.recipient_name || "Pelanggan"} · {itemsCount} pcs jersey
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {formatDate(o.created_at)}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-extrabold text-foreground text-sm">
+                              {formatIDR(netOrder)}
+                            </div>
+                            {discount > 0 && (
+                              <div className="text-[10px] text-rose-500 font-medium">
+                                Potongan -{formatIDR(discount)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCardDetail === "modal" && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Coins className="size-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground">
+                      Rincian Modal Produk (COGS)
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Biaya pokok modal jersey berdasarkan unit yang benar-benar terjual
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Stat Summary Box */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-muted/40 border border-border">
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Total Biaya Modal
+                  </div>
+                  <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
+                    {formatIDR(totalCost)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Jersey Terjual
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {totalItemsSold} Pcs
+                  </div>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Rata-rata Modal / Pcs
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {totalItemsSold > 0
+                      ? formatIDR(Math.round(totalCost / totalItemsSold))
+                      : "Rp 0"}
+                  </div>
+                </div>
+              </div>
+
+              {/* List Produk yang Berkontribusi Modal */}
+              <div>
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                  Penyerap Biaya Modal Terbanyak
+                </h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {processedProducts
+                    .filter((p) => p.sold_count > 0)
+                    .sort((a, b) => b.total_modal - a.total_modal)
+                    .map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-border/70 bg-card hover:bg-muted/30 transition-colors text-xs"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="font-bold text-foreground truncate">{p.name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {p.sold_count} pcs x {formatIDR(p.cost_price)}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-extrabold text-amber-600 dark:text-amber-400 text-sm">
+                            {formatIDR(p.total_modal)}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {totalCost > 0
+                              ? ((p.total_modal / totalCost) * 100).toFixed(0) + "% dari total modal"
+                              : "0%"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  {processedProducts.filter((p) => p.sold_count > 0).length === 0 && (
+                    <div className="text-center py-6 text-xs text-muted-foreground">
+                      Belum ada penjualan produk.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCardDetail === "profit" && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="size-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground">
+                      Rincian Keuntungan &amp; Margin
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Kalkulasi Laba Bersih = Omset Bersih dikurangi Beban Modal Pokok Jersey
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Stat Summary Box */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                <div>
+                  <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 uppercase font-bold">
+                    Laba Bersih
+                  </div>
+                  <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
+                    {formatIDR(totalProfit)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 uppercase font-bold">
+                    Margin Rata-rata
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {avgMargin.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 uppercase font-bold">
+                    Laba / Pcs Terjual
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {totalItemsSold > 0
+                      ? formatIDR(Math.round(totalProfit / totalItemsSold))
+                      : "Rp 0"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rumus Ringkas */}
+              <div className="p-3 rounded-lg border border-border bg-muted/30 text-xs space-y-1.5">
+                <div className="font-bold text-foreground flex items-center gap-1.5">
+                  <Info className="size-3.5 text-primary" />
+                  <span>Kalkulasi Rumus Finansial:</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Total Omset (setelah diskon/nego):</span>
+                  <span className="font-semibold text-foreground font-mono">{formatIDR(totalRevenue)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Total Modal Jersey (COGS):</span>
+                  <span className="font-semibold text-rose-500 font-mono">- {formatIDR(totalCost)}</span>
+                </div>
+                <div className="border-t border-border pt-1 flex justify-between font-bold text-emerald-600 dark:text-emerald-400">
+                  <span>Keuntungan Kotor Bersih:</span>
+                  <span className="font-mono">{formatIDR(totalProfit)}</span>
+                </div>
+              </div>
+
+              {/* Top 3 Produk Paling Menguntungkan */}
+              <div>
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                  Top Jersey Paling Profit
+                </h4>
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {processedProducts
+                    .filter((p) => p.sold_count > 0)
+                    .sort((a, b) => b.total_laba - a.total_laba)
+                    .slice(0, 5)
+                    .map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-border/70 bg-card text-xs"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <div className="font-bold text-foreground truncate">{p.name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Terjual {p.sold_count} pcs · Margin {p.profit_margin.toFixed(0)}%
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                            +{formatIDR(p.total_laba)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeCardDetail === "volume" && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                    <PackageCheck className="size-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground">
+                      Rincian Volume Penjualan &amp; User
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Statistik kuantitas jersey yang beredar serta basis pelanggan terdaftar
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Stat Summary Box */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-muted/40 border border-border">
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Jersey Terjual
+                  </div>
+                  <div className="text-base sm:text-lg font-black text-sky-600 dark:text-sky-400">
+                    {totalItemsSold} Pcs
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    User Terdaftar
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {customers.data?.length ?? 0} Pelanggan
+                  </div>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold">
+                    Rata-rata Item / Order
+                  </div>
+                  <div className="text-base sm:text-lg font-bold text-foreground">
+                    {validOrders.length > 0
+                      ? (totalItemsSold / validOrders.length).toFixed(1) + " pcs"
+                      : "0 pcs"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rincian Ukuran Terjual */}
+              <div>
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Distribusi Ukuran Jersey Terjual</span>
+                  <span className="text-[11px] text-muted-foreground font-normal">
+                    Total {totalItemsSold} pcs
+                  </span>
+                </h4>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {(() => {
+                    const sizeTotals: Record<string, number> = {};
+                    validOrders.forEach((o) => {
+                      (o as any).order_items?.forEach((it: any) => {
+                        const sz = it.size || "All Size";
+                        const qty = Number(it.quantity) || 1;
+                        sizeTotals[sz] = (sizeTotals[sz] || 0) + qty;
+                      });
+                    });
+                    const entries = Object.entries(sizeTotals);
+                    if (entries.length === 0) {
+                      return (
+                        <div className="col-span-full text-center py-4 text-xs text-muted-foreground">
+                          Belum ada data ukuran.
+                        </div>
+                      );
+                    }
+                    return entries.map(([sz, qty]) => (
+                      <div
+                        key={sz}
+                        className="p-2.5 rounded-lg border border-border bg-card text-center"
+                      >
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground">
+                          Size {sz}
+                        </div>
+                        <div className="text-sm font-extrabold text-foreground mt-0.5">
+                          {qty} pcs
+                        </div>
+                        <div className="text-[9px] text-muted-foreground">
+                          {totalItemsSold > 0 ? ((qty / totalItemsSold) * 100).toFixed(0) + "%" : "0%"}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+
+              {/* Pelanggan Terbaru */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Pelanggan Terdaftar Terbaru
+                  </h4>
+                  <Link
+                    to="/admin/pelanggan"
+                    className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <span>Lihat Semua Pelanggan</span>
+                    <ExternalLink className="size-3" />
+                  </Link>
+                </div>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {(customers.data ?? []).slice(0, 5).map((c, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-2 rounded-lg border border-border/60 bg-muted/20 text-xs"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <span className="font-semibold text-foreground truncate block">
+                          {c.nama_lengkap || c.email?.split("@")[0] || "User"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {c.kota || "Kota belum diisi"}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
+                        {c.created_at ? formatDate(c.created_at) : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardShell>
   );
 }
