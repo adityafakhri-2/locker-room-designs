@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
@@ -55,6 +55,7 @@ import {
   ArrowUp,
   ArrowDown,
   PiggyBank,
+  Info,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -237,9 +238,11 @@ function AdminKeuangan() {
     | "modal_jersey"
     | "omset_jersey"
     | "modal_disuntik"
+    | "profit_bersih"
     | null;
   const [detailModalType, setDetailModalType] = useState<DetailModalType>(null);
   const [modalSearch, setModalSearch] = useState("");
+  const [profitModalTab, setProfitModalTab] = useState<"orders" | "products">("orders");
 
   // Modal Table Column Sorting State (A-Z / Asc, Z-A / Desc, Default / null)
   const [modalSortKey, setModalSortKey] = useState<string | null>(null);
@@ -454,6 +457,154 @@ function AdminKeuangan() {
 
   // 8. Sisa Modal Dagang (Pure Pengeluaran: Modal Disuntik - Total Pengeluaran Murni)
   const sisaModalDagang = totalManualInCapital - totalDanaKeluar;
+
+  // Map product cost lookup (fallback to product default cost or size-specific cost)
+  const productCostMap = useMemo(() => {
+    const map: Record<string, { defaultCost: number; sizeCost: Record<string, number> }> = {};
+    products.forEach((p) => {
+      const rawStock = (p.size_stock as Record<string, any> | null) ?? {};
+      const sizeCostObj = (rawStock["_cost_prices"] || (p as any).size_cost_price || {}) as Record<string, any>;
+      const sizeCost: Record<string, number> = {};
+      Object.entries(sizeCostObj).forEach(([sz, c]) => {
+        if (Number(c) > 0) sizeCost[sz.toUpperCase()] = Number(c);
+      });
+      map[p.id] = {
+        defaultCost: Number(p.cost_price || 0),
+        sizeCost,
+      };
+      if (p.name) {
+        map[p.name] = map[p.id];
+      }
+    });
+    return map;
+  }, [products]);
+
+  // Detailed profit calculations per order & per product
+  const {
+    orderProfitList,
+    totalHppSoldJerseys,
+    totalLabaKotorJersey,
+    totalProfitBersih,
+    totalSoldQty,
+    productProfitList,
+  } = useMemo(() => {
+    let sumHppSold = 0;
+    let sumSoldQty = 0;
+    const prodMap: Record<
+      string,
+      {
+        id: string;
+        name: string;
+        team: string;
+        soldQty: number;
+        totalOmset: number;
+        totalCost: number;
+        totalProfit: number;
+      }
+    > = {};
+
+    const oList = orders.map((o) => {
+      const rawSubtotal = Number(o.subtotal || 0);
+      const discount = Number(o.discount_amount || 0);
+      const netRevenue = Math.max(0, rawSubtotal - discount);
+      const items = (o as any).order_items || [];
+      let orderCost = 0;
+      let orderQty = 0;
+
+      const itemsGrossSubtotal = items.reduce(
+        (acc: number, it: any) =>
+          acc + (Number(it.subtotal) || Number(it.unit_price || 0) * (Number(it.quantity) || 1)),
+        0
+      );
+
+      const enrichedItems = items.map((it: any) => {
+        const qty = Number(it.quantity) || 1;
+        orderQty += qty;
+        sumSoldQty += qty;
+
+        const prodInfo = productCostMap[it.product_id] || productCostMap[it.product_name];
+        const szKey = it.size ? String(it.size).toUpperCase().trim() : "";
+        const itemSizeCost = szKey && prodInfo?.sizeCost?.[szKey];
+        const unitCost =
+          Number(it.cost_price) > 0
+            ? Number(it.cost_price)
+            : itemSizeCost !== undefined && Number(itemSizeCost) > 0
+              ? Number(itemSizeCost)
+              : prodInfo?.defaultCost || 0;
+
+        const itemCost = unitCost * qty;
+        orderCost += itemCost;
+
+        // Pro-rata discount for item
+        const rawItemSubtotal =
+          Number(it.subtotal) || Number(it.unit_price || 0) * qty;
+        let itemDiscount = 0;
+        if (discount > 0 && itemsGrossSubtotal > 0) {
+          itemDiscount = discount * (rawItemSubtotal / itemsGrossSubtotal);
+        }
+        const itemNetRevenue = Math.max(0, rawItemSubtotal - itemDiscount);
+
+        // Product aggregator
+        const prodKey = it.product_id || it.product_name || "unknown";
+        if (!prodMap[prodKey]) {
+          const matchedProd = products.find((p) => p.id === it.product_id || p.name === it.product_name);
+          prodMap[prodKey] = {
+            id: prodKey,
+            name: it.product_name || matchedProd?.name || "Jersey",
+            team: matchedProd?.team || "-",
+            soldQty: 0,
+            totalOmset: 0,
+            totalCost: 0,
+            totalProfit: 0,
+          };
+        }
+        prodMap[prodKey].soldQty += qty;
+        prodMap[prodKey].totalOmset += itemNetRevenue;
+        prodMap[prodKey].totalCost += itemCost;
+        prodMap[prodKey].totalProfit += itemNetRevenue - itemCost;
+
+        return {
+          ...it,
+          resolvedCostPrice: unitCost,
+          totalCost: itemCost,
+          itemNetRevenue,
+          itemProfit: itemNetRevenue - itemCost,
+        };
+      });
+
+      sumHppSold += orderCost;
+      const orderProfit = netRevenue - orderCost;
+      const orderMargin = netRevenue > 0 ? (orderProfit / netRevenue) * 100 : 0;
+
+      return {
+        ...o,
+        orderQty,
+        netRevenue,
+        orderCost,
+        orderProfit,
+        orderMargin,
+        enrichedItems,
+      };
+    });
+
+    const labaKotor = totalJerseySales - sumHppSold;
+    const labaBersih = totalJerseySales + totalManualInOther - sumHppSold - totalPengeluaranOperasional;
+
+    const pList = Object.values(prodMap).sort((a, b) => b.totalProfit - a.totalProfit);
+
+    return {
+      orderProfitList: oList,
+      totalHppSoldJerseys: sumHppSold,
+      totalLabaKotorJersey: labaKotor,
+      totalProfitBersih: labaBersih,
+      totalSoldQty: sumSoldQty,
+      productProfitList: pList,
+    };
+  }, [orders, productCostMap, totalJerseySales, totalManualInOther, totalPengeluaranOperasional, products]);
+
+  const netProfitMargin = totalJerseySales > 0 ? (totalProfitBersih / totalJerseySales) * 100 : 0;
+  const grossProfitMargin = totalJerseySales > 0 ? (totalLabaKotorJersey / totalJerseySales) * 100 : 0;
+  const avgProfitPerPcs = totalSoldQty > 0 ? Math.round(totalLabaKotorJersey / totalSoldQty) : 0;
 
   // Chart aggregation by month (Last 6 Months)
   const monthlyDataMap: Record<string, { month: string; masuk: number; keluar: number }> = {};
@@ -816,47 +967,71 @@ function AdminKeuangan() {
             setModalSortKey(null);
             setModalSortDir(null);
           }}
-          className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20 cursor-pointer hover:border-primary hover:bg-primary/[0.03] hover:shadow-md transition-all duration-200 group"
+          className="p-4 border-dashed border-border bg-muted/20 cursor-pointer hover:border-primary hover:bg-primary/[0.03] hover:shadow-md transition-all duration-200 group flex flex-col justify-between"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-md group-hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider truncate" title="Omset Penjualan Jersey">
+              Omset Penjualan Jersey
+            </span>
+            <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/30 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+              Otomatis (Orders) ↗
+            </Badge>
+          </div>
+
+          <div className="my-3 flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-lg group-hover:scale-105 transition-transform shrink-0">
               <ShoppingBag className="size-5 text-primary" />
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground">
-                Omset Penjualan Jersey
-              </div>
-              <div className="font-extrabold text-lg">{formatIDR(totalJerseySales)}</div>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight text-foreground whitespace-nowrap">
+              {formatIDR(totalJerseySales)}
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-            Otomatis (Orders) ↗
-          </Badge>
+
+          <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+            <span className="truncate">{orders.length} Pesanan Berhasil</span>
+            <span className="font-semibold text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              Lihat Rincian ↗
+            </span>
+          </div>
         </Card>
 
         <Card
           onClick={() => {
-            setDetailModalType("modal_disuntik");
+            setDetailModalType("profit_bersih");
+            setProfitModalTab("orders");
             setModalSearch("");
             setModalSortKey(null);
             setModalSortDir(null);
           }}
-          className="p-4 flex items-center justify-between border-dashed border-border bg-muted/20 cursor-pointer hover:border-amber-500 hover:bg-amber-500/[0.03] hover:shadow-md transition-all duration-200 group"
+          className="p-4 border-dashed border-border bg-muted/20 cursor-pointer hover:border-emerald-500 hover:bg-emerald-500/[0.03] hover:shadow-md transition-all duration-200 group flex flex-col justify-between"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500/10 rounded-md group-hover:scale-105 transition-transform">
-              <Briefcase className="size-5 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider truncate" title="Profit Penjualan Jersey">
+              Profit Penjualan Jersey
+            </span>
+            <Badge variant="outline" className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+              Otomatis (Profit) ↗
+            </Badge>
+          </div>
+
+          <div className="my-3 flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 rounded-lg group-hover:scale-105 transition-transform shrink-0">
+              <TrendingUp className="size-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div>
-              <div className="text-xs text-muted-foreground">
-                Modal Dagang Disuntik
-              </div>
-              <div className="font-extrabold text-lg">{formatIDR(totalManualInCapital)}</div>
+            <div className={cn(
+              "text-2xl sm:text-3xl font-black tracking-tight whitespace-nowrap",
+              totalLabaKotorJersey >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+            )}>
+              {formatIDR(totalLabaKotorJersey)}
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-            Manual (Input) ↗
-          </Badge>
+
+          <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+            <span className="truncate">Margin Keuntungan: <strong className="font-bold text-foreground">{grossProfitMargin.toFixed(1)}%</strong> ({totalSoldQty} pcs terjual)</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              Lihat Rincian ↗
+            </span>
+          </div>
         </Card>
       </div>
 
@@ -1090,6 +1265,7 @@ function AdminKeuangan() {
               {detailModalType === "modal_jersey" && "Perincian Total Modal Jersey (HPP Inventaris)"}
               {detailModalType === "omset_jersey" && "Perincian Omset Penjualan Jersey (Pesanan)"}
               {detailModalType === "modal_disuntik" && "Perincian Modal Dagang Disuntik"}
+              {detailModalType === "profit_bersih" && "Perincian Keuntungan Penjualan Jersey (Profit)"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-1">
               {detailModalType === "saldo" &&
@@ -1106,6 +1282,8 @@ function AdminKeuangan() {
                 "Daftar seluruh pesanan jersey yang telah dibayar oleh pelanggan beserta nilai transaksi bersihnya."}
               {detailModalType === "modal_disuntik" &&
                 "Riwayat catatan penambahan modal dagang (capital inbound) ke dalam kas toko."}
+              {detailModalType === "profit_bersih" &&
+                "Rincian lengkap keuntungan bersih yang didapatkan dari seluruh transaksi pesanan jersey dikurangi modal pokok produk (HPP) yang terjual."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1119,6 +1297,8 @@ function AdminKeuangan() {
                     ? "Cari nama jersey atau klub..."
                     : detailModalType === "omset_jersey"
                     ? "Cari no. pesanan atau nama pemesan..."
+                    : detailModalType === "profit_bersih"
+                    ? "Cari no. pesanan, nama pemesan, atau nama produk jersey..."
                     : "Cari transaksi, kategori, atau catatan..."
                 }
                 value={modalSearch}
@@ -2033,6 +2213,399 @@ function AdminKeuangan() {
                 </div>
               );
             })()}
+
+            {/* 8. Modal: PROFIT BERSIH (KEUNTUNGAN) */}
+            {detailModalType === "profit_bersih" && (() => {
+              const searchLower = modalSearch.toLowerCase();
+
+              // 1. Filter Orders
+              const filteredOrders = orderProfitList.filter((o) => {
+                const matchOrder =
+                  (o.order_number || "").toLowerCase().includes(searchLower) ||
+                  (o.recipient_name || "").toLowerCase().includes(searchLower);
+                const matchProduct = (o.enrichedItems || []).some((it: any) =>
+                  (it.product_name || "").toLowerCase().includes(searchLower)
+                );
+                return matchOrder || matchProduct;
+              });
+
+              let sortedOrders = [...filteredOrders];
+              if (modalSortKey && modalSortDir) {
+                sortedOrders.sort((a, b) => {
+                  let cmp = 0;
+                  if (modalSortKey === "date") cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                  else if (modalSortKey === "order_number") cmp = (a.order_number || "").localeCompare(b.order_number || "");
+                  else if (modalSortKey === "customer") cmp = (a.recipient_name || "").localeCompare(b.recipient_name || "");
+                  else if (modalSortKey === "qty") cmp = a.orderQty - b.orderQty;
+                  else if (modalSortKey === "revenue") cmp = a.netRevenue - b.netRevenue;
+                  else if (modalSortKey === "cost") cmp = a.orderCost - b.orderCost;
+                  else if (modalSortKey === "profit") cmp = a.orderProfit - b.orderProfit;
+                  else if (modalSortKey === "margin") cmp = a.orderMargin - b.orderMargin;
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              }
+
+              // 2. Filter Products
+              const filteredProducts = productProfitList.filter((p) => {
+                return (
+                  p.name.toLowerCase().includes(searchLower) ||
+                  p.team.toLowerCase().includes(searchLower)
+                );
+              });
+
+              let sortedProducts = [...filteredProducts];
+              if (modalSortKey && modalSortDir) {
+                sortedProducts.sort((a, b) => {
+                  let cmp = 0;
+                  if (modalSortKey === "name") cmp = a.name.localeCompare(b.name);
+                  else if (modalSortKey === "team") cmp = a.team.localeCompare(b.team);
+                  else if (modalSortKey === "sold") cmp = a.soldQty - b.soldQty;
+                  else if (modalSortKey === "omset") cmp = a.totalOmset - b.totalOmset;
+                  else if (modalSortKey === "cost") cmp = a.totalCost - b.totalCost;
+                  else if (modalSortKey === "profit") cmp = a.totalProfit - b.totalProfit;
+                  else if (modalSortKey === "margin") {
+                    const marginA = a.totalOmset > 0 ? (a.totalProfit / a.totalOmset) * 100 : 0;
+                    const marginB = b.totalOmset > 0 ? (b.totalProfit / b.totalOmset) * 100 : 0;
+                    cmp = marginA - marginB;
+                  }
+                  return modalSortDir === "asc" ? cmp : -cmp;
+                });
+              }
+
+              return (
+                <div className="space-y-4 sm:space-y-5">
+                  {/* Top Summary Metric Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                    <div className="p-3 sm:p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 block">
+                        Total Profit Jersey
+                      </span>
+                      <span className={cn(
+                        "text-base sm:text-xl font-black mt-0.5 block truncate",
+                        totalLabaKotorJersey >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                      )}>
+                        {formatIDR(totalLabaKotorJersey)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-1 truncate">
+                        Margin: <strong className="text-foreground">{grossProfitMargin.toFixed(1)}%</strong>
+                      </span>
+                    </div>
+
+                    <div className="p-3 sm:p-4 rounded-xl border border-primary/20 bg-primary/5">
+                      <span className="text-[11px] font-bold text-primary block">
+                        Omset Penjualan Jersey
+                      </span>
+                      <span className="text-base sm:text-xl font-black text-foreground mt-0.5 block truncate">
+                        {formatIDR(totalJerseySales)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-1 truncate">
+                        {orders.length} Pesanan Berhasil
+                      </span>
+                    </div>
+
+                    <div className="p-3 sm:p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                      <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 block">
+                        Modal HPP Terjual
+                      </span>
+                      <span className="text-base sm:text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 block truncate">
+                        - {formatIDR(totalHppSoldJerseys)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-1 truncate">
+                        Modal Jersey Laku Terjual
+                      </span>
+                    </div>
+
+                    <div className="p-3 sm:p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                      <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">
+                        Jersey Terjual
+                      </span>
+                      <span className="text-base sm:text-xl font-black text-foreground mt-0.5 block truncate">
+                        {totalSoldQty} Pcs
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-1 truncate">
+                        Rata-rata: {formatIDR(avgProfitPerPcs)}/pcs
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Rumus Akuntansi Finansial Box */}
+                  <div className="p-3.5 sm:p-4 rounded-xl border border-border bg-card/60 space-y-2.5 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-foreground">
+                      <Info className="size-4 text-emerald-500" />
+                      <span>Kalkulasi Profit Murni Penjualan Jersey</span>
+                    </div>
+                    <div className="space-y-1.5 text-muted-foreground">
+                      <div className="flex justify-between items-center py-1 border-b border-border/40">
+                        <span>(+) Total Omset Penjualan Jersey:</span>
+                        <span className="font-semibold text-foreground font-mono">{formatIDR(totalJerseySales)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-border/40">
+                        <span>(-) Modal Pokok Jersey Terjual (HPP):</span>
+                        <span className="font-semibold text-rose-500 font-mono">- {formatIDR(totalHppSoldJerseys)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-border/40 font-bold text-foreground">
+                        <span className="text-emerald-600 dark:text-emerald-400">(=) Total Keuntungan Bersih Jersey (Profit):</span>
+                        <span className={cn(
+                          "font-mono font-black text-sm",
+                          totalLabaKotorJersey >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                        )}>
+                          {formatIDR(totalLabaKotorJersey)}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground pt-0.5">
+                      * Dihitung murni dari total nilai pesanan jersey yang berhasil dikurangi modal dasar pengadaan jersey yang laku (tanpa dipotong beban operasional toko).
+                    </p>
+                  </div>
+
+                  {/* Sub-Tabs View Switcher */}
+                  <div className="flex items-center justify-between border-b border-border pb-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={profitModalTab === "orders" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setProfitModalTab("orders");
+                          setModalSortKey(null);
+                          setModalSortDir(null);
+                        }}
+                        className="text-xs h-8 px-3 cursor-pointer"
+                      >
+                        Per Pesanan ({filteredOrders.length})
+                      </Button>
+                      <Button
+                        variant={profitModalTab === "products" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setProfitModalTab("products");
+                          setModalSortKey(null);
+                          setModalSortDir(null);
+                        }}
+                        className="text-xs h-8 px-3 cursor-pointer"
+                      >
+                        Per Produk Jersey ({filteredProducts.length})
+                      </Button>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                      Klik judul kolom tabel untuk mengurutkan data
+                    </span>
+                  </div>
+
+                  {/* Tab 1: Orders Breakdown */}
+                  {profitModalTab === "orders" && (
+                    <div>
+                      {/* Mobile Cards (< md) */}
+                      <div className="space-y-2.5 md:hidden">
+                        {sortedOrders.length === 0 ? (
+                          <p className="text-center py-6 text-xs text-muted-foreground">
+                            Tidak ada pesanan yang sesuai pencarian.
+                          </p>
+                        ) : (
+                          sortedOrders.map((o) => (
+                            <div key={o.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-2 shadow-sm text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono font-bold text-primary text-xs">{o.order_number}</span>
+                                <Badge variant="outline" className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 border-0">
+                                  {o.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center justify-between text-foreground">
+                                <span className="font-semibold">{o.recipient_name || "Pelanggan"}</span>
+                                <span className="text-muted-foreground text-[11px]">{o.orderQty} pcs jersey</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-border/40 text-[11px]">
+                                <div>
+                                  <span className="text-muted-foreground block text-[10px]">Omset Bersih</span>
+                                  <span className="font-bold text-foreground">{formatIDR(o.netRevenue)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground block text-[10px]">Modal HPP</span>
+                                  <span className="font-bold text-rose-500">- {formatIDR(o.orderCost)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-muted-foreground block text-[10px]">Profit ({o.orderMargin.toFixed(0)}%)</span>
+                                  <span className={cn(
+                                    "font-black text-xs",
+                                    o.orderProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                                  )}>
+                                    {o.orderProfit >= 0 ? `+${formatIDR(o.orderProfit)}` : formatIDR(o.orderProfit)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Desktop Table (>= md) */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/40">
+                              {renderSortHeader("Tanggal", "date")}
+                              {renderSortHeader("No. Pesanan", "order_number")}
+                              {renderSortHeader("Pemesan", "customer")}
+                              {renderSortHeader("Qty", "qty", "center")}
+                              {renderSortHeader("Omset Bersih", "revenue", "right")}
+                              {renderSortHeader("Modal HPP", "cost", "right")}
+                              {renderSortHeader("Profit Bersih", "profit", "right")}
+                              {renderSortHeader("Margin", "margin", "right")}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sortedOrders.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                  Tidak ada pesanan yang sesuai pencarian.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              sortedOrders.map((o) => (
+                                <TableRow key={o.id}>
+                                  <TableCell className="text-xs whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
+                                  <TableCell className="font-mono text-xs font-bold text-primary">{o.order_number}</TableCell>
+                                  <TableCell className="text-xs font-medium">{o.recipient_name || "Pelanggan"}</TableCell>
+                                  <TableCell className="text-center text-xs font-semibold">{o.orderQty} pcs</TableCell>
+                                  <TableCell className="text-right text-xs font-medium">{formatIDR(o.netRevenue)}</TableCell>
+                                  <TableCell className="text-right text-xs text-rose-500 font-medium">
+                                    - {formatIDR(o.orderCost)}
+                                  </TableCell>
+                                  <TableCell className={cn(
+                                    "text-right font-black text-xs",
+                                    o.orderProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                                  )}>
+                                    {o.orderProfit >= 0 ? `+${formatIDR(o.orderProfit)}` : formatIDR(o.orderProfit)}
+                                  </TableCell>
+                                  <TableCell className="text-right text-xs">
+                                    <Badge variant="outline" className={cn(
+                                      "text-[10px] font-bold border-0",
+                                      o.orderMargin >= 20 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600"
+                                    )}>
+                                      {o.orderMargin.toFixed(1)}%
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Products Breakdown */}
+                  {profitModalTab === "products" && (
+                    <div>
+                      {/* Mobile Cards (< md) */}
+                      <div className="space-y-2.5 md:hidden">
+                        {sortedProducts.length === 0 ? (
+                          <p className="text-center py-6 text-xs text-muted-foreground">
+                            Belum ada produk jersey yang terjual.
+                          </p>
+                        ) : (
+                          sortedProducts.map((p) => {
+                            const margin = p.totalOmset > 0 ? (p.totalProfit / p.totalOmset) * 100 : 0;
+                            const profitPerPcs = p.soldQty > 0 ? Math.round(p.totalProfit / p.soldQty) : 0;
+                            return (
+                              <div key={p.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-2 shadow-sm text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-foreground text-xs">{p.name}</span>
+                                  <Badge variant="outline" className="text-[10px] font-semibold text-primary bg-primary/10 border-0">
+                                    {p.team}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                  <span>Total Terjual</span>
+                                  <span className="font-bold text-foreground">{p.soldQty} Pcs</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-border/40 text-[11px]">
+                                  <div>
+                                    <span className="text-muted-foreground block text-[10px]">Total Omset</span>
+                                    <span className="font-bold text-foreground">{formatIDR(p.totalOmset)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground block text-[10px]">Total HPP</span>
+                                    <span className="font-bold text-rose-500">- {formatIDR(p.totalCost)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-muted-foreground block text-[10px]">Profit ({margin.toFixed(0)}%)</span>
+                                    <span className={cn(
+                                      "font-black text-xs",
+                                      p.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                                    )}>
+                                      +{formatIDR(p.totalProfit)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground pt-1 flex justify-between">
+                                  <span>Profit per pcs:</span>
+                                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatIDR(profitPerPcs)}/pcs</span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Desktop Table (>= md) */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/40">
+                              {renderSortHeader("Nama Jersey", "name")}
+                              {renderSortHeader("Klub / Tim", "team")}
+                              {renderSortHeader("Terjual", "sold", "center")}
+                              {renderSortHeader("Total Omset", "omset", "right")}
+                              {renderSortHeader("Modal HPP Terjual", "cost", "right")}
+                              {renderSortHeader("Total Keuntungan", "profit", "right")}
+                              {renderSortHeader("Margin", "margin", "right")}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sortedProducts.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                  Belum ada produk jersey yang terjual.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              sortedProducts.map((p) => {
+                                const margin = p.totalOmset > 0 ? (p.totalProfit / p.totalOmset) * 100 : 0;
+                                return (
+                                  <TableRow key={p.id}>
+                                    <TableCell className="text-xs font-bold text-foreground">{p.name}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{p.team}</TableCell>
+                                    <TableCell className="text-center text-xs font-bold">{p.soldQty} pcs</TableCell>
+                                    <TableCell className="text-right text-xs font-medium">{formatIDR(p.totalOmset)}</TableCell>
+                                    <TableCell className="text-right text-xs text-rose-500 font-medium">
+                                      - {formatIDR(p.totalCost)}
+                                    </TableCell>
+                                    <TableCell className={cn(
+                                      "text-right font-black text-xs",
+                                      p.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                                    )}>
+                                      +{formatIDR(p.totalProfit)}
+                                    </TableCell>
+                                    <TableCell className="text-right text-xs">
+                                      <Badge variant="outline" className={cn(
+                                        "text-[10px] font-bold border-0",
+                                        margin >= 20 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600"
+                                      )}>
+                                        {margin.toFixed(1)}%
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Modal Footer */}
@@ -2045,6 +2618,8 @@ function AdminKeuangan() {
                 `Total Modal Pengadaan (${totalProcuredPcs} pcs): ${formatIDR(totalModalHpp)} (${totalStockPcs} stok + ${totalSoldPcs} terjual)`}
               {detailModalType === "omset_jersey" && `Total Omset (${orders.length} pesanan): ${formatIDR(totalJerseySales)}`}
               {detailModalType === "modal_disuntik" && `Total Modal Masuk: ${formatIDR(totalManualInCapital)}`}
+              {detailModalType === "profit_bersih" &&
+                `Total Keuntungan Jersey: ${formatIDR(totalLabaKotorJersey)} (Margin: ${grossProfitMargin.toFixed(1)}% | ${totalSoldQty} Pcs Terjual)`}
             </div>
             <Button variant="outline" size="sm" onClick={() => setDetailModalType(null)} className="text-xs w-full sm:w-auto cursor-pointer">
               Tutup

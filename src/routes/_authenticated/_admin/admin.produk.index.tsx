@@ -262,11 +262,11 @@ function AdminProducts() {
 
       {/* 4 Statistik Finansial & Inventaris Produk - 2 per baris di mobile, 4 di desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
-        {/* Card 1: Total Modal Jersey */}
-        <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm flex flex-col justify-between">
+        {/* Card 1: Total Modal Stok */}
+        <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm flex flex-col justify-between" title={`Total modal HPP dari ${totalStockPcs} pcs jersey yang saat ini masih ada di stok gudang`}>
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
-              Total Modal (HPP)
+              Modal Sisa Stok (HPP)
             </span>
             <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
               <Coins className="size-3.5 sm:size-4" />
@@ -277,16 +277,16 @@ function AdminProducts() {
               {formatIDR(totalCostValue)}
             </div>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-              Dari <span className="font-semibold text-foreground">{totalStockPcs} pcs</span> jersey
+              Modal <span className="font-semibold text-foreground">{totalStockPcs} pcs</span> sisa di gudang
             </p>
           </div>
         </div>
 
         {/* Card 2: Total Nilai Jual */}
-        <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm flex flex-col justify-between">
+        <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm flex flex-col justify-between" title={`Potensi total omset jika seluruh ${totalStockPcs} pcs jersey sisa stok terjual`}>
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
-              Nilai Jual
+              Potensi Nilai Jual
             </span>
             <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
               <Tag className="size-3.5 sm:size-4" />
@@ -297,16 +297,16 @@ function AdminProducts() {
               {formatIDR(totalSellingValue)}
             </div>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-              Potensi pendapatan
+              Jika sisa stok terjual habis
             </p>
           </div>
         </div>
 
         {/* Card 3: Total Potensi Keuntungan */}
-        <div className="p-3 sm:p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] shadow-sm flex flex-col justify-between">
+        <div className="p-3 sm:p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] shadow-sm flex flex-col justify-between" title={`Estimasi keuntungan bersih jika seluruh ${totalStockPcs} pcs jersey sisa stok terjual habis`}>
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
-              Laba Bersih
+              Potensi Laba (Estimasi)
             </span>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <TrendingUp className="size-3.5 sm:size-4" />
@@ -317,13 +317,13 @@ function AdminProducts() {
               {formatIDR(totalPotentialProfit)}
             </div>
             <p className="text-[10px] sm:text-xs text-emerald-600/90 dark:text-emerald-400/90 mt-0.5 font-semibold truncate">
-              Margin {overallMarginPercent.toFixed(0)}%
+              Margin {overallMarginPercent.toFixed(0)}% • Jika stok laku semua
             </p>
           </div>
         </div>
 
         {/* Card 4: Total Volume Katalog */}
-        <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm flex flex-col justify-between">
+        <div className="p-3 sm:p-4 rounded-xl border border-border/80 bg-card/60 shadow-sm flex flex-col justify-between" title={`Jumlah stok jersey yang saat ini masih tersedia untuk dijual`}>
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
               Stok Tersedia
@@ -337,7 +337,7 @@ function AdminProducts() {
               {totalStockPcs} Pcs
             </div>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">
-              {totalJerseyModels} model jersey
+              Dari {totalJerseyModels} model jersey
             </p>
           </div>
         </div>
