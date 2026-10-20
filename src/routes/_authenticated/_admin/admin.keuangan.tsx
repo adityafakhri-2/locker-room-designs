@@ -455,8 +455,8 @@ function AdminKeuangan() {
   // 7. Current Cash Balance (Kas Riil: Dana Masuk - Total Pengeluaran)
   const saldoKasSaatIni = totalDanaMasuk - totalDanaKeluar;
 
-  // 8. Sisa Modal Dagang (Pure Pengeluaran: Modal Disuntik - Total Pengeluaran Murni)
-  const sisaModalDagang = totalManualInCapital - totalDanaKeluar;
+  // 8. Sisa Modal Dagang (Pure Pengeluaran: Modal Disuntik + Pendapatan Lain - Total Pengeluaran Murni)
+  const sisaModalDagang = totalManualInCapital + totalManualInOther - totalDanaKeluar;
 
   // Map product cost lookup (fallback to product default cost or size-specific cost)
   const productCostMap = useMemo(() => {
@@ -882,8 +882,8 @@ function AdminKeuangan() {
             </div>
           </div>
           <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40 gap-2">
-            <p className="text-[11px] text-muted-foreground truncate" title="Modal Disuntik - Pengeluaran">
-              Modal Disuntik - Pengeluaran
+            <p className="text-[11px] text-muted-foreground truncate" title="Modal Disuntik + Pendapatan Lain - Pengeluaran">
+              Modal Disuntik + Pendapatan Lain - Peng...
             </p>
             <span className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 whitespace-nowrap shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               Lihat Detail ↗
@@ -1259,7 +1259,7 @@ function AdminKeuangan() {
             </div>
             <DialogTitle className="text-lg sm:text-xl font-black tracking-tight flex items-center justify-between">
               {detailModalType === "saldo" && "Audit Perincian Saldo Kas Saat Ini"}
-              {detailModalType === "sisa_modal" && "Audit Perincian Sisa Modal Dagang (Pure Pengeluaran)"}
+              {detailModalType === "sisa_modal" && "Audit Perincian Sisa Modal Dagang"}
               {detailModalType === "dana_masuk" && "Perincian Total Dana Masuk"}
               {detailModalType === "operasional" && "Perincian Pengeluaran Operasional"}
               {detailModalType === "modal_jersey" && "Perincian Total Modal Jersey (HPP Inventaris)"}
@@ -1271,7 +1271,7 @@ function AdminKeuangan() {
               {detailModalType === "saldo" &&
                 "Rekapitulasi lengkap sumber dana masuk dan seluruh komponen pengeluaran modal & beban operasional."}
               {detailModalType === "sisa_modal" &&
-                "Rincian sisa modal murni (Modal Disuntik dikurangi seluruh pengeluaran HPP jersey & biaya operasional) tanpa memperhitungkan omset penjualan."}
+                "Rincian sisa modal dagang (Modal Disuntik + Pendapatan Lain-lain dikurangi seluruh pengeluaran HPP jersey & biaya operasional) tanpa memperhitungkan omset penjualan."}
               {detailModalType === "dana_masuk" &&
                 "Daftar lengkap dana masuk yang bersumber dari modal disuntik manual dan omset pesanan jersey pelanggan."}
               {detailModalType === "operasional" &&
@@ -1525,17 +1525,21 @@ function AdminKeuangan() {
             {/* 2. Modal: SISA MODAL DAGANG (PURE PENGELUARAN) */}
             {detailModalType === "sisa_modal" && (
               <div className="space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                   <div className="p-3 sm:p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
                     <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 block">Modal Dagang Disuntik (+)</span>
                     <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalManualInCapital)}</span>
+                  </div>
+                  <div className="p-3 sm:p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block">Pendapatan Lain-lain (+)</span>
+                    <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalManualInOther)}</span>
                   </div>
                   <div className="p-3 sm:p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
                     <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 block">Total Beban & Modal Keluar (-)</span>
                     <span className="text-lg sm:text-xl font-extrabold text-foreground mt-0.5 block">{formatIDR(totalDanaKeluar)}</span>
                   </div>
                   <div className="p-3 sm:p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
-                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 block">Sisa Modal Bersih (Pure)</span>
+                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 block">Sisa Modal Bersih</span>
                     <span className="text-lg sm:text-xl font-extrabold text-cyan-600 dark:text-cyan-400 mt-0.5 block">{formatIDR(sisaModalDagang)}</span>
                   </div>
                 </div>
@@ -1543,7 +1547,7 @@ function AdminKeuangan() {
                 <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/[0.04] text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
                   <PiggyBank className="size-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                   <span>
-                    <strong>Catatan Sisa Modal Murni:</strong> Angka ini menghitung sisa dana modal dagang Anda yang belum terpakai setelah dikurangi seluruh pengadaan jersey ({formatIDR(totalModalHpp)}) dan biaya operasional ({formatIDR(totalPengeluaranOperasional)}), <u>tanpa mencampurkan</u> uang dari omset penjualan jersey ({formatIDR(totalJerseySales)}).
+                    <strong>Catatan Sisa Modal Dagang:</strong> Angka ini menghitung sisa dana modal dagang Anda yang belum terpakai setelah <u>ditambah</u> pendapatan lain-lain seperti bunga bank ({formatIDR(totalManualInOther)}) dan <u>dikurangi</u> seluruh pengadaan jersey ({formatIDR(totalModalHpp)}) serta biaya operasional ({formatIDR(totalPengeluaranOperasional)}), tanpa mencampurkan omset penjualan jersey ({formatIDR(totalJerseySales)}).
                   </span>
                 </div>
 
@@ -1562,6 +1566,22 @@ function AdminKeuangan() {
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
                       <span>Total dana modal masuk kas</span>
                       <span>{manualTxs.filter((t) => t.type === "in" && t.category === "modal").length} Injeksi</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
+                    <div className="flex items-center justify-between">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0 text-[10px]">
+                        Pendapatan Lain (+)
+                      </Badge>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
+                        + {formatIDR(totalManualInOther)}
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground">Pendapatan Lain-lain</div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+                      <span>Bunga bank, pendapatan tambahan</span>
+                      <span>{manualTxs.filter((t) => t.type === "in" && t.category !== "modal").length} Catatan</span>
                     </div>
                   </div>
 
@@ -1599,7 +1619,7 @@ function AdminKeuangan() {
 
                   <div className="p-3 rounded-xl border border-cyan-500/30 bg-cyan-500/5 space-y-1 text-xs">
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                      Sisa Modal Dagang Tersedia (Pure):
+                      Sisa Modal Dagang Tersedia:
                     </span>
                     <span className="text-lg font-black text-cyan-600 dark:text-cyan-400 block">
                       {formatIDR(sisaModalDagang)}
@@ -1637,6 +1657,22 @@ function AdminKeuangan() {
 
                       <TableRow>
                         <TableCell>
+                          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-0">
+                            Pendapatan Lain (+)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          Pendapatan Lain-lain
+                          <span className="block text-xs text-muted-foreground">Bunga bank, keuntungan tambahan, dan pendapatan non-jersey lainnya</span>
+                        </TableCell>
+                        <TableCell>{manualTxs.filter((t) => t.type === "in" && t.category !== "modal").length} Catatan Pendapatan</TableCell>
+                        <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                          + {formatIDR(totalManualInOther)}
+                        </TableCell>
+                      </TableRow>
+
+                      <TableRow>
+                        <TableCell>
                           <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border-0">
                             Pengeluaran (-)
                           </Badge>
@@ -1669,7 +1705,7 @@ function AdminKeuangan() {
 
                       <TableRow className="bg-muted/20 font-bold border-t-2 border-border">
                         <TableCell colSpan={3} className="text-foreground">
-                          SISA MODAL DAGANG TERSEDIA (PURE TANPA OMSET)
+                          SISA MODAL DAGANG TERSEDIA (TANPA OMSET)
                         </TableCell>
                         <TableCell className="text-right text-base text-cyan-600 dark:text-cyan-400">
                           {formatIDR(sisaModalDagang)}
