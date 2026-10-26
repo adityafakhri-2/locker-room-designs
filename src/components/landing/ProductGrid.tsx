@@ -36,36 +36,37 @@ function ProductCardSkeleton() {
   );
 }
 
-function sortByInStock(items: any[]) {
-  return items.slice().sort((a, b) => {
-    const aRaw = a.size_stock as Record<string, any> | null;
-    const bRaw = b.size_stock as Record<string, any> | null;
-    const aEntries = aRaw && typeof aRaw === "object" ? Object.entries(aRaw).filter(([k]) => !k.startsWith("_")) : [];
-    const bEntries = bRaw && typeof bRaw === "object" ? Object.entries(bRaw).filter(([k]) => !k.startsWith("_")) : [];
-    const aStock = aEntries.length > 0 ? aEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0) : Number(a.stock) || 0;
-    const bStock = bEntries.length > 0 ? bEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0) : Number(b.stock) || 0;
-    const aInStock = aStock > 0 ? 1 : 0;
-    const bInStock = bStock > 0 ? 1 : 0;
-    return bInStock - aInStock;
-  });
+function getProductRealStock(p: any): number {
+  const raw = p?.size_stock as Record<string, any> | null;
+  if (raw && typeof raw === "object") {
+    const entries = Object.entries(raw).filter(([k]) => !k.startsWith("_"));
+    if (entries.length > 0) {
+      return entries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
+    }
+  }
+  return Number(p?.stock) || 0;
 }
 
 export function NewArrivals() {
   const q = useQuery({
     queryKey: ["new-arrivals"],
-    queryFn: async () =>
-      (
-        await supabase
-          .from("products")
-          .select(
-            "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count, stock, size_stock",
-          )
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(4)
-      ).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count, stock, size_stock",
+        )
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error || !data) return [];
+      return data.filter((p) => getProductRealStock(p) > 0).slice(0, 4);
+    },
     staleTime: 1000 * 10,
   });
+
+  const products = q.data ?? [];
 
   return (
     <Section id="new-arrivals" eyebrow="N° 03 — Produk Terbaru" number="Rilisan Baru">
@@ -89,9 +90,11 @@ export function NewArrivals() {
             <ProductCardSkeleton key={i} />
           ))}
         </div>
+      ) : products.length === 0 ? (
+        <EmptyCatalog />
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {sortByInStock(q.data ?? []).map((p) => (
+          {products.map((p) => (
             <ProductCard key={p.id} p={p} />
           ))}
         </div>
@@ -103,21 +106,24 @@ export function NewArrivals() {
 export function BestSellers() {
   const q = useQuery({
     queryKey: ["best-sellers"],
-    queryFn: async () =>
-      (
-        await supabase
-          .from("products")
-          .select(
-            "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count, stock, size_stock",
-          )
-          .eq("is_active", true)
-          .order("sold_count", { ascending: false })
-          .limit(4)
-      ).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          "id, slug, name, price, original_price, cover_image_url, team, release_year, authenticity_badge, sold_count, stock, size_stock",
+        )
+        .eq("is_active", true)
+        .gt("sold_count", 0)
+        .order("sold_count", { ascending: false })
+        .limit(50);
+
+      if (error || !data) return [];
+      return data.filter((p) => getProductRealStock(p) > 0).slice(0, 4);
+    },
     staleTime: 1000 * 10,
   });
 
-  const hasSales = (q.data ?? []).some((p) => (p.sold_count ?? 0) > 0);
+  const products = q.data ?? [];
 
   if (q.isLoading) {
     return (
@@ -145,7 +151,7 @@ export function BestSellers() {
     );
   }
 
-  if (!hasSales) return null;
+  if (products.length === 0) return null;
 
   return (
     <Section eyebrow="N° 04 — Produk Terlaris" number="Paling Diminati">
@@ -164,7 +170,7 @@ export function BestSellers() {
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        {sortByInStock(q.data ?? []).map((p) => (
+        {products.map((p) => (
           <ProductCard
             key={p.id}
             p={p}

@@ -31,7 +31,7 @@ const ITEMS = [
 
 export function FAQ() {
   return (
-    <Section eyebrow="N° 11 — FAQ" number="Tanya Jawab">
+    <Section eyebrow="N° 09 — FAQ" number="Tanya Jawab">
       <div className="grid lg:grid-cols-12 gap-10">
         <h2 className="lg:col-span-5 display-lg">
           Pertanyaan

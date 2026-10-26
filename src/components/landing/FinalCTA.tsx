@@ -5,7 +5,7 @@ export function FinalCTA() {
     <section className="bg-primary text-primary-foreground border-t border-primary">
       <div className="container-swiss py-24 md:py-36 lg:py-44">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 mb-12">
-          <span className="eyebrow text-primary-foreground/70">N° 12 — Belanja</span>
+          <span className="eyebrow text-primary-foreground/70">N° 10 — Belanja</span>
           <span className="eyebrow text-primary-foreground/70">Dukungan Tim Favorit</span>
         </div>
         <h2 className="display-xl">

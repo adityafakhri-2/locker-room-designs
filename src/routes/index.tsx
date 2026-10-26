@@ -7,9 +7,7 @@ import { NewArrivals, BestSellers } from "@/components/landing/ProductGrid";
 import { VintageSpotlight } from "@/components/landing/VintageSpotlight";
 import { AuthenticityPromise } from "@/components/landing/AuthenticityPromise";
 import { WhyChooseUs } from "@/components/landing/WhyChooseUs";
-import { Testimonials } from "@/components/landing/Testimonials";
 import { FootballMemories } from "@/components/landing/FootballMemories";
-import { Newsletter } from "@/components/landing/Newsletter";
 import { FAQ } from "@/components/landing/FAQ";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
@@ -48,9 +46,7 @@ function Index() {
       <VintageSpotlight />
       <AuthenticityPromise />
       <WhyChooseUs />
-      <Testimonials />
       <FootballMemories />
-      <Newsletter />
       <FAQ />
       <FinalCTA />
       <Footer />
