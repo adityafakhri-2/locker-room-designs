@@ -84,6 +84,7 @@ export function CreateManualOrderDialog({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [shippingCost, setShippingCost] = useState<number>(0);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [platformFee, setPlatformFee] = useState<number>(0);
   const [notes, setNotes] = useState("Transaksi Langsung di Outlet Cimahi");
 
   // Items State
@@ -323,8 +324,9 @@ export function CreateManualOrderDialog({
     (sum, it) => sum + (Number(it.costPrice) || 0) * (Number(it.quantity) || 1),
     0,
   );
-  const grandTotal = Math.max(0, subtotal + Number(shippingCost || 0) - Number(discountAmount || 0));
-  const estimatedProfit = subtotal - Number(discountAmount || 0) - totalCostPrice;
+  const totalDeductions = Number(discountAmount || 0) + Number(platformFee || 0);
+  const grandTotal = Math.max(0, subtotal + Number(shippingCost || 0) - totalDeductions);
+  const estimatedProfit = subtotal - totalDeductions - totalCostPrice;
   const marginPercent = subtotal > 0 ? (estimatedProfit / subtotal) * 100 : 0;
 
   // Submit Mutation
@@ -351,6 +353,12 @@ export function CreateManualOrderDialog({
             ? "QRIS Toko"
             : "Transfer Bank";
 
+      // Prepare note with platform fee tag if platform fee > 0
+      let formattedNote = notes.trim() || `Transaksi Manual / Kasir (${paymentBankLabel})`;
+      if (platformFee > 0 && !formattedNote.includes("[Biaya Platform")) {
+        formattedNote = `${formattedNote} [Biaya Platform: Rp ${platformFee.toLocaleString("id-ID")}]`;
+      }
+
       // 1. Insert into orders table
       const orderPayload: any = {
         order_number: orderNumber,
@@ -364,18 +372,31 @@ export function CreateManualOrderDialog({
         subtotal: subtotal,
         shipping_cost: Number(shippingCost) || 0,
         discount_amount: Number(discountAmount) || 0,
+        platform_fee: Number(platformFee) || 0,
         grand_total: grandTotal,
         status: "delivered", // Offline orders are fulfilled immediately
-        note: notes.trim() || `Transaksi Manual / Kasir (${paymentBankLabel})`,
+        note: formattedNote,
         created_at: dateObj.toISOString(),
         updated_at: dateObj.toISOString(),
       };
 
-      const { data: newOrder, error: orderError } = await supabase
+      let { data: newOrder, error: orderError } = await supabase
         .from("orders")
         .insert(orderPayload)
         .select()
         .single();
+
+      // Graceful fallback if platform_fee column has not been added to remote Supabase yet
+      if (orderError && (orderError.message?.includes("platform_fee") || (orderError as any).code === "PGRST204")) {
+        const { platform_fee: _omitted, ...fallbackPayload } = orderPayload;
+        const retryRes = await supabase
+          .from("orders")
+          .insert(fallbackPayload)
+          .select()
+          .single();
+        newOrder = retryRes.data;
+        orderError = retryRes.error;
+      }
 
       if (orderError) throw new Error("Gagal membuat pesanan: " + orderError.message);
 
@@ -452,6 +473,7 @@ export function CreateManualOrderDialog({
 
       return {
         ...newOrder,
+        platform_fee: Number(platformFee) || 0,
         payments: [paymentPayload],
         order_items: orderItemsPayload,
       };
@@ -929,14 +951,14 @@ export function CreateManualOrderDialog({
                             <span className="font-bold text-foreground">
                               {formatIDR(item.unitPrice * item.quantity)}
                             </span>
-                            {discountAmount > 0 && subtotal > 0 && (
+                            {totalDeductions > 0 && subtotal > 0 && (
                               <span className="text-[9px] text-rose-600 dark:text-rose-400 font-medium">
                                 Net: {formatIDR(
                                   Math.round(
                                     Math.max(
                                       0,
                                       item.unitPrice * item.quantity -
-                                        (discountAmount * (item.unitPrice * item.quantity)) / subtotal,
+                                        (totalDeductions * (item.unitPrice * item.quantity)) / subtotal,
                                     ),
                                   ),
                                 )}
@@ -951,8 +973,8 @@ export function CreateManualOrderDialog({
               </div>
             </div>
 
-            {/* Bagian 3: Diskon, Ongkir & Catatan */}
-            <div className="grid sm:grid-cols-3 gap-3 p-4 rounded-xl bg-muted/20 border border-border">
+            {/* Bagian 3: Diskon, Biaya Platform, Ongkir & Catatan */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-xl bg-muted/20 border border-border">
               <div>
                 <Label className="text-xs font-semibold block mb-1.5">
                   Potongan Diskon (Rp)
@@ -967,7 +989,48 @@ export function CreateManualOrderDialog({
                 />
                 {discountAmount > 0 && items.length > 1 && (
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    * Didistribusikan proporsional ke {items.length} jersey untuk akurasi laporan laba produk.
+                    * Didistribusikan proporsional ke {items.length} jersey.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label className="text-xs font-semibold">
+                    Biaya Platform (Rp)
+                  </Label>
+                  {subtotal > 0 && (
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setPlatformFee(Math.round(subtotal * 0.105))}
+                        className="px-1.5 py-0.5 rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground font-mono cursor-pointer"
+                        title="Hitung biaya admin Shopee 10.5%"
+                      >
+                        Shopee 10.5%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPlatformFee(Math.round(subtotal * 0.1))}
+                        className="px-1.5 py-0.5 rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground font-mono cursor-pointer"
+                        title="Hitung biaya admin TikTok 10%"
+                      >
+                        TikTok 10%
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  value={platformFee || ""}
+                  placeholder="0 (Shopee/Tokped/TikTok)"
+                  onChange={(e) => setPlatformFee(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="h-9 text-xs font-mono"
+                />
+                {platformFee > 0 && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                    * Potongan admin/komisi ({((platformFee / (subtotal || 1)) * 100).toFixed(1)}%).
                   </p>
                 )}
               </div>
@@ -993,7 +1056,7 @@ export function CreateManualOrderDialog({
                 <Input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Contoh: Ambil langsung / kirim via J&T"
+                  placeholder="Contoh: Admin shopee 10.5% / J&T"
                   className="h-9 text-xs"
                 />
               </div>
@@ -1007,8 +1070,14 @@ export function CreateManualOrderDialog({
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-xs text-rose-600 font-semibold">
-                  <span>Diskon Khusus:</span>
+                  <span>Potongan Diskon:</span>
                   <span className="font-mono">-{formatIDR(discountAmount)}</span>
+                </div>
+              )}
+              {platformFee > 0 && (
+                <div className="flex justify-between text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                  <span>Biaya Platform (Marketplace):</span>
+                  <span className="font-mono">-{formatIDR(platformFee)}</span>
                 </div>
               )}
               {shippingCost > 0 && (

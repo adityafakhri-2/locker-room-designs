@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { formatIDR, statusLabel } from "@/lib/format";
+import { getOrderNetRevenue } from "@/lib/orderFee";
 import { ADMIN_NAV } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +20,7 @@ function AdminDashboard() {
         supabase
           .from("orders")
           .select(
-            "id, grand_total, subtotal, shipping_cost, discount_amount, status, created_at, order_number, recipient_name, payments(status), order_items(product_id, quantity, unit_price, cost_price, subtotal, product_name)",
+            "*, payments(status), order_items(product_id, quantity, unit_price, cost_price, subtotal, product_name)",
           ),
         supabase
           .from("user_roles")
@@ -46,11 +47,8 @@ function AdminDashboard() {
       let totalJerseysSold = 0;
 
       validOrders.forEach((o) => {
-        // Omset bersih produk (subtotal dikurangi diskon voucher)
-        const orderRevenue = Math.max(
-          0,
-          Number(o.subtotal || o.grand_total) - Number(o.discount_amount || 0),
-        );
+        // Omset bersih produk (subtotal dikurangi diskon & biaya platform)
+        const orderRevenue = getOrderNetRevenue(o as any);
         totalRevenue += orderRevenue;
 
         const items = (o as any).order_items || [];
@@ -213,10 +211,7 @@ function AdminDashboard() {
                   orderCost += unitCost * qty;
                 });
 
-                const orderRev = Math.max(
-                  0,
-                  Number(o.subtotal || o.grand_total) - Number(o.discount_amount || 0),
-                );
+                const orderRev = getOrderNetRevenue(o as any);
                 const orderProfit = orderRev - orderCost;
 
                 return (
@@ -323,10 +318,7 @@ function AdminDashboard() {
                       orderCost += unitCost * qty;
                     });
 
-                    const orderRev = Math.max(
-                      0,
-                      Number(o.subtotal || o.grand_total) - Number(o.discount_amount || 0),
-                    );
+                    const orderRev = getOrderNetRevenue(o as any);
                     const orderProfit = orderRev - orderCost;
 
                     return (

@@ -319,6 +319,7 @@ export type Database = {
           voucher_id: string | null;
           voucher_code: string | null;
           discount_amount: number;
+          platform_fee: number;
         };
         Insert: {
           cancel_reason?: string | null;
@@ -344,6 +345,7 @@ export type Database = {
           voucher_id?: string | null;
           voucher_code?: string | null;
           discount_amount?: number;
+          platform_fee?: number;
         };
         Update: {
           cancel_reason?: string | null;
@@ -369,6 +371,7 @@ export type Database = {
           voucher_id?: string | null;
           voucher_code?: string | null;
           discount_amount?: number;
+          platform_fee?: number;
         };
         Relationships: [];
       };

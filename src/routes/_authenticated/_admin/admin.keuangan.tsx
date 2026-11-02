@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatIDR, formatDate } from "@/lib/format";
+import { getOrderPlatformFee, getOrderNetRevenue } from "@/lib/orderFee";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -333,14 +334,7 @@ function AdminKeuangan() {
       const { data, error } = await supabase
         .from("orders")
         .select(`
-          id, 
-          order_number,
-          recipient_name,
-          subtotal, 
-          discount_amount, 
-          grand_total,
-          status, 
-          created_at,
+          *,
           order_items (
             product_id,
             product_name,
@@ -427,7 +421,7 @@ function AdminKeuangan() {
 
   // 1. Total Jersey Sales (Automated)
   const totalJerseySales = orders.reduce((acc, o) => {
-    const revenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+    const revenue = getOrderNetRevenue(o as any);
     return acc + revenue;
   }, 0);
 
@@ -506,7 +500,9 @@ function AdminKeuangan() {
     const oList = orders.map((o) => {
       const rawSubtotal = Number(o.subtotal || 0);
       const discount = Number(o.discount_amount || 0);
-      const netRevenue = Math.max(0, rawSubtotal - discount);
+      const platformFee = getOrderPlatformFee(o as any);
+      const totalDeductions = discount + platformFee;
+      const netRevenue = Math.max(0, rawSubtotal - totalDeductions);
       const items = (o as any).order_items || [];
       let orderCost = 0;
       let orderQty = 0;
@@ -535,14 +531,14 @@ function AdminKeuangan() {
         const itemCost = unitCost * qty;
         orderCost += itemCost;
 
-        // Pro-rata discount for item
+        // Pro-rata deductions (discount & platform fee) for item
         const rawItemSubtotal =
           Number(it.subtotal) || Number(it.unit_price || 0) * qty;
-        let itemDiscount = 0;
-        if (discount > 0 && itemsGrossSubtotal > 0) {
-          itemDiscount = discount * (rawItemSubtotal / itemsGrossSubtotal);
+        let itemDeduction = 0;
+        if (totalDeductions > 0 && itemsGrossSubtotal > 0) {
+          itemDeduction = totalDeductions * (rawItemSubtotal / itemsGrossSubtotal);
         }
-        const itemNetRevenue = Math.max(0, rawItemSubtotal - itemDiscount);
+        const itemNetRevenue = Math.max(0, rawItemSubtotal - itemDeduction);
 
         // Product aggregator
         const prodKey = it.product_id || it.product_name || "unknown";
@@ -633,7 +629,7 @@ function AdminKeuangan() {
     const date = new Date(o.created_at);
     const monthKey = date.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
     if (monthlyDataMap[monthKey]) {
-      const revenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+      const revenue = getOrderNetRevenue(o as any);
       monthlyDataMap[monthKey].masuk += revenue;
 
       // Add sold jersey cost to monthly outflows
@@ -1726,7 +1722,7 @@ function AdminKeuangan() {
                   type: "Pesanan Jersey",
                   ref: o.order_number || "-",
                   desc: `Pemesan: ${o.recipient_name || "Pelanggan"} (${(o as any).order_items?.length || 0} item)`,
-                  amount: Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0)),
+                  amount: getOrderNetRevenue(o as any),
                 })),
                 ...manualTxs
                   .filter((t) => t.type === "in")
@@ -2070,9 +2066,10 @@ function AdminKeuangan() {
                   else if (modalSortKey === "status") cmp = (a.status || "").localeCompare(b.status || "");
                   else if (modalSortKey === "subtotal") cmp = Number(a.subtotal || 0) - Number(b.subtotal || 0);
                   else if (modalSortKey === "discount") cmp = Number(a.discount_amount || 0) - Number(b.discount_amount || 0);
+                  else if (modalSortKey === "platform") cmp = getOrderPlatformFee(a as any) - getOrderPlatformFee(b as any);
                   else if (modalSortKey === "net") {
-                    const netA = Math.max(0, Number(a.subtotal || 0) - Number(a.discount_amount || 0));
-                    const netB = Math.max(0, Number(b.subtotal || 0) - Number(b.discount_amount || 0));
+                    const netA = getOrderNetRevenue(a as any);
+                    const netB = getOrderNetRevenue(b as any);
                     cmp = netA - netB;
                   }
                   return modalSortDir === "asc" ? cmp : -cmp;
@@ -2089,7 +2086,9 @@ function AdminKeuangan() {
                       </p>
                     ) : (
                       sortedOrders.map((o) => {
-                        const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+                        const netRevenue = getOrderNetRevenue(o as any);
+                        const disc = Number(o.discount_amount || 0);
+                        const fee = getOrderPlatformFee(o as any);
                         return (
                           <div key={o.id} className="p-3 rounded-xl border border-border bg-card/60 space-y-1.5 shadow-sm text-xs">
                             <div className="flex items-center justify-between">
@@ -2099,6 +2098,12 @@ function AdminKeuangan() {
                               </Badge>
                             </div>
                             <div className="text-xs font-semibold text-foreground">{o.recipient_name || "Pelanggan"}</div>
+                            {(disc > 0 || fee > 0) && (
+                              <div className="flex items-center gap-2 text-[10px]">
+                                {disc > 0 && <span className="text-rose-500 font-medium">Diskon -{formatIDR(disc)}</span>}
+                                {fee > 0 && <span className="text-amber-600 dark:text-amber-400 font-medium">Platform -{formatIDR(fee)}</span>}
+                              </div>
+                            )}
                             <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
                               <span className="text-muted-foreground">{formatDate(o.created_at)}</span>
                               <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
@@ -2122,19 +2127,21 @@ function AdminKeuangan() {
                           {renderSortHeader("Status", "status")}
                           {renderSortHeader("Subtotal", "subtotal", "right")}
                           {renderSortHeader("Diskon", "discount", "right")}
+                          {renderSortHeader("Biaya Platform", "platform", "right")}
                           {renderSortHeader("Omset Bersih", "net", "right")}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {sortedOrders.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                               Tidak ada pesanan yang sesuai pencarian.
                             </TableCell>
                           </TableRow>
                         ) : (
                           sortedOrders.map((o) => {
-                            const netRevenue = Math.max(0, Number(o.subtotal || 0) - Number(o.discount_amount || 0));
+                            const netRevenue = getOrderNetRevenue(o as any);
+                            const fee = getOrderPlatformFee(o as any);
                             return (
                               <TableRow key={o.id}>
                                 <TableCell className="text-xs whitespace-nowrap">{formatDate(o.created_at)}</TableCell>
@@ -2148,6 +2155,9 @@ function AdminKeuangan() {
                                 <TableCell className="text-right text-xs">{formatIDR(o.subtotal || 0)}</TableCell>
                                 <TableCell className="text-right text-xs text-rose-500">
                                   {Number(o.discount_amount) > 0 ? `- ${formatIDR(o.discount_amount)}` : "Rp 0"}
+                                </TableCell>
+                                <TableCell className="text-right text-xs text-amber-600 dark:text-amber-400">
+                                  {fee > 0 ? `- ${formatIDR(fee)}` : "Rp 0"}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-xs text-emerald-600 dark:text-emerald-400">
                                   {formatIDR(netRevenue)}

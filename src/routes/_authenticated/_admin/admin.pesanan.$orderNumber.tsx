@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { formatIDR, formatDateTime, statusLabel } from "@/lib/format";
+import { getOrderPlatformFee } from "@/lib/orderFee";
 import { signedUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { Printer } from "lucide-react";
@@ -356,6 +357,16 @@ function AdminOrderDetail() {
               <div>
                 Subtotal: <span className="font-semibold">{formatIDR(order.subtotal)}</span>
               </div>
+              {Boolean((order as any).discount_amount && (order as any).discount_amount > 0) && (
+                <div className="text-rose-600">
+                  Potongan Diskon: <span className="font-semibold">-{formatIDR((order as any).discount_amount)}</span>
+                </div>
+              )}
+              {Boolean(getOrderPlatformFee(order as any) > 0) && (
+                <div className="text-amber-600 dark:text-amber-400">
+                  Biaya Platform: <span className="font-semibold">-{formatIDR(getOrderPlatformFee(order as any))}</span>
+                </div>
+              )}
               <div>
                 Ongkir ({order.courier}):{" "}
                 <span className="font-semibold">{formatIDR(order.shipping_cost)}</span>

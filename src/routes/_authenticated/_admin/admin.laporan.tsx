@@ -7,6 +7,7 @@ import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShel
 import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDate } from "@/lib/format";
+import { getOrderPlatformFee, getOrderNetRevenue } from "@/lib/orderFee";
 import { cn } from "@/lib/utils";
 import {
   Sparkles,
@@ -84,7 +85,7 @@ function AdminReports() {
     ["paid", "processing", "shipped", "delivered"].includes(o.status),
   );
   const totalRevenue = validOrders.reduce(
-    (s, o) => s + Math.max(0, Number(o.subtotal || o.grand_total) - Number((o as any).discount_amount || 0)),
+    (s, o) => s + getOrderNetRevenue(o as any),
     0,
   );
 
@@ -117,8 +118,10 @@ function AdminReports() {
   validOrders.forEach((o) => {
     const items = (o as any).order_items || [];
     const orderDiscount = Number((o as any).discount_amount) || 0;
+    const orderPlatformFee = getOrderPlatformFee(o as any);
+    const orderTotalDeductions = orderDiscount + orderPlatformFee;
 
-    // Hitung subtotal kotor item pada order ini untuk dasar pembagian diskon proporsional
+    // Hitung subtotal kotor item pada order ini untuk dasar pembagian diskon & potongan platform proporsional
     const orderItemsGrossSubtotal = items.reduce((sum: number, it: any) => {
       const qty = Number(it.quantity) || 1;
       const unitSell = Number(it.unit_price) || 0;
@@ -146,15 +149,15 @@ function AdminReports() {
       const rawItemSubtotal = Number(item.subtotal) || unitSell * qty;
       const itemCost = unitCost * qty;
 
-      // Alokasi diskon proporsional (Pro-Rata):
-      // Jika beli 1 jersey -> 100% diskon dialokasikan ke jersey tersebut
-      // Jika beli >= 2 jersey -> diskon didistribusikan proporsional sesuai nilai subtotal masing-masing
-      let itemDiscount = 0;
-      if (orderDiscount > 0 && orderItemsGrossSubtotal > 0) {
+      // Alokasi potongan (diskon & biaya platform) proporsional (Pro-Rata):
+      // Jika beli 1 jersey -> 100% potongan dialokasikan ke jersey tersebut
+      // Jika beli >= 2 jersey -> potongan didistribusikan proporsional sesuai nilai subtotal masing-masing
+      let itemDeduction = 0;
+      if (orderTotalDeductions > 0 && orderItemsGrossSubtotal > 0) {
         const itemRatio = rawItemSubtotal / orderItemsGrossSubtotal;
-        itemDiscount = orderDiscount * itemRatio;
+        itemDeduction = orderTotalDeductions * itemRatio;
       }
-      const itemNetRevenue = Math.max(0, rawItemSubtotal - itemDiscount);
+      const itemNetRevenue = Math.max(0, rawItemSubtotal - itemDeduction);
 
       totalItemsSold += qty;
       totalCost += itemCost;
@@ -178,10 +181,7 @@ function AdminReports() {
     const k = new Date(o.created_at).toLocaleString("id-ID", { month: "short", year: "numeric" });
     if (!monthly[k]) monthly[k] = { revenue: 0, cost: 0, profit: 0 };
 
-    const rev = Math.max(
-      0,
-      Number(o.subtotal || o.grand_total) - Number((o as any).discount_amount || 0),
-    );
+    const rev = getOrderNetRevenue(o as any);
     monthly[k].revenue += rev;
 
     const items = (o as any).order_items || [];
@@ -1041,12 +1041,9 @@ function AdminReports() {
                     </div>
                   ) : (
                     validOrders.map((o) => {
-                      const netOrder = Math.max(
-                        0,
-                        Number(o.subtotal || o.grand_total) -
-                          Number((o as any).discount_amount || 0),
-                      );
+                      const netOrder = getOrderNetRevenue(o as any);
                       const discount = Number((o as any).discount_amount) || 0;
+                      const platformFee = getOrderPlatformFee(o as any);
                       const itemsCount = (o as any).order_items?.reduce(
                         (sum: number, it: any) => sum + (Number(it.quantity) || 1),
                         0,
@@ -1079,7 +1076,12 @@ function AdminReports() {
                             </div>
                             {discount > 0 && (
                               <div className="text-[10px] text-rose-500 font-medium">
-                                Potongan -{formatIDR(discount)}
+                                Diskon -{formatIDR(discount)}
+                              </div>
+                            )}
+                            {platformFee > 0 && (
+                              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                Platform -{formatIDR(platformFee)}
                               </div>
                             )}
                           </div>

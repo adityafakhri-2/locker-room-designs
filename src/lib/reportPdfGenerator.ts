@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { formatIDR, formatDate } from "@/lib/format";
+import { getOrderPlatformFee } from "@/lib/orderFee";
 
 // Brand Color Palette Constants (RGB)
 const BRAND_PRIMARY = [20, 90, 36] as const; // #145A24
@@ -639,7 +640,7 @@ export function generateOrdersReportPDF(orders: any[]) {
       s +
       Number(
         o.grand_total ||
-          Number(o.subtotal || 0) + Number(o.shipping_cost || 0) - Number(o.discount_amount || 0),
+          Number(o.subtotal || 0) + Number(o.shipping_cost || 0) - Number(o.discount_amount || 0) - getOrderPlatformFee(o as any),
       ),
     0,
   );
@@ -837,7 +838,7 @@ export function generateOrdersReportPDF(orders: any[]) {
     doc.setTextColor(COLOR_TEXT_DARK[0], COLOR_TEXT_DARK[1], COLOR_TEXT_DARK[2]);
     const orderTotal = Number(
       o.grand_total ||
-        Number(o.subtotal || 0) + Number(o.shipping_cost || 0) - Number(o.discount_amount || 0),
+        Number(o.subtotal || 0) + Number(o.shipping_cost || 0) - Number(o.discount_amount || 0) - getOrderPlatformFee(o as any),
     );
     doc.text(formatIDR(orderTotal), cellX + columns[7].width - 2, currentY + 4.5, {
       align: "right",

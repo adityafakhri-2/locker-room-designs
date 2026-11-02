@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatIDR, formatDateTime } from "@/lib/format";
 import { getPublicStoreInfo } from "@/lib/api/shipping.functions";
+import { getOrderPlatformFee } from "@/lib/orderFee";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ export interface OrderReceiptData {
   subtotal: number;
   shipping_cost?: number;
   discount_amount?: number;
+  platform_fee?: number;
   grand_total: number;
   note?: string | null;
   status: string;
@@ -71,6 +73,7 @@ export function OrderReceiptModal({
     payment?.bank ||
     payment?.method ||
     (order.note?.toLowerCase().includes("cash") ? "Tunai / Cash" : "Transfer Bank");
+  const orderPlatformFee = order.platform_fee ?? getOrderPlatformFee(order);
 
   const handlePrint = () => {
     const elementId = viewMode === "thermal" ? "printable-receipt" : "printable-invoice";
@@ -278,6 +281,8 @@ ${itemsText}
 
 Subtotal: ${formatIDR(order.subtotal)}
 ${order.discount_amount ? `Diskon: -${formatIDR(order.discount_amount)}\n` : ""}${
+      orderPlatformFee ? `Biaya Platform: -${formatIDR(orderPlatformFee)}\n` : ""
+    }${
       order.shipping_cost ? `Ongkir: ${formatIDR(order.shipping_cost)}\n` : ""
     }*TOTAL BAYAR: ${formatIDR(order.grand_total)}*
 
@@ -422,6 +427,12 @@ Terima kasih telah berbelanja di AA Jersey!`;
                   <div className="flex justify-between text-rose-600 font-semibold">
                     <span>Diskon:</span>
                     <span className="tabular-nums">-{formatIDR(order.discount_amount!)}</span>
+                  </div>
+                )}
+                {Boolean(orderPlatformFee > 0) && (
+                  <div className="flex justify-between text-zinc-600 font-medium">
+                    <span>Biaya Platform:</span>
+                    <span className="tabular-nums">-{formatIDR(orderPlatformFee)}</span>
                   </div>
                 )}
                 {Boolean(order.shipping_cost && order.shipping_cost > 0) && (
@@ -576,6 +587,14 @@ Terima kasih telah berbelanja di AA Jersey!`;
                         <span>Potongan Diskon:</span>
                         <span className="font-mono tabular-nums">
                           -{formatIDR(order.discount_amount!)}
+                        </span>
+                      </div>
+                    )}
+                    {Boolean(orderPlatformFee > 0) && (
+                      <div className="flex justify-between text-amber-600 font-semibold text-[11px]">
+                        <span>Biaya Platform:</span>
+                        <span className="font-mono tabular-nums">
+                          -{formatIDR(orderPlatformFee)}
                         </span>
                       </div>
                     )}
