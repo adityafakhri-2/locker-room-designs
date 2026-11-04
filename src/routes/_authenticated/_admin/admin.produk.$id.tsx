@@ -707,10 +707,10 @@ function ProductForm() {
         condition: form.condition || null,
         sizes: currentSizes,
         description: form.description || null,
-        story: form.story || null,
+        story: null,
         collector_score: 1,
         authenticity_badge: (form.authenticity_badge || null) as any,
-        video_url: form.video_url || null,
+        video_url: null,
         cover_image_url: coverUrl,
         is_active: form.is_active,
         is_spotlight: form.is_spotlight,
@@ -869,8 +869,17 @@ function ProductForm() {
                 required
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="Masukkan nama produk jersey..."
+                placeholder="Contoh: AC Milan Home 26/27"
               />
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Format penulisan konsisten:{" "}
+                <span className="font-semibold text-foreground">
+                  [Klub/Negara] [Home/Away/Third/Retro] [Musim/Tahun]
+                </span>{" "}
+                (Contoh:{" "}
+                <span className="font-medium text-foreground">AC Milan Home 26/27</span>,{" "}
+                <span className="font-medium text-foreground">Arsenal Away 26/27</span>)
+              </p>
             </div>
             <div>
               <Label className="mb-1.5 block">Slug (otomatis jika kosong)</Label>
@@ -1617,23 +1626,6 @@ function ProductForm() {
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
                 placeholder="Tuliskan spesifikasi jersey, tahun, detail sponsor, patch, dll."
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Story di Balik Jersey (Opsional)</Label>
-              <Textarea
-                rows={4}
-                value={form.story}
-                onChange={(e) => set("story", e.target.value)}
-                placeholder="Ceritakan kisah menarik atau sejarah unik di balik jersey ini..."
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Video URL (Opsional)</Label>
-              <Input
-                value={form.video_url}
-                onChange={(e) => set("video_url", e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
               />
             </div>
             <div className="sm:col-span-2 flex items-center justify-between p-4 rounded-lg border border-border bg-muted/40 hover:bg-muted/60 transition-colors">

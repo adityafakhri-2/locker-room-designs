@@ -448,7 +448,7 @@ function ProductDetail() {
               </Button>
             </div>
 
-            <Accordion type="multiple" defaultValue={["desc", "story"]} className="mt-10">
+            <Accordion type="multiple" defaultValue={["desc"]} className="mt-10">
               <AccordionItem value="desc">
                 <AccordionTrigger>Deskripsi</AccordionTrigger>
                 <AccordionContent>
@@ -457,16 +457,6 @@ function ProductDetail() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
-              {p.story && (
-                <AccordionItem value="story">
-                  <AccordionTrigger>Story</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="text-sm text-muted-foreground whitespace-pre-line italic">
-                      {p.story}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )}
               <AccordionItem value="spec">
                 <AccordionTrigger>Spesifikasi</AccordionTrigger>
                 <AccordionContent>
