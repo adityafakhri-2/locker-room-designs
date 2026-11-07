@@ -3,6 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { ADMIN_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
@@ -242,7 +245,7 @@ function AdminOrderDetail() {
 
   async function handleAccCod() {
     try {
-      const updatePayload: Record<string, any> = {
+      const updatePayload: OrderUpdate = {
         status: "processing",
         cod_status: "scheduled",
         updated_at: new Date().toISOString(),
@@ -267,7 +270,7 @@ function AdminOrderDetail() {
     setRejectingCod(true);
     try {
       const reason = `COD Ditolak: ${codRejectReason.trim()}`;
-      const updatePayload: Record<string, any> = {
+      const updatePayload: OrderUpdate = {
         status: "cancelled",
         cancel_reason: reason,
         cod_status: "rejected",
@@ -309,7 +312,7 @@ function AdminOrderDetail() {
         await uploadFile("payment-proofs", uploadedPath, codProofFile);
       }
 
-      const updatePayload: Record<string, any> = {
+      const updatePayload: OrderUpdate = {
         status: "delivered",
         updated_at: new Date().toISOString(),
       };

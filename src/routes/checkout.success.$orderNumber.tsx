@@ -448,7 +448,7 @@ function PaymentPage() {
                     {formatIDR(order.grand_total)}
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Bisa dibayar tunai (cash) atau transfer QRIS/Bank saat bertemu.
+                    Bisa dibayar tunai (cash) atau via QRIS saat bertemu.
                   </p>
                 </div>
 

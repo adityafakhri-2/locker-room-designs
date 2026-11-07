@@ -3,6 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShell";
 import { CUSTOMER_NAV } from "@/lib/navigation";
@@ -396,7 +399,7 @@ function OrderDetail() {
         await uploadFile("payment-proofs", uploadedPath, codProofFile);
       }
 
-      const updatePayload: Record<string, any> = {
+      const updatePayload: OrderUpdate = {
         status: "delivered",
         updated_at: new Date().toISOString(),
       };
@@ -740,7 +743,7 @@ function OrderDetail() {
                       <span className="font-extrabold text-foreground">{formatIDR(order.grand_total)}</span>
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      * Dibayar tunai/transfer saat serah terima barang.
+                      * Dibayar cash atau via QRIS saat serah terima barang.
                     </div>
                   </div>
 

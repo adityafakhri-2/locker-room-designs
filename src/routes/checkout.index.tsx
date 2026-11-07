@@ -20,8 +20,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
 import { parseAlamat } from "@/lib/format";
-import { Ticket, Truck, HandCoins, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Ticket, Truck, HandCoins, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle2, ChevronsUpDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { COD_PRESET_LOCATIONS, COD_TIME_SLOTS } from "@/lib/orderCod";
 import { cn } from "@/lib/utils";
 
@@ -78,9 +80,7 @@ function CheckoutPage() {
     return d.toISOString().split("T")[0];
   });
   const [codTimeSlot, setCodTimeSlot] = useState<string>(COD_TIME_SLOTS[1].label);
-  const [codAltPhone, setCodAltPhone] = useState("");
-
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Load store origin location on mount
   useEffect(() => {
@@ -441,9 +441,9 @@ function CheckoutPage() {
       }
 
       const codSchedule = `${codDate} ${codTimeSlot}`;
-      const codNote = `[COD: ${finalLocation} | Jadwal: ${codSchedule}${
-        codAltPhone.trim() ? ` | Kontak: ${codAltPhone.trim()}` : ""
-      }]${form.note.trim() ? `\nCatatan: ${form.note.trim()}` : ""}`;
+      const codNote = `[COD: ${finalLocation} | Jadwal: ${codSchedule}]${
+        form.note.trim() ? `\nCatatan: ${form.note.trim()}` : ""
+      }`;
 
       let createdOrderId: string | null = null;
 
@@ -472,15 +472,15 @@ function CheckoutPage() {
           cod_location: finalLocation,
           cod_date: codDate,
           cod_time_slot: codTimeSlot,
-          cod_alt_phone: codAltPhone.trim() || null,
+          cod_alt_phone: null,
           cod_status: "pending",
         };
 
         let order: any = null;
-        const res = await supabase.from("orders").insert(extendedPayload).select("*").single();
+        const res = await supabase.from("orders").insert(extendedPayload as any).select("*").single();
         if (res.error) {
           // Fallback jika migration kolom COD belum teraplikasi di remote DB
-          const fallbackRes = await supabase.from("orders").insert(basePayload).select("*").single();
+          const fallbackRes = await supabase.from("orders").insert(basePayload as any).select("*").single();
           if (fallbackRes.error) throw fallbackRes.error;
           order = fallbackRes.data;
         } else {
@@ -860,7 +860,7 @@ function CheckoutPage() {
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Janji temu & bayar langsung (tunai / transfer) di tempat.
+                        Janji temu & bayar langsung (cash atau via QRIS) di tempat.
                       </p>
                     </div>
                   </div>
@@ -880,9 +880,7 @@ function CheckoutPage() {
                 {/* Data Pemesan COD */}
                 <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-5">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h2 className="display-md font-extrabold flex items-center gap-2">
-                      <Phone className="size-5 text-primary" /> Kontak Pemesan COD
-                    </h2>
+                    <h2 className="display-md font-extrabold">Kontak Pemesan COD</h2>
                     {profileQuery.data && (
                       <Button
                         type="button"
@@ -897,7 +895,7 @@ function CheckoutPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="cod_name" className="flex items-center gap-1.5 text-xs font-bold mb-1.5">
+                      <Label htmlFor="cod_name" className="text-xs font-bold mb-1.5 block">
                         Nama Pemesan <span className="text-destructive">*</span>
                       </Label>
                       <Input
@@ -909,7 +907,7 @@ function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cod_no_hp" className="flex items-center gap-1.5 text-xs font-bold mb-1.5">
+                      <Label htmlFor="cod_no_hp" className="text-xs font-bold mb-1.5 block">
                         Nomor WhatsApp / HP Utama <span className="text-destructive">*</span>
                       </Label>
                       <Input
@@ -920,41 +918,27 @@ function CheckoutPage() {
                         onChange={(e) => set("recipient_no_hp", e.target.value)}
                       />
                     </div>
-                    <div className="sm:col-span-2">
-                      <Label htmlFor="cod_alt_phone" className="flex items-center gap-1.5 text-xs font-bold mb-1.5">
-                        Nomor yang Bisa Dihubungi Lainnya{" "}
-                        <span className="text-muted-foreground font-normal">(Opsional / Nomor Cadangan)</span>
-                      </Label>
-                      <Input
-                        id="cod_alt_phone"
-                        placeholder="Contoh: 0895-xxxx-xxxx (nomor rekan/saudara jika nomor utama sulit dihubungi)"
-                        value={codAltPhone}
-                        onChange={(e) => setCodAltPhone(e.target.value)}
-                      />
-                    </div>
                   </div>
                 </section>
 
                 {/* Lokasi Ketemuan COD */}
                 <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="size-5 text-primary" />
-                    <div>
-                      <h2 className="display-md font-extrabold">Pilihan Lokasi COD</h2>
-                      <p className="text-xs text-muted-foreground">
-                        Pilih tempat yang telah kami rekomendasikan atau tentukan lokasi Anda sendiri.
-                      </p>
-                    </div>
+                  <div>
+                    <h2 className="display-md font-extrabold">Pilihan Lokasi COD</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Pilih tempat yang telah kami rekomendasikan atau tentukan lokasi Anda sendiri.
+                    </p>
                   </div>
 
-                  <div className="space-y-2.5 pt-2">
+                  <div className="space-y-2.5 pt-1">
                     {COD_PRESET_LOCATIONS.map((preset, idx) => {
                       const isSelected = codLocationPreset === preset;
                       return (
                         <label
                           key={idx}
+                          onClick={() => setCodLocationPreset(preset)}
                           className={cn(
-                            "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all",
+                            "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all select-none",
                             isSelected
                               ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
                               : "border-border hover:border-muted-foreground/30 bg-background",
@@ -965,8 +949,20 @@ function CheckoutPage() {
                             name="cod_location"
                             checked={isSelected}
                             onChange={() => setCodLocationPreset(preset)}
-                            className="mt-0.5 text-primary focus:ring-primary size-4"
+                            className="sr-only"
                           />
+                          <div
+                            className={cn(
+                              "size-4 rounded-full border flex items-center justify-center mt-0.5 flex-shrink-0 transition-colors",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-muted-foreground/40 bg-background",
+                            )}
+                          >
+                            {isSelected && (
+                              <div className="size-1.5 rounded-full bg-primary-foreground" />
+                            )}
+                          </div>
                           <div className="text-xs sm:text-sm font-medium text-foreground">
                             {preset}
                           </div>
@@ -976,8 +972,9 @@ function CheckoutPage() {
 
                     {/* Opsi Isi Lokasi Sendiri */}
                     <label
+                      onClick={() => setCodLocationPreset("custom")}
                       className={cn(
-                        "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all",
+                        "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all select-none",
                         codLocationPreset === "custom"
                           ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
                           : "border-border hover:border-muted-foreground/30 bg-background",
@@ -988,8 +985,20 @@ function CheckoutPage() {
                         name="cod_location"
                         checked={codLocationPreset === "custom"}
                         onChange={() => setCodLocationPreset("custom")}
-                        className="mt-0.5 text-primary focus:ring-primary size-4"
+                        className="sr-only"
                       />
+                      <div
+                        className={cn(
+                          "size-4 rounded-full border flex items-center justify-center mt-0.5 flex-shrink-0 transition-colors",
+                          codLocationPreset === "custom"
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground/40 bg-background",
+                        )}
+                      >
+                        {codLocationPreset === "custom" && (
+                          <div className="size-1.5 rounded-full bg-primary-foreground" />
+                        )}
+                      </div>
                       <div className="flex-1">
                         <div className="text-xs sm:text-sm font-bold text-foreground">
                           Tuliskan Lokasi Sendiri (Custom)
@@ -1016,30 +1025,67 @@ function CheckoutPage() {
 
                 {/* Jadwal & Slot Waktu COD */}
                 <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-5 text-primary" />
-                    <div>
-                      <h2 className="display-md font-extrabold">Jadwal & Waktu Ketemuan</h2>
-                      <p className="text-xs text-muted-foreground">
-                        Pilih tanggal dan slot jam operasional yang sesuai.
-                      </p>
-                    </div>
+                  <div>
+                    <h2 className="display-md font-extrabold">Jadwal & Waktu Ketemuan</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Pilih tanggal dan slot jam operasional yang sesuai.
+                    </p>
                   </div>
 
                   <div className="space-y-4 pt-1">
                     <div>
-                      <Label htmlFor="cod_date" className="text-xs font-bold block mb-1.5">
+                      <Label className="text-xs font-bold block mb-1.5">
                         Tanggal Ketemuan <span className="text-destructive">*</span>
                       </Label>
-                      <Input
-                        id="cod_date"
-                        type="date"
-                        required
-                        min={todayStr}
-                        value={codDate}
-                        onChange={(e) => setCodDate(e.target.value)}
-                        className="w-full sm:w-64 bg-background"
-                      />
+                      <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              "w-full sm:w-72 justify-between text-left font-normal text-xs sm:text-sm bg-background border-input cursor-pointer h-10 px-3",
+                              !codDate && "text-muted-foreground",
+                            )}
+                          >
+                            <span className="truncate">
+                              {codDate
+                                ? new Date(codDate + "T00:00:00").toLocaleDateString("id-ID", {
+                                    weekday: "long",
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric",
+                                  })
+                                : "Pilih tanggal ketemuan..."}
+                            </span>
+                            <ChevronsUpDown className="size-4 text-muted-foreground opacity-70 shrink-0" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto p-0 z-[100] bg-popover border border-border shadow-xl rounded-xl"
+                          align="start"
+                        >
+                          <CalendarPicker
+                            mode="single"
+                            selected={codDate ? new Date(codDate + "T00:00:00") : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, "0");
+                                const day = String(date.getDate()).padStart(2, "0");
+                                setCodDate(`${year}-${month}-${day}`);
+                                setDatePickerOpen(false);
+                              }
+                            }}
+                            disabled={(date) => {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              return date < today;
+                            }}
+                            initialFocus
+                            className="rounded-lg border-0"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     <div>
@@ -1055,13 +1101,12 @@ function CheckoutPage() {
                               key={slot.id}
                               onClick={() => setCodTimeSlot(slot.label)}
                               className={cn(
-                                "flex items-center gap-2.5 p-3 rounded-lg border text-left cursor-pointer transition-all",
+                                "flex items-center p-3 rounded-lg border text-left cursor-pointer transition-all",
                                 isSelected
                                   ? "border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary"
                                   : "border-border hover:border-muted-foreground/30 bg-background text-foreground text-xs sm:text-sm",
                               )}
                             >
-                              <Clock className={cn("size-4 flex-shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
                               <span className="text-xs sm:text-sm">{slot.label}</span>
                             </button>
                           );
@@ -1086,15 +1131,14 @@ function CheckoutPage() {
 
                 {/* Section Info Pembayaran COD */}
                 <section className="bg-emerald-500/5 border border-emerald-500/20 p-5 sm:p-6 rounded-xl w-full">
-                  <h2 className="display-md mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-extrabold">
-                    <HandCoins className="size-5" /> Bayar Saat Ketemuan (COD)
+                  <h2 className="display-md mb-2 text-emerald-700 dark:text-emerald-400 font-extrabold">
+                    Bayar Saat Ketemuan (COD)
                   </h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Pesanan COD tidak perlu dibayar sekarang. Anda dapat membayar tunai (cash)
-                    atau transfer langsung via QRIS/BCA saat ketemuan langsung dengan Admin.
+                    atau via QRIS saat ketemuan langsung dengan Admin.
                   </p>
                   <div className="mt-3 p-3 bg-background/80 border border-emerald-500/20 rounded-lg text-xs text-muted-foreground flex items-start gap-2">
-                    <CheckCircle2 className="size-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                     <span>
                       Setelah checkout, pesanan akan berstatus <strong>Menunggu ACC Admin</strong>.
                       Admin kami akan meninjau jadwal dan mengonfirmasi janji temu dengan Anda.
