@@ -9,7 +9,8 @@ import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { formatIDR, BANKS, statusLabel } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
-import { CheckCircle2, Clock, AlertCircle, Copy, ArrowRight, Upload } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Copy, ArrowRight, Upload, HandCoins, MapPin, Calendar, Phone, MessageCircle } from "lucide-react";
+import { isCodOrder, parseCodInfo, formatCodWhatsAppUrl, STORE_PHONE_DISPLAY } from "@/lib/orderCod";
 import { checkMayarPaymentStatus } from "@/lib/api/payment.functions";
 import {
   AlertDialog,
@@ -112,6 +113,8 @@ function PaymentPage() {
   });
 
   const order = q.data?.order;
+  const isCod = isCodOrder(order);
+  const codInfo = parseCodInfo(order);
   const payment = order
     ? ((Array.isArray(order.payments)
         ? order.payments[0]
@@ -128,6 +131,7 @@ function PaymentPage() {
   useEffect(() => {
     if (
       !order ||
+      isCod ||
       order.status !== "pending" ||
       !payment ||
       !["waiting_payment", "rejected"].includes(payment.status) ||
@@ -305,18 +309,85 @@ function PaymentPage() {
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Header */}
           <div className="text-center space-y-3">
-            <CheckCircle2 className="size-16 text-primary mx-auto" strokeWidth={1.5} />
-            <h1 className="display-lg">Pesanan Berhasil Dibuat!</h1>
+            {isCod ? (
+              order.status === "cancelled" ? (
+                <AlertCircle className="size-16 text-destructive mx-auto" strokeWidth={1.5} />
+              ) : (
+                <HandCoins className="size-16 text-emerald-600 mx-auto" strokeWidth={1.5} />
+              )
+            ) : (
+              <CheckCircle2 className="size-16 text-primary mx-auto" strokeWidth={1.5} />
+            )}
+
+            <h1 className="display-lg">
+              {isCod
+                ? order.status === "cancelled"
+                  ? "Pesanan COD Dibatalkan"
+                  : order.status === "processing"
+                    ? "COD Telah Dijadwalkan!"
+                    : order.status === "delivered"
+                      ? "Pesanan COD Selesai!"
+                      : "Pengajuan COD Berhasil Dikirim!"
+                : "Pesanan Berhasil Dibuat!"}
+            </h1>
             <p className="text-muted-foreground">
-              Selesaikan pembayaran Anda untuk memproses pesanan.
+              {isCod
+                ? order.status === "cancelled"
+                  ? order.cancel_reason?.startsWith("COD Ditolak:")
+                    ? order.cancel_reason
+                    : "Pengajuan COD tidak dapat diproses."
+                  : order.status === "processing"
+                    ? "Admin telah menyetujui jadwal & tempat ketemuan langsung."
+                    : order.status === "delivered"
+                      ? "Serah terima barang telah selesai dilaksanakan."
+                      : "Pesanan Anda sedang menunggu persetujuan (ACC) dari Admin AA Jersey."
+                : "Selesaikan pembayaran Anda untuk memproses pesanan."}
             </p>
             <div className="inline-block bg-muted/60 px-4 py-2 border border-border text-sm font-mono font-bold">
               ID Pesanan: {order.order_number}
             </div>
           </div>
 
-          {/* Timer Section */}
-          {payment &&
+          {/* COD Notice Banner */}
+          {isCod && order.status === "pending" && (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-5 rounded-lg flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+              <Clock className="size-8 text-amber-600 flex-shrink-0 animate-pulse" />
+              <div className="flex-1">
+                <h3 className="font-extrabold text-amber-700 dark:text-amber-400">
+                  Menunggu Konfirmasi & ACC Admin
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
+                  Jadwal dan tempat ketemuan langsung Anda sedang ditinjau. Anda dapat langsung
+                  menghubungi admin toko melalui WhatsApp agar jadwal segera di-ACC.
+                </p>
+              </div>
+              <div className="font-bold text-xs uppercase px-3 py-1.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 whitespace-nowrap">
+                Menunggu ACC
+              </div>
+            </div>
+          )}
+
+          {isCod && order.status === "processing" && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 p-5 rounded-lg flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+              <CheckCircle2 className="size-8 text-emerald-600 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-extrabold text-emerald-700 dark:text-emerald-400">
+                  COD Telah Dijadwalkan
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
+                  Admin telah menyetujui pertemuan COD. Mohon datang tepat waktu sesuai jadwal dan
+                  lokasi yang telah disepakati bersama.
+                </p>
+              </div>
+              <div className="font-bold text-xs uppercase px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
+                COD Dijadwalkan
+              </div>
+            </div>
+          )}
+
+          {/* Timer Section (Only for standard non-COD orders) */}
+          {!isCod &&
+            payment &&
             payment.status === "waiting_payment" &&
             order.status === "pending" &&
             timeLeft !== null && (
@@ -343,11 +414,13 @@ function PaymentPage() {
               <div className="flex-1">
                 <h3 className="font-extrabold text-destructive">Pesanan Dibatalkan</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {order.cancel_reason === "customer"
-                    ? "Pesanan ini telah dibatalkan atas permintaan Anda."
-                    : order.cancel_reason === "admin"
-                      ? "Pesanan ini telah dibatalkan oleh Admin."
-                      : "Pesanan ini telah dibatalkan secara otomatis karena melewati batas waktu 24 jam."}
+                  {order.cancel_reason?.startsWith("COD Ditolak:")
+                    ? order.cancel_reason
+                    : order.cancel_reason === "customer"
+                      ? "Pesanan ini telah dibatalkan atas permintaan Anda."
+                      : order.cancel_reason === "admin"
+                        ? "Pesanan ini telah dibatalkan oleh Admin."
+                        : "Pesanan ini telah dibatalkan secara otomatis karena melewati batas waktu 24 jam."}
                 </p>
               </div>
               <div className="font-bold text-destructive bg-destructive/10 px-4 py-2 border border-destructive/20 uppercase text-sm tracking-widest">
@@ -357,7 +430,168 @@ function PaymentPage() {
           )}
 
           {/* Details & Payment Section */}
-          <div className="grid md:grid-cols-2 gap-6">
+          {isCod ? (
+            /* COD SPECIFIC CARD SECTION */
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Left Card: COD Details */}
+              <div className="border border-border bg-background p-6 space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base mb-1">Rincian Pertemuan COD</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Periksa kembali tempat dan waktu kesepakatan janji temu.
+                  </p>
+                </div>
+
+                <div className="bg-muted/40 p-4 border border-border relative group">
+                  <div className="text-xs eyebrow text-muted-foreground">Total Bayar di Tempat</div>
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tracking-tight tabular-nums">
+                    {formatIDR(order.grand_total)}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Bisa dibayar tunai (cash) atau transfer QRIS/Bank saat bertemu.
+                  </p>
+                </div>
+
+                <div className="space-y-4 text-xs sm:text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <MapPin className="size-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">Lokasi Ketemuan:</span>
+                      <span className="text-muted-foreground">{codInfo.location}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <Calendar className="size-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">Jadwal Tanggal & Waktu:</span>
+                      <span className="text-muted-foreground">
+                        {codInfo.date || "Sesuai kesepakatan"}{" "}
+                        {codInfo.timeSlot ? `(${codInfo.timeSlot})` : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <Phone className="size-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">Kontak Pemesan:</span>
+                      <span className="text-muted-foreground">
+                        {order.recipient_name} · {order.recipient_no_hp}
+                        {codInfo.altPhone ? ` (Alternatif: ${codInfo.altPhone})` : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  {order.note && (
+                    <div className="p-3 bg-muted/30 border border-border/60 rounded text-xs text-muted-foreground">
+                      <strong className="text-foreground">Catatan:</strong> {order.note}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Card: WhatsApp Admin Contact */}
+              <div className="border border-border bg-background p-6 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-extrabold text-base mb-1">Konfirmasi via WhatsApp</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Hubungi admin toko langsung untuk konfirmasi janji temu COD.
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-500/5 border border-emerald-500/20 p-5 text-center rounded-lg space-y-3.5">
+                    <div className="size-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                      <MessageCircle className="size-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-foreground">WhatsApp Admin Toko</h4>
+                      <div className="font-mono font-extrabold text-emerald-700 dark:text-emerald-400 text-base mt-0.5">
+                        {STORE_PHONE_DISPLAY}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                        Kirim pesan konfirmasi langsung ke nomor WhatsApp toko kami dengan format
+                        pesanan dan jadwal COD otomatis.
+                      </p>
+                    </div>
+
+                    <Button
+                      asChild
+                      className="w-full h-12 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <a
+                        href={formatCodWhatsAppUrl({
+                          orderNumber: order.order_number,
+                          customerName: order.recipient_name,
+                          items: order.order_items as any,
+                          total: order.grand_total,
+                          location: codInfo.location,
+                          date: codInfo.date,
+                          timeSlot: codInfo.timeSlot,
+                          altPhone: codInfo.altPhone,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageCircle className="size-5" /> Hubungi Admin via WhatsApp
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Navigation Action Buttons */}
+                <div className="flex flex-col gap-2.5 pt-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    className="w-full cursor-pointer flex items-center justify-center gap-2"
+                    asChild
+                  >
+                    <Link to="/dashboard/pesanan" className="cursor-pointer">
+                      Lihat Daftar Pesanan <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                  {order.status === "pending" && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 cursor-pointer"
+                        >
+                          Batalkan Pesanan
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Batalkan Pesanan COD?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Apakah Anda yakin ingin membatalkan pengajuan pesanan COD ini? Stok
+                            produk akan dikembalikan dan tindakan ini tidak dapat dibatalkan.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="cursor-pointer">Kembali</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelOrder}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/95 cursor-pointer"
+                          >
+                            Batalkan Pesanan
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  <Button variant="ghost" className="w-full cursor-pointer" asChild>
+                    <Link to="/shop" className="cursor-pointer">
+                      Lanjut Belanja
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* STANDARD PAYMENT CARD SECTION (Mayar) */
+            <div className="grid md:grid-cols-2 gap-6">
             {/* Left Card: Bill details */}
             <div className="border border-border bg-background p-6 space-y-6">
               <div>
@@ -564,6 +798,7 @@ function PaymentPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </main>
       <Footer />

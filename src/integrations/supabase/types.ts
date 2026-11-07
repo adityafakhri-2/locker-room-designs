@@ -320,6 +320,12 @@ export type Database = {
           voucher_code: string | null;
           discount_amount: number;
           platform_fee: number;
+          cod_location?: string | null;
+          cod_date?: string | null;
+          cod_time_slot?: string | null;
+          cod_alt_phone?: string | null;
+          cod_proof_url?: string | null;
+          cod_status?: string | null;
         };
         Insert: {
           cancel_reason?: string | null;
@@ -346,6 +352,12 @@ export type Database = {
           voucher_code?: string | null;
           discount_amount?: number;
           platform_fee?: number;
+          cod_location?: string | null;
+          cod_date?: string | null;
+          cod_time_slot?: string | null;
+          cod_alt_phone?: string | null;
+          cod_proof_url?: string | null;
+          cod_status?: string | null;
         };
         Update: {
           cancel_reason?: string | null;
@@ -372,6 +384,12 @@ export type Database = {
           voucher_code?: string | null;
           discount_amount?: number;
           platform_fee?: number;
+          cod_location?: string | null;
+          cod_date?: string | null;
+          cod_time_slot?: string | null;
+          cod_alt_phone?: string | null;
+          cod_proof_url?: string | null;
+          cod_status?: string | null;
         };
         Relationships: [];
       };

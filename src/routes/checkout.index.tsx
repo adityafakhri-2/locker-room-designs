@@ -20,8 +20,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { IndonesiaRegionSelector } from "@/components/app/IndonesiaRegionSelector";
 import { parseAlamat } from "@/lib/format";
-import { Ticket } from "lucide-react";
+import { Ticket, Truck, HandCoins, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { COD_PRESET_LOCATIONS, COD_TIME_SLOTS } from "@/lib/orderCod";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout/")({
   head: () => ({ meta: [{ title: "Checkout — AA Jersey" }] }),
@@ -65,6 +67,20 @@ function CheckoutPage() {
     null,
   );
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Delivery Method state (Ekspedisi vs COD)
+  const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "cod">("shipping");
+  const [codLocationPreset, setCodLocationPreset] = useState<string>(COD_PRESET_LOCATIONS[0]);
+  const [codCustomLocation, setCodCustomLocation] = useState("");
+  const [codDate, setCodDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1); // default besok
+    return d.toISOString().split("T")[0];
+  });
+  const [codTimeSlot, setCodTimeSlot] = useState<string>(COD_TIME_SLOTS[1].label);
+  const [codAltPhone, setCodAltPhone] = useState("");
+
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   // Load store origin location on mount
   useEffect(() => {
@@ -320,7 +336,7 @@ function CheckoutPage() {
   const items = cart.data ?? [];
   const subtotal = items.reduce((s, i) => s + Number(i.products?.price ?? 0) * i.quantity, 0);
   const selectedRate = rates.find((r) => r.name === form.courier);
-  const shipping = selectedRate ? selectedRate.cost : 0;
+  const shipping = deliveryMethod === "cod" ? 0 : selectedRate ? selectedRate.cost : 0;
 
   // Dynamic discount calculation
   let discountAmount = 0;
@@ -369,6 +385,188 @@ function CheckoutPage() {
     e.preventDefault();
     if (items.length === 0) return toast.error("Keranjang kosong");
 
+    // ==========================================
+    // ALUR 1: METODE COD (KETEMUAN LANGSUNG)
+    // ==========================================
+    if (deliveryMethod === "cod") {
+      if (!form.recipient_name.trim()) {
+        return toast.error("Nama pemesan COD wajib diisi.");
+      }
+      if (!form.recipient_no_hp.trim()) {
+        return toast.error("Nomor WhatsApp/HP pemesan COD wajib diisi.");
+      }
+      const finalLocation =
+        codLocationPreset === "custom" ? codCustomLocation.trim() : codLocationPreset;
+      if (!finalLocation) {
+        return toast.error("Lokasi ketemuan COD wajib diisi.");
+      }
+      if (!codDate) {
+        return toast.error("Tanggal ketemuan COD wajib dipilih.");
+      }
+      if (!codTimeSlot) {
+        return toast.error("Slot jam operasional COD wajib dipilih.");
+      }
+
+      setLoading(true);
+
+      // Validasi kuota voucher jika ada
+      if (selectedVoucher) {
+        try {
+          const { data: vData, error: vErr } = await supabase
+            .from("vouchers")
+            .select("*")
+            .eq("id", selectedVoucher.id)
+            .single();
+
+          if (vErr || !vData) {
+            setLoading(false);
+            return toast.error("Voucher tidak ditemukan.");
+          }
+          if (vData.status !== "active") {
+            setLoading(false);
+            return toast.error("Voucher sudah tidak aktif.");
+          }
+          if (vData.end_date && new Date(vData.end_date) < new Date()) {
+            setLoading(false);
+            return toast.error("Voucher sudah kadaluarsa.");
+          }
+          if (vData.usage_limit && vData.usage_count >= vData.usage_limit) {
+            setLoading(false);
+            return toast.error("Kuota penggunaan voucher sudah habis.");
+          }
+        } catch (err) {
+          setLoading(false);
+          return toast.error("Gagal memvalidasi kuota voucher.");
+        }
+      }
+
+      const codSchedule = `${codDate} ${codTimeSlot}`;
+      const codNote = `[COD: ${finalLocation} | Jadwal: ${codSchedule}${
+        codAltPhone.trim() ? ` | Kontak: ${codAltPhone.trim()}` : ""
+      }]${form.note.trim() ? `\nCatatan: ${form.note.trim()}` : ""}`;
+
+      let createdOrderId: string | null = null;
+
+      try {
+        const basePayload: Record<string, any> = {
+          user_id: user!.id,
+          status: "pending",
+          subtotal,
+          shipping_cost: 0,
+          grand_total: total,
+          courier: "COD",
+          recipient_name: form.recipient_name,
+          recipient_no_hp: form.recipient_no_hp,
+          recipient_alamat: `COD: ${finalLocation}`,
+          recipient_kota: "Cimahi",
+          recipient_provinsi: "Jawa Barat",
+          recipient_kode_pos: "40511",
+          note: codNote,
+          voucher_id: selectedVoucher ? selectedVoucher.id : null,
+          voucher_code: selectedVoucher ? selectedVoucher.code : null,
+          discount_amount: discountAmount,
+        };
+
+        const extendedPayload: Record<string, any> = {
+          ...basePayload,
+          cod_location: finalLocation,
+          cod_date: codDate,
+          cod_time_slot: codTimeSlot,
+          cod_alt_phone: codAltPhone.trim() || null,
+          cod_status: "pending",
+        };
+
+        let order: any = null;
+        const res = await supabase.from("orders").insert(extendedPayload).select("*").single();
+        if (res.error) {
+          // Fallback jika migration kolom COD belum teraplikasi di remote DB
+          const fallbackRes = await supabase.from("orders").insert(basePayload).select("*").single();
+          if (fallbackRes.error) throw fallbackRes.error;
+          order = fallbackRes.data;
+        } else {
+          order = res.data;
+        }
+
+        createdOrderId = order.id;
+
+        // Update kontak profil pembeli
+        if (user) {
+          supabase
+            .from("profiles")
+            .update({
+              nama_lengkap: form.recipient_name,
+              no_hp: form.recipient_no_hp,
+            })
+            .eq("id", user.id)
+            .then(() => {});
+        }
+
+        // Simpan order items
+        const orderItems = items.map((i) => {
+          const prod = i.products as any;
+          const stockRaw = (prod?.size_stock as Record<string, any> | null) ?? {};
+          const sizeCost = stockRaw["_cost_prices"] || prod?.size_cost_price || {};
+          const unitCost =
+            i.size && sizeCost[i.size] !== undefined && Number(sizeCost[i.size]) > 0
+              ? Number(sizeCost[i.size])
+              : Number(prod?.cost_price) || 0;
+
+          return {
+            order_id: order.id,
+            product_id: i.product_id,
+            product_name: i.products?.name ?? "",
+            product_slug: i.products?.slug ?? null,
+            image_url: i.products?.cover_image_url ?? null,
+            size: i.size,
+            unit_price: i.products?.price ?? 0,
+            cost_price: unitCost,
+            quantity: i.quantity,
+            subtotal: Number(i.products?.price ?? 0) * i.quantity,
+          };
+        });
+        const { error: ierr } = await supabase.from("order_items").insert(orderItems);
+        if (ierr) throw ierr;
+
+        // Catat pembayaran metode COD
+        const { error: perr } = await supabase.from("payments").insert({
+          order_id: order.id,
+          amount: total,
+          method: "cod",
+          bank: "Bayar di Tempat (COD)",
+          status: "waiting_payment",
+        });
+        if (perr) throw perr;
+
+        // Bersihkan cart items
+        await supabase.from("cart_items").delete().eq("user_id", user!.id);
+
+        toast.success("Pesanan COD berhasil diajukan! Menunggu ACC Admin.");
+        navigate({ to: `/checkout/success/${order.order_number}` });
+        return;
+      } catch (err) {
+        toast.error((err as Error).message);
+        if (createdOrderId) {
+          try {
+            await supabase
+              .from("orders")
+              .update({
+                status: "cancelled",
+                cancel_reason: "Gagal membuat pesanan COD",
+              })
+              .eq("id", createdOrderId);
+          } catch (cleanErr) {
+            console.error("[Checkout COD Rollback Error]", cleanErr);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // ==========================================
+    // ALUR 2: METODE EKSPEDISI (JNE & MAYAR)
+    // ==========================================
     if (!form.recipient_name.trim()) {
       return toast.error("Nama penerima wajib diisi.");
     }
@@ -587,187 +785,510 @@ function CheckoutPage() {
           className="w-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-10"
         >
           <div className="space-y-8 w-full max-w-full">
+            {/* Pemilihan Metode Pengiriman: Ekspedisi vs COD */}
             <section className="w-full">
-              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-                <h2 className="display-md">Alamat Pengiriman</h2>
-                {profileQuery.data && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={fillFromProfile}
-                    className="cursor-pointer text-xs h-8"
-                  >
-                    Gunakan Data Profil Saya
-                  </Button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                <div className="sm:col-span-2">
-                  <Label htmlFor="recipient_name" className="flex items-center gap-1.5 h-5 mb-1.5">
-                    Nama Penerima <span className="text-destructive font-bold">*</span>
-                  </Label>
-                  <Input
-                    id="recipient_name"
-                    required
-                    placeholder="Nama lengkap penerima paket"
-                    value={form.recipient_name}
-                    onChange={(e) => set("recipient_name", e.target.value)}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="recipient_no_hp" className="flex items-center gap-1.5 h-5 mb-1.5">
-                    Nomor HP <span className="text-destructive font-bold">*</span>
-                  </Label>
-                  <Input
-                    id="recipient_no_hp"
-                    required
-                    placeholder="Contoh: 08123456789"
-                    value={form.recipient_no_hp}
-                    onChange={(e) => set("recipient_no_hp", e.target.value)}
-                  />
-                </div>
-
-                <IndonesiaRegionSelector
-                  provinsi={form.recipient_provinsi}
-                  setProvinsi={(val) => set("recipient_provinsi", val)}
-                  kota={form.recipient_kota}
-                  setKota={(val) => set("recipient_kota", val)}
-                  kecamatan={kecamatan}
-                  setKecamatan={setKecamatan}
-                  kelurahan={kelurahan}
-                  setKelurahan={setKelurahan}
-                  kodePos={form.recipient_kode_pos}
-                  setKodePos={(val) => set("recipient_kode_pos", val)}
-                  alamatDetail={alamatDetail}
-                  setAlamatDetail={setAlamatDetail}
-                  required={true}
-                />
-
-                <div className="sm:col-span-2">
-                  <Label htmlFor="note" className="flex items-center gap-1.5 h-5 mb-1.5">
-                    Catatan Pesanan
-                  </Label>
-                  <Textarea
-                    id="note"
-                    placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..."
-                    value={form.note}
-                    onChange={(e) => set("note", e.target.value)}
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="w-full">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
-                <h2 className="display-md font-extrabold">Kurir</h2>
-                {originLocation && (
-                  <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
-                    Dikirim dari:{" "}
-                    <strong className="font-semibold text-foreground">
-                      {originLocation.city}, {originLocation.province}
-                    </strong>
-                  </span>
-                )}
-              </div>
-              {!form.recipient_provinsi || !form.recipient_kota || !kecamatan ? (
-                <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground rounded-lg bg-muted/20">
-                  Silakan tentukan provinsi, kota, dan kecamatan alamat pengiriman Anda terlebih
-                  dahulu untuk melihat pilihan layanan kurir JNE.
-                </div>
-              ) : ratesLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-                  {[1, 2, 3].map((i) => (
+              <h2 className="display-md mb-3 font-extrabold">Pilihan Pengiriman</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod("shipping")}
+                  className={cn(
+                    "p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer relative",
+                    deliveryMethod === "shipping"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
+                      : "border-border hover:border-muted-foreground/40 bg-card/60",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
                     <div
-                      key={i}
-                      className="border border-border p-4 rounded-lg animate-pulse bg-muted/40 h-20 flex flex-col justify-center"
+                      className={cn(
+                        "size-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                        deliveryMethod === "shipping"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
                     >
-                      <div className="h-4 bg-muted-foreground/20 rounded w-2/3 mb-2"></div>
-                      <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+                      <Truck className="size-5" />
                     </div>
-                  ))}
-                </div>
-              ) : rates.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-                  {rates.map((r) => {
-                    const isJnt = r.name.toLowerCase().includes("j&t") || r.name.toLowerCase().includes("jnt");
-                    const isLion = r.name.toLowerCase().includes("lion");
-                    const logoSrc = isJnt
-                      ? "/images/JT-Express-Logo.png"
-                      : isLion
-                      ? "/images/lion-logo.png"
-                      : "/images/jne-logo.png";
+                    <div>
+                      <div className="font-bold text-sm text-foreground">Kirim via Ekspedisi</div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Kirim ke alamat rumah via kurir JNE (REG / YES).
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3.5 pt-2.5 border-t border-border/60 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Ongkir:</span>
+                    <span className="font-semibold text-foreground">
+                      {ratesLoading
+                        ? "Menghitung..."
+                        : selectedRate
+                          ? formatIDR(selectedRate.cost)
+                          : "Sesuai alamat"}
+                    </span>
+                  </div>
+                </button>
 
-                    return (
-                      <button
-                        type="button"
-                        key={r.name}
-                        onClick={() => set("courier", r.name)}
-                        className={`border p-4 text-left cursor-pointer transition-all rounded-lg flex flex-col justify-between ${
-                          form.courier === r.name
-                            ? "border-primary bg-accent/40 shadow-sm ring-1 ring-primary"
-                            : "border-border hover:border-muted-foreground/30"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-xs sm:text-sm text-foreground">{r.name}</span>
-                          <img
-                            src={logoSrc}
-                            alt={r.name}
-                            referrerPolicy="no-referrer"
-                            className="h-4 max-w-[60px] object-contain flex-shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        </div>
-                        <div className="mt-2">
-                          <div className="text-sm font-extrabold text-foreground">
-                            {formatIDR(r.cost)}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <span>Estimasi:</span>
-                            <span className="font-medium text-foreground">{r.etd}</span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="border border-dashed border-destructive/20 p-6 text-center text-sm text-destructive rounded-lg bg-destructive/5">
-                  Gagal memuat tarif pengiriman untuk wilayah ini. Silakan hubungi admin atau coba
-                  lagi.
-                </div>
-              )}
-            </section>
-
-            <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg w-full">
-              <h2 className="display-md mb-4 flex items-center gap-2">Metode Pembayaran</h2>
-              <div className="flex items-center gap-4">
-                <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
-                  <img
-                    src="/images/mayar-logo.png"
-                    alt="Mayar"
-                    referrerPolicy="no-referrer"
-                    className="h-7 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png";
-                    }}
-                  />
-                </div>
-                <div className="text-sm">
-                  <p className="font-bold text-foreground">
-                    Pembayaran Instan & Otomatis via Mayar
-                  </p>
-                  <p className="text-muted-foreground mt-0.5">
-                    Mendukung QRIS, E-Wallet (GoPay, OVO, ShopeePay), Virtual Account (BCA, Mandiri,
-                    BNI), dan Kartu Kredit.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod("cod")}
+                  className={cn(
+                    "p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer relative",
+                    deliveryMethod === "cod"
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
+                      : "border-border hover:border-muted-foreground/40 bg-card/60",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "size-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                        deliveryMethod === "cod"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      <HandCoins className="size-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-sm text-foreground">
+                          COD (Ketemuan Langsung)
+                        </span>
+                        <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Bebas Ongkir
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Janji temu & bayar langsung (tunai / transfer) di tempat.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3.5 pt-2.5 border-t border-border/60 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Ongkir:</span>
+                    <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                      Rp 0 (Gratis)
+                    </span>
+                  </div>
+                </button>
               </div>
             </section>
+
+            {/* FORM 1: METODE COD (KETEMUAN LANGSUNG) */}
+            {deliveryMethod === "cod" ? (
+              <>
+                {/* Data Pemesan COD */}
+                <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h2 className="display-md font-extrabold flex items-center gap-2">
+                      <Phone className="size-5 text-primary" /> Kontak Pemesan COD
+                    </h2>
+                    {profileQuery.data && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={fillFromProfile}
+                        className="cursor-pointer text-xs h-8"
+                      >
+                        Gunakan Data Profil Saya
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="cod_name" className="flex items-center gap-1.5 text-xs font-bold mb-1.5">
+                        Nama Pemesan <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="cod_name"
+                        required
+                        placeholder="Nama lengkap Anda"
+                        value={form.recipient_name}
+                        onChange={(e) => set("recipient_name", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cod_no_hp" className="flex items-center gap-1.5 text-xs font-bold mb-1.5">
+                        Nomor WhatsApp / HP Utama <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="cod_no_hp"
+                        required
+                        placeholder="Contoh: 08123456789"
+                        value={form.recipient_no_hp}
+                        onChange={(e) => set("recipient_no_hp", e.target.value)}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="cod_alt_phone" className="flex items-center gap-1.5 text-xs font-bold mb-1.5">
+                        Nomor yang Bisa Dihubungi Lainnya{" "}
+                        <span className="text-muted-foreground font-normal">(Opsional / Nomor Cadangan)</span>
+                      </Label>
+                      <Input
+                        id="cod_alt_phone"
+                        placeholder="Contoh: 0895-xxxx-xxxx (nomor rekan/saudara jika nomor utama sulit dihubungi)"
+                        value={codAltPhone}
+                        onChange={(e) => setCodAltPhone(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Lokasi Ketemuan COD */}
+                <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="size-5 text-primary" />
+                    <div>
+                      <h2 className="display-md font-extrabold">Pilihan Lokasi COD</h2>
+                      <p className="text-xs text-muted-foreground">
+                        Pilih tempat yang telah kami rekomendasikan atau tentukan lokasi Anda sendiri.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5 pt-2">
+                    {COD_PRESET_LOCATIONS.map((preset, idx) => {
+                      const isSelected = codLocationPreset === preset;
+                      return (
+                        <label
+                          key={idx}
+                          className={cn(
+                            "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
+                              : "border-border hover:border-muted-foreground/30 bg-background",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="cod_location"
+                            checked={isSelected}
+                            onChange={() => setCodLocationPreset(preset)}
+                            className="mt-0.5 text-primary focus:ring-primary size-4"
+                          />
+                          <div className="text-xs sm:text-sm font-medium text-foreground">
+                            {preset}
+                          </div>
+                        </label>
+                      );
+                    })}
+
+                    {/* Opsi Isi Lokasi Sendiri */}
+                    <label
+                      className={cn(
+                        "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all",
+                        codLocationPreset === "custom"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
+                          : "border-border hover:border-muted-foreground/30 bg-background",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="cod_location"
+                        checked={codLocationPreset === "custom"}
+                        onChange={() => setCodLocationPreset("custom")}
+                        className="mt-0.5 text-primary focus:ring-primary size-4"
+                      />
+                      <div className="flex-1">
+                        <div className="text-xs sm:text-sm font-bold text-foreground">
+                          Tuliskan Lokasi Sendiri (Custom)
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Tuliskan tempat ketemuan yang Anda inginkan (misal: cafe, mall, stasiun, dll).
+                        </p>
+                      </div>
+                    </label>
+
+                    {codLocationPreset === "custom" && (
+                      <div className="pt-2 pl-7">
+                        <Textarea
+                          required
+                          placeholder="Tuliskan nama tempat, alamat jalan, atau patokan lokasi ketemuan COD yang diinginkan..."
+                          value={codCustomLocation}
+                          onChange={(e) => setCodCustomLocation(e.target.value)}
+                          className="text-xs sm:text-sm bg-background min-h-[80px]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Jadwal & Slot Waktu COD */}
+                <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="size-5 text-primary" />
+                    <div>
+                      <h2 className="display-md font-extrabold">Jadwal & Waktu Ketemuan</h2>
+                      <p className="text-xs text-muted-foreground">
+                        Pilih tanggal dan slot jam operasional yang sesuai.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-1">
+                    <div>
+                      <Label htmlFor="cod_date" className="text-xs font-bold block mb-1.5">
+                        Tanggal Ketemuan <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="cod_date"
+                        type="date"
+                        required
+                        min={todayStr}
+                        value={codDate}
+                        onChange={(e) => setCodDate(e.target.value)}
+                        className="w-full sm:w-64 bg-background"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-xs font-bold block mb-2">
+                        Pilih Slot Jam Operasional <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {COD_TIME_SLOTS.map((slot) => {
+                          const isSelected = codTimeSlot === slot.label;
+                          return (
+                            <button
+                              type="button"
+                              key={slot.id}
+                              onClick={() => setCodTimeSlot(slot.label)}
+                              className={cn(
+                                "flex items-center gap-2.5 p-3 rounded-lg border text-left cursor-pointer transition-all",
+                                isSelected
+                                  ? "border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary"
+                                  : "border-border hover:border-muted-foreground/30 bg-background text-foreground text-xs sm:text-sm",
+                              )}
+                            >
+                              <Clock className={cn("size-4 flex-shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
+                              <span className="text-xs sm:text-sm">{slot.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="cod_note" className="text-xs font-bold block mb-1.5">
+                        Catatan Tambahan untuk Admin <span className="text-muted-foreground font-normal">(Opsional)</span>
+                      </Label>
+                      <Textarea
+                        id="cod_note"
+                        placeholder="Contoh: Nanti saya pakai jaket hitam, atau tolong kabari 30 menit sebelumnya..."
+                        value={form.note}
+                        onChange={(e) => set("note", e.target.value)}
+                        className="bg-background text-xs sm:text-sm min-h-[70px]"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Section Info Pembayaran COD */}
+                <section className="bg-emerald-500/5 border border-emerald-500/20 p-5 sm:p-6 rounded-xl w-full">
+                  <h2 className="display-md mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-extrabold">
+                    <HandCoins className="size-5" /> Bayar Saat Ketemuan (COD)
+                  </h2>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Pesanan COD tidak perlu dibayar sekarang. Anda dapat membayar tunai (cash)
+                    atau transfer langsung via QRIS/BCA saat ketemuan langsung dengan Admin.
+                  </p>
+                  <div className="mt-3 p-3 bg-background/80 border border-emerald-500/20 rounded-lg text-xs text-muted-foreground flex items-start gap-2">
+                    <CheckCircle2 className="size-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Setelah checkout, pesanan akan berstatus <strong>Menunggu ACC Admin</strong>.
+                      Admin kami akan meninjau jadwal dan mengonfirmasi janji temu dengan Anda.
+                    </span>
+                  </div>
+                </section>
+              </>
+            ) : (
+              /* FORM 2: METODE EKSPEDISI JNE */
+              <>
+                <section className="w-full">
+                  <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                    <h2 className="display-md">Alamat Pengiriman</h2>
+                    {profileQuery.data && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={fillFromProfile}
+                        className="cursor-pointer text-xs h-8"
+                      >
+                        Gunakan Data Profil Saya
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="recipient_name" className="flex items-center gap-1.5 h-5 mb-1.5">
+                        Nama Penerima <span className="text-destructive font-bold">*</span>
+                      </Label>
+                      <Input
+                        id="recipient_name"
+                        required
+                        placeholder="Nama lengkap penerima paket"
+                        value={form.recipient_name}
+                        onChange={(e) => set("recipient_name", e.target.value)}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="recipient_no_hp" className="flex items-center gap-1.5 h-5 mb-1.5">
+                        Nomor HP <span className="text-destructive font-bold">*</span>
+                      </Label>
+                      <Input
+                        id="recipient_no_hp"
+                        required
+                        placeholder="Contoh: 08123456789"
+                        value={form.recipient_no_hp}
+                        onChange={(e) => set("recipient_no_hp", e.target.value)}
+                      />
+                    </div>
+
+                    <IndonesiaRegionSelector
+                      provinsi={form.recipient_provinsi}
+                      setProvinsi={(val) => set("recipient_provinsi", val)}
+                      kota={form.recipient_kota}
+                      setKota={(val) => set("recipient_kota", val)}
+                      kecamatan={kecamatan}
+                      setKecamatan={setKecamatan}
+                      kelurahan={kelurahan}
+                      setKelurahan={setKelurahan}
+                      kodePos={form.recipient_kode_pos}
+                      setKodePos={(val) => set("recipient_kode_pos", val)}
+                      alamatDetail={alamatDetail}
+                      setAlamatDetail={setAlamatDetail}
+                      required={true}
+                    />
+
+                    <div className="sm:col-span-2">
+                      <Label htmlFor="note" className="flex items-center gap-1.5 h-5 mb-1.5">
+                        Catatan Pesanan
+                      </Label>
+                      <Textarea
+                        id="note"
+                        placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..."
+                        value={form.note}
+                        onChange={(e) => set("note", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="w-full">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+                    <h2 className="display-md font-extrabold">Kurir</h2>
+                    {originLocation && (
+                      <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
+                        Dikirim dari:{" "}
+                        <strong className="font-semibold text-foreground">
+                          {originLocation.city}, {originLocation.province}
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                  {!form.recipient_provinsi || !form.recipient_kota || !kecamatan ? (
+                    <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground rounded-lg bg-muted/20">
+                      Silakan tentukan provinsi, kota, dan kecamatan alamat pengiriman Anda terlebih
+                      dahulu untuk melihat pilihan layanan kurir JNE.
+                    </div>
+                  ) : ratesLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="border border-border p-4 rounded-lg animate-pulse bg-muted/40 h-20 flex flex-col justify-center"
+                        >
+                          <div className="h-4 bg-muted-foreground/20 rounded w-2/3 mb-2"></div>
+                          <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : rates.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                      {rates.map((r) => {
+                        const isJnt =
+                          r.name.toLowerCase().includes("j&t") || r.name.toLowerCase().includes("jnt");
+                        const isLion = r.name.toLowerCase().includes("lion");
+                        const logoSrc = isJnt
+                          ? "/images/JT-Express-Logo.png"
+                          : isLion
+                          ? "/images/lion-logo.png"
+                          : "/images/jne-logo.png";
+
+                        return (
+                          <button
+                            type="button"
+                            key={r.name}
+                            onClick={() => set("courier", r.name)}
+                            className={`border p-4 text-left cursor-pointer transition-all rounded-lg flex flex-col justify-between ${
+                              form.courier === r.name
+                                ? "border-primary bg-accent/40 shadow-sm ring-1 ring-primary"
+                                : "border-border hover:border-muted-foreground/30"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-xs sm:text-sm text-foreground">{r.name}</span>
+                              <img
+                                src={logoSrc}
+                                alt={r.name}
+                                referrerPolicy="no-referrer"
+                                className="h-4 max-w-[60px] object-contain flex-shrink-0"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                              />
+                            </div>
+                            <div className="mt-2">
+                              <div className="text-sm font-extrabold text-foreground">
+                                {formatIDR(r.cost)}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                <span>Estimasi:</span>
+                                <span className="font-medium text-foreground">{r.etd}</span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-destructive/20 p-6 text-center text-sm text-destructive rounded-lg bg-destructive/5">
+                      Gagal memuat tarif pengiriman untuk wilayah ini. Silakan hubungi admin atau coba
+                      lagi.
+                    </div>
+                  )}
+                </section>
+
+                <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg w-full">
+                  <h2 className="display-md mb-4 flex items-center gap-2">Metode Pembayaran</h2>
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
+                      <img
+                        src="/images/mayar-logo.png"
+                        alt="Mayar"
+                        referrerPolicy="no-referrer"
+                        className="h-7 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://framerusercontent.com/assets/0aaSOxupKAsVA4ou30WbxLvSQo0.png";
+                        }}
+                      />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-bold text-foreground">
+                        Pembayaran Instan & Otomatis via Mayar
+                      </p>
+                      <p className="text-muted-foreground mt-0.5">
+                        Mendukung QRIS, E-Wallet (GoPay, OVO, ShopeePay), Virtual Account (BCA, Mandiri,
+                        BNI), dan Kartu Kredit.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
           </div>
 
           <aside className="bg-muted/40 border border-border p-6 self-start lg:sticky lg:top-24">
@@ -850,7 +1371,15 @@ function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <dt>Ongkos kirim</dt>
-                <dd>{formatIDR(shipping)}</dd>
+                <dd>
+                  {deliveryMethod === "cod" ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      Rp 0 (COD / Gratis)
+                    </span>
+                  ) : (
+                    formatIDR(shipping)
+                  )}
+                </dd>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -866,13 +1395,31 @@ function CheckoutPage() {
               <span>Total</span>
               <span>{formatIDR(total)}</span>
             </div>
-            <Button
-              type="submit"
-              className="w-full mt-6 h-12 cursor-pointer"
-              disabled={loading || items.length === 0 || ratesLoading || !selectedRate}
-            >
-              {loading ? "Memproses..." : ratesLoading ? "Menghitung Ongkir..." : "Buat Pesanan"}
-            </Button>
+            {deliveryMethod === "cod" ? (
+              <Button
+                type="submit"
+                className="w-full mt-6 h-12 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
+                disabled={
+                  loading ||
+                  items.length === 0 ||
+                  !form.recipient_name.trim() ||
+                  !form.recipient_no_hp.trim() ||
+                  (codLocationPreset === "custom" && !codCustomLocation.trim()) ||
+                  !codDate ||
+                  !codTimeSlot
+                }
+              >
+                {loading ? "Memproses..." : "Ajukan Pesanan COD"}
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                className="w-full mt-6 h-12 cursor-pointer"
+                disabled={loading || items.length === 0 || ratesLoading || !selectedRate}
+              >
+                {loading ? "Memproses..." : ratesLoading ? "Menghitung Ongkir..." : "Buat Pesanan"}
+              </Button>
+            )}
           </aside>
         </form>
       </main>

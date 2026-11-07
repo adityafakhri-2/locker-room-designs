@@ -47,6 +47,10 @@ export function statusLabel(s: string): string {
     waiting_verification: "Sudah Dibayar (Menunggu Konfirmasi)",
     approved: "Disetujui",
     rejected: "Ditolak",
+    cod_pending: "Menunggu ACC COD",
+    cod_scheduled: "COD Dijadwalkan",
+    cod_completed: "COD Selesai",
+    cod_rejected: "Pengajuan COD Ditolak",
   };
   return map[s] ?? s;
 }

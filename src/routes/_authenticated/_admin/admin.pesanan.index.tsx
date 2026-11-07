@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateManualOrderDialog } from "@/components/admin/CreateManualOrderDialog";
 import { OrderReceiptModal, OrderReceiptData } from "@/components/commerce/OrderReceiptModal";
+import { isCodOrder } from "@/lib/orderCod";
 
 export function getCustomerDisplayName(order: {
   order_number?: string | null;
@@ -408,9 +409,19 @@ function AdminOrders() {
                       email?: string | null;
                     } | null;
                     const isSelected = selectedIds.includes(o.id);
+                    const isCod = isCodOrder(o);
 
-                    const displayStatus =
-                      o.status === "pending" && payment?.status === "waiting_verification"
+                    const displayStatus = isCod
+                      ? o.status === "pending"
+                        ? "cod_pending"
+                        : o.status === "processing"
+                          ? "cod_scheduled"
+                          : o.status === "delivered"
+                            ? "cod_completed"
+                            : o.status === "cancelled"
+                              ? "cod_rejected"
+                              : o.status
+                      : o.status === "pending" && payment?.status === "waiting_verification"
                         ? "waiting_verification"
                         : o.status;
 
@@ -419,10 +430,10 @@ function AdminOrders() {
                         {statusLabel(displayStatus)}
                       </span>
                     );
-                    if (displayStatus === "paid") {
+                    if (displayStatus === "paid" || displayStatus === "cod_completed") {
                       orderBadge = (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                          Pembayaran Diterima
+                          {isCod ? "COD Selesai" : "Pembayaran Diterima"}
                         </span>
                       );
                     } else if (displayStatus === "delivered") {
@@ -431,10 +442,10 @@ function AdminOrders() {
                           Selesai
                         </span>
                       );
-                    } else if (displayStatus === "processing") {
+                    } else if (displayStatus === "processing" || displayStatus === "cod_scheduled") {
                       orderBadge = (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">
-                          Sedang Diproses
+                          {isCod ? "COD Dijadwalkan" : "Sedang Diproses"}
                         </span>
                       );
                     } else if (displayStatus === "shipped") {
@@ -443,16 +454,26 @@ function AdminOrders() {
                           Dikirim
                         </span>
                       );
-                    } else if (displayStatus === "cancelled") {
+                    } else if (displayStatus === "cancelled" || displayStatus === "cod_rejected") {
                       orderBadge = (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
-                          Dibatalkan
+                          {isCod ? "COD Ditolak" : "Dibatalkan"}
                         </span>
                       );
                     }
 
                     let payBadge = <span className="text-xs text-muted-foreground">—</span>;
-                    if (payment) {
+                    if (isCod) {
+                      payBadge = o.status === "delivered" ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                          Lunas (COD)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          Bayar di Tempat
+                        </span>
+                      );
+                    } else if (payment) {
                       if (payment.status === "waiting_payment") {
                         payBadge = (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
@@ -497,6 +518,11 @@ function AdminOrders() {
                             >
                               {o.order_number}
                             </Link>
+                            {isCod && (
+                              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                COD
+                              </span>
+                            )}
                           </div>
                           <span className="text-[11px] text-muted-foreground">{formatDate(o.created_at)}</span>
                         </div>
@@ -621,9 +647,19 @@ function AdminOrders() {
                           email?: string | null;
                         } | null;
                         const isSelected = selectedIds.includes(o.id);
+                        const isCod = isCodOrder(o);
 
-                        const displayStatus =
-                          o.status === "pending" && payment?.status === "waiting_verification"
+                        const displayStatus = isCod
+                          ? o.status === "pending"
+                            ? "cod_pending"
+                            : o.status === "processing"
+                              ? "cod_scheduled"
+                              : o.status === "delivered"
+                                ? "cod_completed"
+                                : o.status === "cancelled"
+                                  ? "cod_rejected"
+                                  : o.status
+                          : o.status === "pending" && payment?.status === "waiting_verification"
                             ? "waiting_verification"
                             : o.status;
 
@@ -632,10 +668,10 @@ function AdminOrders() {
                             {statusLabel(displayStatus)}
                           </span>
                         );
-                        if (displayStatus === "paid") {
+                        if (displayStatus === "paid" || displayStatus === "cod_completed") {
                           orderBadge = (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                              Pembayaran Diterima
+                              {isCod ? "COD Selesai" : "Pembayaran Diterima"}
                             </span>
                           );
                         } else if (displayStatus === "delivered") {
@@ -644,10 +680,10 @@ function AdminOrders() {
                               Selesai
                             </span>
                           );
-                        } else if (displayStatus === "processing") {
+                        } else if (displayStatus === "processing" || displayStatus === "cod_scheduled") {
                           orderBadge = (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50">
-                              Sedang Diproses
+                              {isCod ? "COD Dijadwalkan" : "Sedang Diproses"}
                             </span>
                           );
                         } else if (displayStatus === "shipped") {
@@ -656,16 +692,26 @@ function AdminOrders() {
                               Dikirim
                             </span>
                           );
-                        } else if (displayStatus === "cancelled") {
+                        } else if (displayStatus === "cancelled" || displayStatus === "cod_rejected") {
                           orderBadge = (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50">
-                              Dibatalkan
+                              {isCod ? "COD Ditolak" : "Dibatalkan"}
                             </span>
                           );
                         }
 
                         let payBadge = <span className="text-xs text-muted-foreground">—</span>;
-                        if (payment) {
+                        if (isCod) {
+                          payBadge = o.status === "delivered" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                              Lunas (COD)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              Bayar di Tempat
+                            </span>
+                          );
+                        } else if (payment) {
                           if (payment.status === "waiting_payment") {
                             payBadge = (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
@@ -707,13 +753,20 @@ function AdminOrders() {
                               />
                             </td>
                             <td className="py-3">
-                              <Link
-                                to="/admin/pesanan/$orderNumber"
-                                params={{ orderNumber: o.order_number }}
-                                className="font-mono text-xs text-primary hover:underline cursor-pointer"
-                              >
-                                {o.order_number}
-                              </Link>
+                              <div className="flex items-center gap-1.5">
+                                <Link
+                                  to="/admin/pesanan/$orderNumber"
+                                  params={{ orderNumber: o.order_number }}
+                                  className="font-mono text-xs text-primary hover:underline cursor-pointer"
+                                >
+                                  {o.order_number}
+                                </Link>
+                                {isCod && (
+                                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                    COD
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="text-xs">{formatDate(o.created_at)}</td>
                             <td className="text-xs font-medium text-foreground">
