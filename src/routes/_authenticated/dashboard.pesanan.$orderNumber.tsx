@@ -399,35 +399,45 @@ function OrderDetail() {
         await uploadFile("payment-proofs", uploadedPath, codProofFile);
       }
 
-      const updatePayload: OrderUpdate = {
-        status: "delivered",
-        updated_at: new Date().toISOString(),
-      };
-      if (uploadedPath) {
-        updatePayload.cod_proof_url = uploadedPath;
-        updatePayload.cod_status = "delivered";
-      }
+      // 1. Eksekusi melalui RPC aman confirm_cod_own_order (Security Definer)
+      const { error: rpcErr } = await supabase.rpc("confirm_cod_own_order", {
+        target_order_id: order.id,
+        proof_url: uploadedPath || null,
+      });
 
-      const { error: oErr } = await supabase.from("orders").update(updatePayload).eq("id", order.id);
-      if (oErr) {
-        const { error: fErr } = await supabase
-          .from("orders")
-          .update({ status: "delivered", updated_at: new Date().toISOString() })
-          .eq("id", order.id);
-        if (fErr) throw fErr;
-      }
+      if (rpcErr) {
+        // Fallback 1: Coba confirm_delivery_own_order jika fungsi baru belum dideploy
+        const { error: fallbackRpcErr } = await supabase.rpc("confirm_delivery_own_order", {
+          target_order_id: order.id,
+        });
 
-      if (payment) {
-        await supabase
-          .from("payments")
-          .update({ status: "approved", verified_at: new Date().toISOString() })
-          .eq("id", payment.id);
+        if (fallbackRpcErr) {
+          // Fallback 2: Direct update (jika akun memiliki akses admin)
+          const updatePayload: OrderUpdate = {
+            status: "delivered",
+            updated_at: new Date().toISOString(),
+          };
+          if (uploadedPath) {
+            updatePayload.cod_proof_url = uploadedPath;
+            updatePayload.cod_status = "delivered";
+          }
 
-        if (uploadedPath) {
-          await supabase.from("payment_proofs").insert({
-            payment_id: payment.id,
-            image_url: uploadedPath,
-          });
+          const { error: oErr } = await supabase.from("orders").update(updatePayload).eq("id", order.id);
+          if (oErr) throw rpcErr;
+        }
+
+        if (payment) {
+          await supabase
+            .from("payments")
+            .update({ status: "approved", verified_at: new Date().toISOString() })
+            .eq("id", payment.id);
+
+          if (uploadedPath) {
+            await supabase.from("payment_proofs").insert({
+              payment_id: payment.id,
+              image_url: uploadedPath,
+            });
+          }
         }
       }
 

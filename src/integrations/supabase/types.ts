@@ -1003,6 +1003,13 @@ export type Database = {
         };
         Returns: unknown;
       };
+      confirm_cod_own_order: {
+        Args: {
+          target_order_id: string;
+          proof_url?: string | null;
+        };
+        Returns: unknown;
+      };
       admin_delete_customers: {
         Args: {
           customer_ids: string[];
