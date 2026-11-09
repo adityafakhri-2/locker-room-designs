@@ -6,9 +6,10 @@ import { DashboardShell, PageHeader, Card } from "@/components/app/DashboardShel
 import { CUSTOMER_NAV } from "@/lib/navigation";
 import { formatIDR, formatDate, statusLabel } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { Shirt } from "lucide-react";
+import { Shirt, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
+import { OrderReceiptModal } from "@/components/commerce/OrderReceiptModal";
 
 export const Route = createFileRoute("/_authenticated/dashboard/pesanan/")({
   component: OrdersPage,
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/pesanan/")({
 function OrdersPage() {
   const { user } = useAuth();
   const [orderFilter, setOrderFilter] = useState("all");
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<any>(null);
 
   const q = useQuery({
     queryKey: ["my-orders", user?.id],
@@ -245,6 +247,17 @@ function OrdersPage() {
                       </strong>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
+                      {o.status === "delivered" && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs cursor-pointer gap-1.5 border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                          onClick={() => setSelectedReceiptOrder(o)}
+                        >
+                          <Printer className="size-3.5" /> Struk / Invoice
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -276,6 +289,13 @@ function OrdersPage() {
           <p className="text-sm text-muted-foreground text-center py-6">Belum ada pesanan.</p>
         </Card>
       )}
+
+      {/* Modal Cetak Struk & Invoice Pelanggan */}
+      <OrderReceiptModal
+        order={selectedReceiptOrder}
+        isOpen={!!selectedReceiptOrder}
+        onClose={() => setSelectedReceiptOrder(null)}
+      />
     </DashboardShell>
   );
 }

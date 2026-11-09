@@ -12,12 +12,13 @@ import { CUSTOMER_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDateTime, statusLabel, BANKS } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
-import { Clock, AlertCircle, CheckCircle2, Copy, Upload, Image, ExternalLink, HandCoins, MapPin, Calendar, MessageCircle, Phone, Shirt, Star, Sparkles } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle2, Copy, Upload, Image, ExternalLink, HandCoins, MapPin, Calendar, MessageCircle, Phone, Shirt, Star, Sparkles, Printer, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCodOrder, parseCodInfo, formatCodWhatsAppUrl, STORE_PHONE_DISPLAY } from "@/lib/orderCod";
 import { createWebpFile } from "@/lib/imageCompression";
 import { Textarea } from "@/components/ui/textarea";
 import { InteractiveStarRating } from "@/components/commerce/InteractiveStarRating";
+import { OrderReceiptModal } from "@/components/commerce/OrderReceiptModal";
 import {
   Dialog,
   DialogContent,
@@ -198,6 +199,9 @@ function OrderDetail() {
   const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
   const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Struk / Invoice Download Modal
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["order", orderNumber],
@@ -744,12 +748,26 @@ function OrderDetail() {
         eyebrow={order.order_number}
         title={statusLabel(displayStatus)}
         action={
-          <Link
-            to="/dashboard/pesanan"
-            className="text-sm text-muted-foreground hover:underline cursor-pointer"
-          >
-            ← Kembali
-          </Link>
+          <div className="flex items-center gap-3">
+            {order.status === "delivered" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setReceiptModalOpen(true)}
+                className="gap-1.5 text-xs font-semibold h-9 cursor-pointer"
+              >
+                <Printer className="size-4 text-primary" />
+                Download Struk / Invoice
+              </Button>
+            )}
+            <Link
+              to="/dashboard/pesanan"
+              className="text-sm text-muted-foreground hover:underline cursor-pointer"
+            >
+              ← Kembali
+            </Link>
+          </div>
         }
       />
 
@@ -1097,7 +1115,15 @@ function OrderDetail() {
                         </a>
                       </div>
                     )}
-                    <div className="pt-1">
+                    <div className="pt-1 space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setReceiptModalOpen(true)}
+                        className="w-full text-xs h-9 cursor-pointer border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 font-semibold flex items-center justify-center gap-1.5"
+                      >
+                        <Printer className="size-4" /> Cetak / Download Struk
+                      </Button>
                       <Button
                         className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
                         asChild
@@ -1144,7 +1170,15 @@ function OrderDetail() {
                         harap Anda menyukai produk kami!
                       </p>
                     </div>
-                    <div className="pt-1">
+                    <div className="pt-1 space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setReceiptModalOpen(true)}
+                        className="w-full text-xs h-9 cursor-pointer border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 font-semibold flex items-center justify-center gap-1.5"
+                      >
+                        <Printer className="size-4" /> Cetak / Download Invoice
+                      </Button>
                       <Button
                         className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm flex items-center justify-center gap-1.5"
                         asChild
@@ -1683,6 +1717,13 @@ function OrderDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Cetak & Download Struk / Invoice */}
+      <OrderReceiptModal
+        order={order as any}
+        isOpen={receiptModalOpen}
+        onClose={() => setReceiptModalOpen(false)}
+      />
     </DashboardShell>
   );
 }
