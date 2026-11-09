@@ -499,8 +499,8 @@ function OrderDetail() {
     try {
       let uploadedPath: string | null = null;
       if (codProofFile && user) {
-        uploadedPath = `cod-proofs/${order.id}-${Date.now()}.webp`;
-        await uploadFile("payment-proofs", uploadedPath, codProofFile);
+        const uploadPath = `${user.id}/cod-proofs/${order.id}-${Date.now()}.webp`;
+        uploadedPath = await uploadFile("payment-proofs", uploadPath, codProofFile);
       }
 
       // 1. Eksekusi melalui RPC aman confirm_cod_own_order (Security Definer)
@@ -537,10 +537,14 @@ function OrderDetail() {
             .eq("id", payment.id);
 
           if (uploadedPath) {
-            await supabase.from("payment_proofs").insert({
-              payment_id: payment.id,
-              image_url: uploadedPath,
-            });
+            try {
+              await supabase.from("payment_proofs").insert({
+                payment_id: payment.id,
+                image_url: uploadedPath,
+              });
+            } catch (proofErr) {
+              console.warn("payment_proofs insert skipped:", proofErr);
+            }
           }
         }
       }

@@ -1,6 +1,7 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -176,6 +177,7 @@ function formatProductImg(url?: string | null): string {
 }
 
 function AdminOrderDetail() {
+  const { user } = useAuth();
   const { orderNumber } = useParams({ from: "/_authenticated/_admin/admin/pesanan/$orderNumber" });
   const qc = useQueryClient();
   const [tracking, setTracking] = useState("");
@@ -375,9 +377,9 @@ function AdminOrderDetail() {
     setSavingTestimonial(true);
     try {
       let photoPath = (order as any)?.testimonial_photo_url || null;
-      if (testimonialPhotoFile) {
-        photoPath = `testimonials/${order.id}-${Date.now()}.webp`;
-        await uploadFile("payment-proofs", photoPath, testimonialPhotoFile);
+      if (testimonialPhotoFile && user) {
+        const uploadPath = `${user.id}/testimonials/${order.id}-${Date.now()}.webp`;
+        photoPath = await uploadFile("payment-proofs", uploadPath, testimonialPhotoFile);
       }
 
       const updatePayload: OrderUpdate = {
@@ -466,9 +468,9 @@ function AdminOrderDetail() {
     setCompletingCod(true);
     try {
       let uploadedPath: string | null = null;
-      if (codProofFile) {
-        uploadedPath = `cod-proofs/${order.id}-${Date.now()}.webp`;
-        await uploadFile("payment-proofs", uploadedPath, codProofFile);
+      if (codProofFile && user) {
+        const uploadPath = `${user.id}/cod-proofs/${order.id}-${Date.now()}.webp`;
+        uploadedPath = await uploadFile("payment-proofs", uploadPath, codProofFile);
       }
 
       const updatePayload: OrderUpdate = {
@@ -499,10 +501,14 @@ function AdminOrderDetail() {
           .eq("id", payment.id);
 
         if (uploadedPath) {
-          await supabase.from("payment_proofs").insert({
-            payment_id: payment.id,
-            image_url: uploadedPath,
-          });
+          try {
+            await supabase.from("payment_proofs").insert({
+              payment_id: payment.id,
+              image_url: uploadedPath,
+            });
+          } catch (proofErr) {
+            console.warn("Skipping payment_proofs insert for COD order:", proofErr);
+          }
         }
       }
 
@@ -510,6 +516,7 @@ function AdminOrderDetail() {
       setCompleteDialogOpen(false);
       setCodProofFile(null);
       setCodProofPreview(null);
+      setCodTestimonialText("");
       qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
     } catch (err) {
       toast.error("Gagal menyelesaikan COD: " + (err as Error).message);
