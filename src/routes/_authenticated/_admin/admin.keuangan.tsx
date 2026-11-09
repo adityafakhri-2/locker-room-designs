@@ -109,6 +109,7 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
   // Track sold counts per size and per product from valid orders
   const sizeSoldMap: Record<string, number> = {};
   const productSoldMap: Record<string, number> = {};
+  const orderItemCostMap: Record<string, number> = {};
 
   orders.forEach((o) => {
     const orderItems = (o as any).order_items || [];
@@ -119,6 +120,9 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
         if (it.size) {
           const key = `${it.product_id}-${String(it.size).toUpperCase().trim()}`;
           sizeSoldMap[key] = (sizeSoldMap[key] || 0) + qty;
+          if (Number(it.cost_price) > 0) {
+            orderItemCostMap[key] = Number(it.cost_price);
+          }
         }
       }
     });
@@ -132,6 +136,7 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
     const productDbSold = Number(p.sold_count ?? 0);
     const orderItemsSold = productSoldMap[p.id] ?? 0;
     const totalKnownSold = Math.max(productDbSold, orderItemsSold);
+    const processedSizes = new Set<string>();
 
     if (stockEntries.length > 0) {
       let remainingUnassignedSold = totalKnownSold;
@@ -147,6 +152,7 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
       stockEntries.forEach(([sz, qtyVal]) => {
         const qty = Number(qtyVal) || 0;
         const szKey = `${p.id}-${String(sz).toUpperCase().trim()}`;
+        processedSizes.add(String(sz).toUpperCase().trim());
         let szSold = sizeSoldMap[szKey] ?? 0;
 
         // If no size-specific order breakdown but product has sold_count:
@@ -162,7 +168,9 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
         const szCost =
           sizeCostMap[sz] !== undefined && Number(sizeCostMap[sz]) > 0
             ? Number(sizeCostMap[sz])
-            : defaultCost;
+            : orderItemCostMap[szKey] !== undefined && Number(orderItemCostMap[szKey]) > 0
+              ? Number(orderItemCostMap[szKey])
+              : defaultCost;
 
         const totalProcured = qty + szSold;
 
@@ -178,6 +186,38 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
           costPrice: szCost,
           totalCost: szCost * totalProcured,
         });
+      });
+
+      // Second pass: Ensure any sizes that were sold in historical orders are never lost
+      Object.keys(sizeSoldMap).forEach((szKey) => {
+        if (szKey.startsWith(`${p.id}-`)) {
+          const soldSz = szKey.substring(p.id.length + 1);
+          if (!processedSizes.has(soldSz)) {
+            const soldQty = sizeSoldMap[szKey] || 0;
+            if (soldQty > 0) {
+              processedSizes.add(soldSz);
+              const szCost =
+                sizeCostMap[soldSz] !== undefined && Number(sizeCostMap[soldSz]) > 0
+                  ? Number(sizeCostMap[soldSz])
+                  : orderItemCostMap[szKey] !== undefined && Number(orderItemCostMap[szKey]) > 0
+                    ? Number(orderItemCostMap[szKey])
+                    : defaultCost;
+
+              items.push({
+                id: `${p.id}-${soldSz}`,
+                productId: p.id,
+                name: p.name,
+                team: p.team || "-",
+                size: soldSz,
+                stock: 0,
+                sold: soldQty,
+                totalProcured: soldQty,
+                costPrice: szCost,
+                totalCost: szCost * soldQty,
+              });
+            }
+          }
+        }
       });
     } else if (Array.isArray(p.sizes) && p.sizes.length > 0) {
       p.sizes.forEach((sz: string) => {

@@ -631,9 +631,16 @@ function AdminReports() {
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">Modal / Jual</span>
+                  <span className="text-[10px] text-muted-foreground block">Modal Terjual / Jual</span>
                   <span className="text-muted-foreground font-mono">{formatIDR(p.cost_price)}</span>
-                  <span className="text-foreground font-bold block">{formatIDR(p.price)}</span>
+                  {Object.keys(p.sizes_sold || {}).length > 0 && (
+                    <span className="text-[10px] text-muted-foreground/75 font-mono block">
+                      {Object.entries(p.sizes_sold)
+                        .map(([sz, q]) => `${sz} (x${q})`)
+                        .join(", ")}
+                    </span>
+                  )}
+                  <span className="text-foreground font-bold block mt-0.5">{formatIDR(p.price)}</span>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-muted-foreground block">Total Omset</span>
@@ -677,7 +684,7 @@ function AdminReports() {
               <tr className="text-left eyebrow text-muted-foreground border-b border-border">
                 {renderSortHeader("Produk", "name", "left")}
                 {renderSortHeader("Terjual", "sold_count", "left")}
-                {renderSortHeader("Modal/Pcs", "cost_price", "right")}
+                {renderSortHeader("Modal Terjual", "cost_price", "right")}
                 {renderSortHeader("Harga Jual", "price", "right")}
                 {renderSortHeader("Total Omset", "total_omset", "right")}
                 {renderSortHeader("Total Modal", "total_modal", "right")}
@@ -697,7 +704,14 @@ function AdminReports() {
                     <span className="text-muted-foreground text-[11px]"> ({p.stock} sisa)</span>
                   </td>
                   <td className="text-right tabular-nums text-xs text-muted-foreground">
-                    {formatIDR(p.cost_price)}
+                    <div>{formatIDR(p.cost_price)}</div>
+                    {Object.keys(p.sizes_sold || {}).length > 0 && (
+                      <div className="text-[10px] text-muted-foreground/75 font-mono">
+                        {Object.entries(p.sizes_sold)
+                          .map(([sz, q]) => `${sz} (x${q})`)
+                          .join(", ")}
+                      </div>
+                    )}
                   </td>
                   <td className="text-right tabular-nums text-xs font-medium">
                     {formatIDR(p.price)}
