@@ -235,7 +235,7 @@ function OrderDetail() {
           if (productIds.length > 0) {
             const { data: pById } = await supabase
               .from("products")
-              .select("id, name, slug, cover_image_url, product_images(url, sort_order)")
+              .select("id, name, slug, cover_image_url")
               .in("id", productIds);
             if (pById) prods.push(...pById);
           }
@@ -243,7 +243,7 @@ function OrderDetail() {
             if (!prods.some((p) => p.name?.toLowerCase().trim() === name.toLowerCase().trim())) {
               const { data: pByName } = await supabase
                 .from("products")
-                .select("id, name, slug, cover_image_url, product_images(url, sort_order)")
+                .select("id, name, slug, cover_image_url")
                 .eq("name", name)
                 .maybeSingle();
               if (pByName) prods.push(pByName);
@@ -263,11 +263,7 @@ function OrderDetail() {
                   (it.product_name ? prodMapByName.get(it.product_name?.toLowerCase().trim()) : null);
 
                 if (prod) {
-                  const sortedImgs = (prod.product_images as any[])
-                    ?.slice()
-                    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-                  let resolvedImg =
-                    prod.cover_image_url || sortedImgs?.[0]?.url || null;
+                  let resolvedImg = prod.cover_image_url || null;
 
                   if (resolvedImg && !resolvedImg.startsWith("http")) {
                     resolvedImg = supabase.storage
