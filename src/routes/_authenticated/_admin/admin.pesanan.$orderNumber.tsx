@@ -1,6 +1,6 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -32,7 +32,7 @@ import { formatIDR, formatDateTime, statusLabel } from "@/lib/format";
 import { getOrderPlatformFee } from "@/lib/orderFee";
 import { signedUrl, uploadFile } from "@/lib/storage";
 import { cn } from "@/lib/utils";
-import { Printer, HandCoins, MapPin, Calendar, MessageCircle, CheckCircle2, Clock, AlertCircle, Phone } from "lucide-react";
+import { Printer, HandCoins, MapPin, Calendar, MessageCircle, CheckCircle2, Clock, AlertCircle, Phone, Star, Sparkles, Shirt } from "lucide-react";
 import { OrderReceiptModal } from "@/components/commerce/OrderReceiptModal";
 import { isCodOrder, parseCodInfo } from "@/lib/orderCod";
 import { createWebpFile } from "@/lib/imageCompression";
@@ -168,12 +168,36 @@ function buildTimeline(
   return uniqueEvents;
 }
 
+function formatProductImg(url?: string | null): string {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return supabase.storage.from("product-images").getPublicUrl(url).data.publicUrl;
+}
+
 function AdminOrderDetail() {
   const { orderNumber } = useParams({ from: "/_authenticated/_admin/admin/pesanan/$orderNumber" });
   const qc = useQueryClient();
   const [tracking, setTracking] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+
+  // COD Admin Dialogs & States
+  const [codRejectDialogOpen, setCodRejectDialogOpen] = useState(false);
+  const [codRejectReason, setCodRejectReason] = useState("");
+  const [rejectingCod, setRejectingCod] = useState(false);
+
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [codProofFile, setCodProofFile] = useState<File | null>(null);
+  const [codProofPreview, setCodProofPreview] = useState<string | null>(null);
+  const [codTestimonialText, setCodTestimonialText] = useState("");
+  const [completingCod, setCompletingCod] = useState(false);
+
+  // Testimonial Management States (Fitur 3)
+  const [testimonialDialogOpen, setTestimonialDialogOpen] = useState(false);
+  const [orderTestimonialText, setOrderTestimonialText] = useState("");
+  const [testimonialPhotoFile, setTestimonialPhotoFile] = useState<File | null>(null);
+  const [testimonialPhotoPreview, setTestimonialPhotoPreview] = useState<string | null>(null);
+  const [savingTestimonial, setSavingTestimonial] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin-order", orderNumber],
@@ -184,6 +208,85 @@ function AdminOrderDetail() {
         .eq("order_number", orderNumber)
         .maybeSingle();
       if (!data) return null;
+
+      // Automatically resolve missing jersey images for order items
+      if (data.order_items && data.order_items.length > 0) {
+        const missingImageItems = data.order_items.filter((it: any) => !it.image_url);
+        if (missingImageItems.length > 0) {
+          const productIds = Array.from(
+            new Set(
+              missingImageItems
+                .map((it: any) => it.product_id)
+                .filter(Boolean),
+            ),
+          );
+          const productNames = Array.from(
+            new Set(
+              missingImageItems
+                .map((it: any) => it.product_name)
+                .filter(Boolean),
+            ),
+          );
+
+          const prods: any[] = [];
+          if (productIds.length > 0) {
+            const { data: pById } = await supabase
+              .from("products")
+              .select("id, name, slug, cover_image_url, product_images(url, sort_order)")
+              .in("id", productIds);
+            if (pById) prods.push(...pById);
+          }
+          for (const name of productNames) {
+            if (!prods.some((p) => p.name?.toLowerCase().trim() === name.toLowerCase().trim())) {
+              const { data: pByName } = await supabase
+                .from("products")
+                .select("id, name, slug, cover_image_url, product_images(url, sort_order)")
+                .eq("name", name)
+                .maybeSingle();
+              if (pByName) prods.push(pByName);
+            }
+          }
+
+          if (prods.length > 0) {
+            const prodMapById = new Map(prods.map((p) => [p.id, p]));
+            const prodMapByName = new Map(
+              prods.map((p) => [p.name?.toLowerCase().trim(), p]),
+            );
+
+            for (const it of data.order_items as any[]) {
+              if (!it.image_url) {
+                const prod =
+                  (it.product_id ? prodMapById.get(it.product_id) : null) ||
+                  (it.product_name ? prodMapByName.get(it.product_name?.toLowerCase().trim()) : null);
+
+                if (prod) {
+                  const sortedImgs = (prod.product_images as any[])
+                    ?.slice()
+                    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                  let resolvedImg =
+                    prod.cover_image_url || sortedImgs?.[0]?.url || null;
+
+                  if (resolvedImg && !resolvedImg.startsWith("http")) {
+                    resolvedImg = supabase.storage
+                      .from("product-images")
+                      .getPublicUrl(resolvedImg).data.publicUrl;
+                  }
+
+                  if (resolvedImg) {
+                    it.image_url = resolvedImg;
+                    // Silently backfill DB for future instant loads
+                    supabase
+                      .from("order_items")
+                      .update({ image_url: resolvedImg })
+                      .eq("id", it.id)
+                      .then(() => {});
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       const payment = (Array.isArray(data.payments) ? data.payments[0] : data.payments) as
         | AdminPaymentInfo
         | undefined;
@@ -218,9 +321,22 @@ function AdminOrderDetail() {
       }
       if (!codProofUrl && proofUrl) codProofUrl = proofUrl;
 
-      return { order: data, payment, proofUrl, proofUploadedAt, buyerProfile, codProofUrl };
+      let testimonialProofUrl = "";
+      if ((data as any)?.testimonial_photo_url) {
+        try {
+          testimonialProofUrl = await signedUrl("payment-proofs", (data as any).testimonial_photo_url);
+        } catch {}
+      }
+
+      return { order: data, payment, proofUrl, proofUploadedAt, buyerProfile, codProofUrl, testimonialProofUrl };
     },
   });
+
+  useEffect(() => {
+    if ((q.data?.order as any)?.testimonial_text) {
+      setOrderTestimonialText((q.data.order as any).testimonial_text);
+    }
+  }, [(q.data?.order as any)?.testimonial_text]);
 
   if (!q.data?.order)
     return (
@@ -228,20 +344,61 @@ function AdminOrderDetail() {
         Memuat...
       </DashboardShell>
     );
-  const { order, payment, proofUrl, proofUploadedAt, buyerProfile, codProofUrl } = q.data;
+  const { order, payment, proofUrl, proofUploadedAt, buyerProfile, codProofUrl, testimonialProofUrl } = q.data;
 
   const isCod = isCodOrder(order);
   const codInfo = parseCodInfo(order);
 
-  // COD Admin Dialogs & States
-  const [codRejectDialogOpen, setCodRejectDialogOpen] = useState(false);
-  const [codRejectReason, setCodRejectReason] = useState("");
-  const [rejectingCod, setRejectingCod] = useState(false);
+  // WhatsApp 1-Click Notifications (Fitur 4)
+  const customerWaPhone = (order.recipient_no_hp || "")
+    .replace(/^0/, "62")
+    .replace(/\D/g, "");
 
-  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
-  const [codProofFile, setCodProofFile] = useState<File | null>(null);
-  const [codProofPreview, setCodProofPreview] = useState<string | null>(null);
-  const [completingCod, setCompletingCod] = useState(false);
+  const codScheduleWaUrl = `https://wa.me/${customerWaPhone}?text=${encodeURIComponent(
+    `Halo kak ${order.recipient_name}, pesanan COD AA Jersey Anda (#${order.order_number}) telah kami setujui & dijadwalkan! 🎉\n\n` +
+      `📍 Lokasi: ${codInfo.location || "-"}\n` +
+      `📅 Jadwal: ${codInfo.date || "-"} ${codInfo.timeSlot ? `(${codInfo.timeSlot})` : ""}\n` +
+      `💰 Total Bayar di Tempat: Rp ${Number(order.grand_total).toLocaleString("id-ID")} (Bisa Cash atau via QRIS)\n\n` +
+      `Mohon konfirmasi jika jadwal ini cocok ya kak. Sampai jumpa di lokasi! Terima kasih 🙏⚽`,
+  )}`;
+
+  const resiWaUrl = `https://wa.me/${customerWaPhone}?text=${encodeURIComponent(
+    `Halo kak ${order.recipient_name}, pesanan AA Jersey Anda (#${order.order_number}) telah kami serahkan ke kurir! 📦✨\n\n` +
+      `🚚 Ekspedisi: ${order.courier || "JNE"}\n` +
+      `🔖 No. Resi: ${order.tracking_number || tracking || "-"}\n` +
+      `📍 Tujuan: ${order.recipient_kota || order.recipient_alamat}\n\n` +
+      `Silakan cek status tracking secara berkala. Terima kasih banyak telah berbelanja di AA Jersey! ⚽🔥`,
+  )}`;
+
+  async function handleSaveTestimonial() {
+    setSavingTestimonial(true);
+    try {
+      let photoPath = (order as any)?.testimonial_photo_url || null;
+      if (testimonialPhotoFile) {
+        photoPath = `testimonials/${order.id}-${Date.now()}.webp`;
+        await uploadFile("payment-proofs", photoPath, testimonialPhotoFile);
+      }
+
+      const updatePayload: OrderUpdate = {
+        testimonial_text: orderTestimonialText.trim() || null,
+        testimonial_photo_url: photoPath,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("orders").update(updatePayload).eq("id", order.id);
+      if (error) throw error;
+
+      toast.success("Testimoni pesanan berhasil disimpan!");
+      setTestimonialDialogOpen(false);
+      setTestimonialPhotoFile(null);
+      setTestimonialPhotoPreview(null);
+      qc.invalidateQueries({ queryKey: ["admin-order", orderNumber] });
+    } catch (err) {
+      toast.error("Gagal menyimpan testimoni: " + (err as Error).message);
+    } finally {
+      setSavingTestimonial(false);
+    }
+  }
 
   async function handleAccCod() {
     try {
@@ -319,6 +476,9 @@ function AdminOrderDetail() {
       if (uploadedPath) {
         updatePayload.cod_proof_url = uploadedPath;
         updatePayload.cod_status = "delivered";
+      }
+      if (codTestimonialText.trim()) {
+        updatePayload.testimonial_text = codTestimonialText.trim();
       }
 
       const { error: oErr } = await supabase.from("orders").update(updatePayload).eq("id", order.id);
@@ -508,13 +668,18 @@ function AdminOrderDetail() {
                 key={it.id}
                 className="flex gap-4 py-3 border-b border-border/50 last:border-0 text-sm items-center"
               >
-                <div className="size-12 bg-muted overflow-hidden flex-shrink-0 rounded border border-border">
+                <div className="size-12 bg-muted/60 overflow-hidden flex-shrink-0 rounded border border-border flex items-center justify-center">
                   {it.image_url ? (
-                    <img src={it.image_url} alt="" className="size-full object-cover" />
+                    <img
+                      src={formatProductImg(it.image_url)}
+                      alt={it.product_name}
+                      className="size-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
                   ) : (
-                    <div className="size-full flex items-center justify-center text-[10px] text-muted-foreground">
-                      No img
-                    </div>
+                    <Shirt className="size-6 text-muted-foreground/40" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -744,12 +909,27 @@ function AdminOrderDetail() {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={() => setCompleteDialogOpen(true)}
-                    className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-1.5 shadow-xs"
-                  >
-                    <CheckCircle2 className="size-4" /> Selesaikan Pesanan COD
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => setCompleteDialogOpen(true)}
+                      className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <CheckCircle2 className="size-4" /> Selesaikan Pesanan COD
+                    </Button>
+
+                    {customerWaPhone && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs h-9 cursor-pointer border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 font-bold flex items-center justify-center gap-1.5"
+                        asChild
+                      >
+                        <a href={codScheduleWaUrl} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="size-3.5" /> Kirim Konfirmasi COD ke WA
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 </Card>
               )}
 
@@ -843,8 +1023,90 @@ function AdminOrderDetail() {
                       <span className="font-bold text-primary">{statusLabel(order.status)}</span>
                     </div>
                   </div>
+
+                  {order.tracking_number && customerWaPhone && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs h-9 cursor-pointer border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 font-bold flex items-center justify-center gap-1.5"
+                      asChild
+                    >
+                      <a href={resiWaUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="size-3.5" /> Kirim No. Resi ke WA Customer
+                      </a>
+                    </Button>
+                  )}
                 </Card>
               )}
+
+              {/* KARTU TESTIMONI & BUKTI TRANSAKSI (ADMIN) */}
+              <Card className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-sm flex items-center gap-1.5">
+                    <Star className="size-4 text-amber-500 fill-amber-500" /> Testimoni & Bukti
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setOrderTestimonialText((order as any)?.testimonial_text || "");
+                      setTestimonialPhotoFile(null);
+                      setTestimonialPhotoPreview(null);
+                      setTestimonialDialogOpen(true);
+                    }}
+                    className="text-xs h-7 px-2 cursor-pointer gap-1"
+                  >
+                    {(order as any)?.testimonial_text ||
+                    (order as any)?.testimonial_photo_url ||
+                    (order as any)?.cod_proof_url
+                      ? "Edit Testimoni"
+                      : "+ Tambah Testimoni"}
+                  </Button>
+                </div>
+
+                {(order as any)?.testimonial_text ? (
+                  <div className="p-3 bg-muted/40 border border-border/60 rounded text-xs space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                      Kata Pelanggan:
+                    </span>
+                    <p className="italic text-foreground">
+                      &ldquo;{(order as any)?.testimonial_text}&rdquo;
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Belum ada ulasan testimoni untuk pesanan ini. Klik tombol di atas untuk menambahkan testimoni atau review pembeli.
+                  </p>
+                )}
+
+                {testimonialProofUrl ? (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                      Foto Bukti / Testimoni:
+                    </span>
+                    <a href={testimonialProofUrl} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={testimonialProofUrl}
+                        alt="Foto Testimoni"
+                        className="w-full max-h-48 object-cover rounded border border-border hover:opacity-90 transition-opacity"
+                      />
+                    </a>
+                  </div>
+                ) : codProofUrl ? (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                      Foto Serah Terima COD:
+                    </span>
+                    <a href={codProofUrl} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={codProofUrl}
+                        alt="Bukti COD"
+                        className="w-full max-h-48 object-cover rounded border border-border hover:opacity-90 transition-opacity"
+                      />
+                    </a>
+                  </div>
+                ) : null}
+              </Card>
 
               <Card>
                 <h3 className="font-extrabold mb-3">Pembayaran</h3>
@@ -1010,6 +1272,18 @@ function AdminOrderDetail() {
                 </div>
               </div>
             )}
+
+            <div>
+              <label className="text-xs font-bold block mb-1 text-foreground">
+                Testimoni / Ulasan Singkat Pelanggan <span className="text-muted-foreground font-normal">(Opsional)</span>
+              </label>
+              <Textarea
+                placeholder="Contoh: Pembeli puas dengan kondisi jersey original dan tepat waktu..."
+                value={codTestimonialText}
+                onChange={(e) => setCodTestimonialText(e.target.value)}
+                className="text-xs min-h-[60px]"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -1021,6 +1295,7 @@ function AdminOrderDetail() {
                 setCompleteDialogOpen(false);
                 setCodProofFile(null);
                 setCodProofPreview(null);
+                setCodTestimonialText("");
               }}
               disabled={completingCod}
               className="cursor-pointer text-xs"
@@ -1035,6 +1310,102 @@ function AdminOrderDetail() {
               className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
             >
               {completingCod ? "Menyelesaikan..." : "Selesaikan Pesanan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Kelola Testimoni & Bukti Transaksi (Admin) */}
+      <Dialog open={testimonialDialogOpen} onOpenChange={setTestimonialDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Star className="size-5 text-amber-500 fill-amber-500" />
+              <span>Kelola Testimoni & Bukti Transaksi</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              Testimoni dan foto serah terima ini akan ditampilkan di Galeri Transaksi & Testimoni toko.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-xs font-bold block mb-1 text-foreground">
+                Teks Testimoni / Ulasan Pelanggan
+              </label>
+              <Textarea
+                placeholder="Tuliskan testimoni atau review kepuasan dari pembeli..."
+                value={orderTestimonialText}
+                onChange={(e) => setOrderTestimonialText(e.target.value)}
+                className="text-xs min-h-[80px]"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold block mb-1 text-foreground">
+                Unggah Foto Bukti / Testimoni <span className="text-muted-foreground font-normal">(Opsional)</span>
+              </label>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Foto paket terkirim, unboxing, atau foto bersama pelanggan saat serah terima.
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const webpFile = await createWebpFile(file);
+                    setTestimonialPhotoFile(webpFile);
+                    setTestimonialPhotoPreview(URL.createObjectURL(webpFile));
+                  } catch (err) {
+                    toast.error("Gagal memproses gambar");
+                  }
+                }}
+                className="text-xs w-full file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-border file:text-xs file:font-semibold file:bg-muted hover:file:bg-muted/80 cursor-pointer"
+              />
+            </div>
+
+            {testimonialPhotoPreview ? (
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground">Pratinjau Foto Baru:</span>
+                <div className="relative border border-border rounded overflow-hidden max-h-48 bg-muted/20">
+                  <img src={testimonialPhotoPreview} alt="Preview" className="w-full h-auto max-h-48 object-contain mx-auto" />
+                </div>
+              </div>
+            ) : testimonialProofUrl ? (
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground">Foto Saat Ini:</span>
+                <div className="relative border border-border rounded overflow-hidden max-h-48 bg-muted/20">
+                  <img src={testimonialProofUrl} alt="Current" className="w-full h-auto max-h-48 object-contain mx-auto" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setTestimonialDialogOpen(false);
+                setTestimonialPhotoFile(null);
+                setTestimonialPhotoPreview(null);
+              }}
+              disabled={savingTestimonial}
+              className="cursor-pointer text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveTestimonial}
+              disabled={savingTestimonial}
+              className="cursor-pointer text-xs bg-primary text-primary-foreground font-bold"
+            >
+              {savingTestimonial ? "Menyimpan..." : "Simpan Testimoni"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -86,6 +86,7 @@ export function CreateManualOrderDialog({
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [platformFee, setPlatformFee] = useState<number>(0);
   const [notes, setNotes] = useState("Transaksi Langsung di Outlet Cimahi");
+  const [testimonialText, setTestimonialText] = useState("");
 
   // Items State
   const [items, setItems] = useState<OrderItemRow[]>([
@@ -206,7 +207,7 @@ export function CreateManualOrderDialog({
       const { data } = await supabase
         .from("products")
         .select(
-          "id, slug, name, price, cost_price, cover_image_url, team, league, sizes, size_stock, stock, is_active",
+          "id, slug, name, price, cost_price, cover_image_url, team, league, sizes, size_stock, stock, is_active, product_images(url, sort_order)",
         )
         .eq("is_active", true)
         .order("name");
@@ -245,13 +246,18 @@ export function CreateManualOrderDialog({
         ? Number(sizeCost[firstAvailableSize])
         : Number((p as any).cost_price) || 0;
 
+    const sortedImgs = (p.product_images as any[])
+      ?.slice()
+      .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const cover = p.cover_image_url || sortedImgs?.[0]?.url || null;
+
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = {
         productId: p.id,
         productName: p.name,
         productSlug: p.slug,
-        coverImage: p.cover_image_url,
+        coverImage: cover,
         size: firstAvailableSize,
         quantity: 1,
         unitPrice: Number(p.price) || 0,
@@ -376,6 +382,7 @@ export function CreateManualOrderDialog({
         grand_total: grandTotal,
         status: "delivered", // Offline orders are fulfilled immediately
         note: formattedNote,
+        testimonial_text: testimonialText.trim() || null,
         created_at: dateObj.toISOString(),
         updated_at: dateObj.toISOString(),
       };
@@ -386,9 +393,14 @@ export function CreateManualOrderDialog({
         .select()
         .single();
 
-      // Graceful fallback if platform_fee column has not been added to remote Supabase yet
-      if (orderError && (orderError.message?.includes("platform_fee") || (orderError as any).code === "PGRST204")) {
-        const { platform_fee: _omitted, ...fallbackPayload } = orderPayload;
+      // Graceful fallback if platform_fee or testimonial_text column has not been added to remote Supabase yet
+      if (
+        orderError &&
+        (orderError.message?.includes("platform_fee") ||
+          orderError.message?.includes("testimonial_text") ||
+          (orderError as any).code === "PGRST204")
+      ) {
+        const { platform_fee: _p, testimonial_text: _t, ...fallbackPayload } = orderPayload;
         const retryRes = await supabase
           .from("orders")
           .insert(fallbackPayload)
@@ -406,6 +418,7 @@ export function CreateManualOrderDialog({
         product_id: it.productId,
         product_name: it.productName,
         product_slug: it.productSlug || null,
+        image_url: it.coverImage || null,
         size: it.size || "All Size",
         quantity: it.quantity,
         unit_price: it.unitPrice,
@@ -1057,6 +1070,21 @@ export function CreateManualOrderDialog({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Contoh: Admin shopee 10.5% / J&T"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold block mb-1.5 flex items-center justify-between">
+                  <span>Testimoni / Ulasan Pelanggan (Opsional)</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    Ditampilkan di Galeri Testimoni
+                  </span>
+                </Label>
+                <Input
+                  value={testimonialText}
+                  onChange={(e) => setTestimonialText(e.target.value)}
+                  placeholder="Contoh: Jersey mantap, 100% original & bahan nyaman!"
                   className="h-9 text-xs"
                 />
               </div>

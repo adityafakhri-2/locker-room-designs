@@ -12,7 +12,7 @@ import { CUSTOMER_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDateTime, statusLabel, BANKS } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
-import { Clock, AlertCircle, CheckCircle2, Copy, Upload, Image, ExternalLink, HandCoins, MapPin, Calendar, MessageCircle, Phone } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle2, Copy, Upload, Image, ExternalLink, HandCoins, MapPin, Calendar, MessageCircle, Phone, Shirt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCodOrder, parseCodInfo, formatCodWhatsAppUrl, STORE_PHONE_DISPLAY } from "@/lib/orderCod";
 import { createWebpFile } from "@/lib/imageCompression";
@@ -166,6 +166,12 @@ function buildTimeline(
   return uniqueEvents;
 }
 
+function formatProductImg(url?: string | null): string {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return supabase.storage.from("product-images").getPublicUrl(url).data.publicUrl;
+}
+
 function OrderDetail() {
   const { orderNumber } = useParams({ from: "/_authenticated/dashboard/pesanan/$orderNumber" });
   const { user } = useAuth();
@@ -189,6 +195,79 @@ function OrderDetail() {
         .eq("order_number", orderNumber)
         .maybeSingle();
       if (!order) return null;
+
+      // Automatically resolve missing jersey images for order items
+      if (order.order_items && order.order_items.length > 0) {
+        const missingImageItems = order.order_items.filter((it: any) => !it.image_url);
+        if (missingImageItems.length > 0) {
+          const productIds = Array.from(
+            new Set(
+              missingImageItems
+                .map((it: any) => it.product_id)
+                .filter(Boolean),
+            ),
+          );
+          const productNames = Array.from(
+            new Set(
+              missingImageItems
+                .map((it: any) => it.product_name)
+                .filter(Boolean),
+            ),
+          );
+
+          const prods: any[] = [];
+          if (productIds.length > 0) {
+            const { data: pById } = await supabase
+              .from("products")
+              .select("id, name, slug, cover_image_url, product_images(url, sort_order)")
+              .in("id", productIds);
+            if (pById) prods.push(...pById);
+          }
+          for (const name of productNames) {
+            if (!prods.some((p) => p.name?.toLowerCase().trim() === name.toLowerCase().trim())) {
+              const { data: pByName } = await supabase
+                .from("products")
+                .select("id, name, slug, cover_image_url, product_images(url, sort_order)")
+                .eq("name", name)
+                .maybeSingle();
+              if (pByName) prods.push(pByName);
+            }
+          }
+
+          if (prods.length > 0) {
+            const prodMapById = new Map(prods.map((p) => [p.id, p]));
+            const prodMapByName = new Map(
+              prods.map((p) => [p.name?.toLowerCase().trim(), p]),
+            );
+
+            for (const it of order.order_items as any[]) {
+              if (!it.image_url) {
+                const prod =
+                  (it.product_id ? prodMapById.get(it.product_id) : null) ||
+                  (it.product_name ? prodMapByName.get(it.product_name?.toLowerCase().trim()) : null);
+
+                if (prod) {
+                  const sortedImgs = (prod.product_images as any[])
+                    ?.slice()
+                    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                  let resolvedImg =
+                    prod.cover_image_url || sortedImgs?.[0]?.url || null;
+
+                  if (resolvedImg && !resolvedImg.startsWith("http")) {
+                    resolvedImg = supabase.storage
+                      .from("product-images")
+                      .getPublicUrl(resolvedImg).data.publicUrl;
+                  }
+
+                  if (resolvedImg) {
+                    it.image_url = resolvedImg;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
 
       const payment = Array.isArray(order.payments)
         ? order.payments[0]
@@ -553,9 +632,18 @@ function OrderDetail() {
             <h3 className="font-extrabold mb-4">Item Pesanan</h3>
             {order.order_items?.map((it) => (
               <div key={it.id} className="flex gap-4 py-3 border-b border-border/50 last:border-0">
-                <div className="size-16 bg-muted overflow-hidden flex-shrink-0">
-                  {it.image_url && (
-                    <img src={it.image_url} alt="" className="size-full object-cover" />
+                <div className="size-16 bg-muted/60 overflow-hidden flex-shrink-0 rounded border border-border flex items-center justify-center">
+                  {it.image_url ? (
+                    <img
+                      src={formatProductImg(it.image_url)}
+                      alt={it.product_name}
+                      className="size-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <Shirt className="size-8 text-muted-foreground/40" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

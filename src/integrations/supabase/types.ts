@@ -326,6 +326,8 @@ export type Database = {
           cod_alt_phone?: string | null;
           cod_proof_url?: string | null;
           cod_status?: string | null;
+          testimonial_text?: string | null;
+          testimonial_photo_url?: string | null;
         };
         Insert: {
           cancel_reason?: string | null;
@@ -358,6 +360,8 @@ export type Database = {
           cod_alt_phone?: string | null;
           cod_proof_url?: string | null;
           cod_status?: string | null;
+          testimonial_text?: string | null;
+          testimonial_photo_url?: string | null;
         };
         Update: {
           cancel_reason?: string | null;
@@ -390,6 +394,8 @@ export type Database = {
           cod_alt_phone?: string | null;
           cod_proof_url?: string | null;
           cod_status?: string | null;
+          testimonial_text?: string | null;
+          testimonial_photo_url?: string | null;
         };
         Relationships: [];
       };

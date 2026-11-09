@@ -12,6 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
+  ShoppingBag,
+  Zap,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/landing/Navbar";
@@ -25,6 +28,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { formatIDR } from "@/lib/format";
+import { STORE_WA_NUMBER } from "@/lib/orderCod";
 import { useAddToCart, useToggleWishlist, useWishlist } from "@/hooks/use-commerce";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -50,6 +54,7 @@ function ProductDetail() {
   const { user } = useAuth();
   const [size, setSize] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
+  const [buyingNow, setBuyingNow] = useState(false);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
   useEffect(() => {
@@ -224,6 +229,64 @@ function ProductDetail() {
   const selectedSizeStock = size ? (sizeStockMap[size] ?? 0) : totalStockCount;
   const isSelectedSizeOutOfStock = size ? selectedSizeStock <= 0 : isProductOutOfStock;
 
+  const handleAddToCart = () => {
+    if (!user) {
+      toast.error("Silakan masuk terlebih dahulu");
+      navigate({ to: "/auth" });
+      return;
+    }
+    if (p.sizes && p.sizes.length > 0 && !size) {
+      toast.error("Pilih ukuran terlebih dahulu");
+      return;
+    }
+    addToCart.mutate(
+      { product_id: p.id, size },
+      {
+        onSuccess: () => {
+          toast.success("Berhasil ditambahkan ke keranjang", {
+            action: {
+              label: "Lihat Keranjang",
+              onClick: () => navigate({ to: "/cart" }),
+            },
+          });
+        },
+      },
+    );
+  };
+
+  const handleBuyNow = () => {
+    if (!user) {
+      toast.error("Silakan masuk terlebih dahulu");
+      navigate({ to: "/auth" });
+      return;
+    }
+    if (p.sizes && p.sizes.length > 0 && !size) {
+      toast.error("Pilih ukuran terlebih dahulu");
+      return;
+    }
+    setBuyingNow(true);
+    addToCart.mutate(
+      { product_id: p.id, size },
+      {
+        onSuccess: () => {
+          navigate({ to: "/checkout" });
+        },
+        onError: (err) => {
+          setBuyingNow(false);
+          toast.error("Gagal memproses pembelian: " + (err as Error).message);
+        },
+      },
+    );
+  };
+
+  const restockWaUrl = `https://wa.me/${STORE_WA_NUMBER}?text=${encodeURIComponent(
+    `Halo Admin AA Jersey, saya tertarik dengan jersey "${p?.name || ""}"${
+      size ? ` (Ukuran ${size})` : ""
+    }, tapi stok di website sedang habis. Apakah ada info restock atau bisa pre-order? Terima kasih!\n\nLink: ${
+      typeof window !== "undefined" ? window.location.href : ""
+    }`,
+  )}`;
+
   return (
     <>
       <Navbar />
@@ -393,44 +456,51 @@ function ProductDetail() {
                 </div>
               </div>
             )}
-            <div className="mt-8 flex gap-3">
-              <Button
-                className="flex-1 h-12"
-                disabled={isSelectedSizeOutOfStock || addToCart.isPending}
-                onClick={() => {
-                  if (!user) {
-                    toast.error("Silakan masuk terlebih dahulu");
-                    navigate({ to: "/auth" });
-                    return;
-                  }
-                  if (p.sizes && p.sizes.length > 0 && !size) {
-                    toast.error("Pilih ukuran");
-                    return;
-                  }
-                  addToCart.mutate(
-                    { product_id: p.id, size },
-                    {
-                      onSuccess: () => {
-                        toast.success("Berhasil ditambahkan ke keranjang", {
-                          action: {
-                            label: "Lihat Keranjang",
-                            onClick: () => navigate({ to: "/cart" }),
-                          },
-                        });
-                      },
-                    },
-                  );
-                }}
-              >
-                {isProductOutOfStock
-                  ? "Stok Habis"
-                  : isSelectedSizeOutOfStock
-                    ? "Stok Ukuran Habis"
-                    : "Tambah ke Keranjang"}
-              </Button>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              {isProductOutOfStock || isSelectedSizeOutOfStock ? (
+                <>
+                  <Button
+                    className="flex-1 h-12 cursor-not-allowed bg-muted text-muted-foreground hover:bg-muted font-bold"
+                    disabled
+                  >
+                    {isProductOutOfStock
+                      ? "Stok Produk Habis"
+                      : `Stok Ukuran ${size || ""} Habis`}
+                  </Button>
+                  <a
+                    href={restockWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 h-12 px-4 rounded-lg border border-emerald-600/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer text-center"
+                  >
+                    <MessageCircle className="size-4 shrink-0" />
+                    <span>Tanya Restock {size ? `Ukuran ${size}` : ""} via WA</span>
+                  </a>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-12 cursor-pointer border-border hover:border-foreground font-semibold flex items-center justify-center gap-2"
+                    disabled={addToCart.isPending || buyingNow}
+                    onClick={handleAddToCart}
+                  >
+                    <ShoppingBag className="size-4" />
+                    Tambah ke Keranjang
+                  </Button>
+                  <Button
+                    className="flex-1 h-12 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-sm flex items-center justify-center gap-2"
+                    disabled={addToCart.isPending || buyingNow}
+                    onClick={handleBuyNow}
+                  >
+                    <Zap className="size-4" />
+                    {buyingNow ? "Menuju Checkout..." : "Beli Sekarang"}
+                  </Button>
+                </>
+              )}
               <Button
                 variant="outline"
-                className="h-12 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
+                className="h-12 px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none cursor-pointer"
                 aria-label={liked ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
                 onClick={() => {
                   if (!user) {
@@ -537,11 +607,11 @@ function ProductDetail() {
           <div className="text-[11px] text-muted-foreground truncate">{p.name}</div>
           <div className="text-base font-extrabold text-foreground">{formatIDR(p.price)}</div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Button
             variant="outline"
             size="icon"
-            className="size-10"
+            className="size-10 cursor-pointer"
             aria-label="Wishlist"
             onClick={() => {
               if (!user) {
@@ -554,36 +624,35 @@ function ProductDetail() {
           >
             <Heart className={cn("size-4", liked && "fill-primary text-primary")} />
           </Button>
-          <Button
-            className="h-10 px-4 text-xs font-bold shadow-sm"
-            disabled={isSelectedSizeOutOfStock || addToCart.isPending}
-            onClick={() => {
-              if (!user) {
-                toast.error("Silakan masuk terlebih dahulu");
-                navigate({ to: "/auth" });
-                return;
-              }
-              if (p.sizes && p.sizes.length > 0 && !size) {
-                toast.error("Pilih ukuran terlebih dahulu");
-                return;
-              }
-              addToCart.mutate(
-                { product_id: p.id, size },
-                {
-                  onSuccess: () => {
-                    toast.success("Berhasil ditambahkan ke keranjang", {
-                      action: {
-                        label: "Lihat Keranjang",
-                        onClick: () => navigate({ to: "/cart" }),
-                      },
-                    });
-                  },
-                },
-              );
-            }}
-          >
-            {isProductOutOfStock ? "Habis" : "+ Keranjang"}
-          </Button>
+          {isProductOutOfStock || isSelectedSizeOutOfStock ? (
+            <a
+              href={restockWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-10 px-3 text-xs font-bold rounded-lg border border-emerald-600/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <MessageCircle className="size-3.5 shrink-0" />
+              <span>Tanya Restock {size ? size : ""}</span>
+            </a>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                className="h-10 px-2.5 text-xs font-semibold cursor-pointer border-border"
+                disabled={addToCart.isPending || buyingNow}
+                onClick={handleAddToCart}
+              >
+                + Keranjang
+              </Button>
+              <Button
+                className="h-10 px-3.5 text-xs font-bold shadow-sm cursor-pointer bg-primary text-primary-foreground"
+                disabled={addToCart.isPending || buyingNow}
+                onClick={handleBuyNow}
+              >
+                {buyingNow ? "..." : "Beli Sekarang"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

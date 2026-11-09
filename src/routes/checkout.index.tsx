@@ -511,12 +511,15 @@ function CheckoutPage() {
               ? Number(sizeCost[i.size])
               : Number(prod?.cost_price) || 0;
 
+          const prodImages = (prod?.product_images as any[]) || [];
+          const coverImg = prod?.cover_image_url || prodImages[0]?.url || null;
+
           return {
             order_id: order.id,
             product_id: i.product_id,
             product_name: i.products?.name ?? "",
             product_slug: i.products?.slug ?? null,
-            image_url: i.products?.cover_image_url ?? null,
+            image_url: coverImg,
             size: i.size,
             unit_price: i.products?.price ?? 0,
             cost_price: unitCost,
@@ -676,12 +679,15 @@ function CheckoutPage() {
             ? Number(sizeCost[i.size])
             : Number(prod?.cost_price) || 0;
 
+        const prodImages = (prod?.product_images as any[]) || [];
+        const coverImg = prod?.cover_image_url || prodImages[0]?.url || null;
+
         return {
           order_id: order.id,
           product_id: i.product_id,
           product_name: i.products?.name ?? "",
           product_slug: i.products?.slug ?? null,
-          image_url: i.products?.cover_image_url ?? null,
+          image_url: coverImg,
           size: i.size,
           unit_price: i.products?.price ?? 0,
           cost_price: unitCost,
