@@ -21,6 +21,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/commerce/ProductCard";
+import { signedUrl } from "@/lib/storage";
 import {
   Accordion,
   AccordionItem,
@@ -109,16 +110,51 @@ function ProductDetail() {
   const reviewsQ = useQuery({
     queryKey: ["reviews", q.data?.id],
     enabled: !!q.data?.id,
-    queryFn: async () =>
-      (
-        await supabase
-          .from("reviews")
-          .select("*")
-          .eq("product_id", q.data!.id)
-          .eq("approved", true)
-          .eq("hidden", false)
-          .order("created_at", { ascending: false })
-      ).data ?? [],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("reviews")
+        .select("*, orders(recipient_name)")
+        .eq("product_id", q.data!.id)
+        .eq("approved", true)
+        .eq("hidden", false)
+        .order("created_at", { ascending: false });
+
+      if (!data) return [];
+
+      const resolved = await Promise.all(
+        data.map(async (r: any) => {
+          const photoUrls: string[] = [];
+          if (Array.isArray(r.photos)) {
+            for (const p of r.photos) {
+              if (p) {
+                if (p.startsWith("http")) {
+                  photoUrls.push(p);
+                } else {
+                  try {
+                    const url = await signedUrl("payment-proofs", p);
+                    photoUrls.push(url);
+                  } catch {
+                    // ignore
+                  }
+                }
+              }
+            }
+          }
+          const author =
+            (r.orders?.recipient_name || "Pelanggan")
+              .replace(/\s*-\s*(FB|Shopee|Facebook|Instagram|WA|WhatsApp).*/i, "")
+              .replace(/\s*\([^\)]*\)/g, "")
+              .trim() || "Pelanggan";
+
+          return {
+            ...r,
+            photoUrls,
+            authorName: author,
+          };
+        }),
+      );
+      return resolved;
+    },
     staleTime: 1000 * 10,
   });
 
@@ -591,16 +627,82 @@ function ProductDetail() {
 
         {reviewsQ.data && reviewsQ.data.length > 0 && (
           <section className="mt-20 border-t border-border pt-12">
-            <h2 className="display-md">Ulasan Pembeli</h2>
-            <div className="mt-8 grid md:grid-cols-2 gap-6">
-              {reviewsQ.data.map((r) => (
-                <div key={r.id} className="border border-border p-6">
-                  <div className="flex items-center gap-1 text-primary mb-2">
-                    {Array.from({ length: r.rating }).map((_, i) => (
-                      <Star key={i} className="size-3.5 fill-current" />
-                    ))}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="display-md">Ulasan Pembeli</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ulasan asli dari pembeli yang telah memiliki jersey ini.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 w-fit">
+                <ShieldCheck className="size-3.5" />
+                Ulasan Terverifikasi
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {reviewsQ.data.map((r: any) => (
+                <div key={r.id} className="border border-border p-6 rounded-xl bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-amber-500">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "size-4",
+                            i < r.rating
+                              ? "fill-amber-400 text-amber-400"
+                              : "fill-muted/20 text-muted-foreground/30",
+                          )}
+                        />
+                      ))}
+                      <span className="text-xs font-bold text-muted-foreground ml-1 tabular-nums">
+                        {r.rating}.0
+                      </span>
+                    </div>
+                    {r.created_at && (
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(r.created_at).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm">{r.body}</p>
+
+                  {r.body && (
+                    <p className="text-sm text-foreground leading-relaxed italic">&ldquo;{r.body}&rdquo;</p>
+                  )}
+
+                  {r.photoUrls && r.photoUrls.length > 0 && (
+                    <div className="flex gap-2 pt-2">
+                      {r.photoUrls.map((pu: string, pIdx: number) => (
+                        <a
+                          key={pIdx}
+                          href={pu}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative aspect-square w-20 rounded-lg overflow-hidden border border-border group"
+                        >
+                          <img
+                            src={pu}
+                            alt={`Foto ulasan ${r.authorName}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-border/50 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <span className="text-foreground">{r.authorName}</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 flex items-center gap-1">
+                      <ShieldCheck className="size-3" /> Pembeli Terverifikasi
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

@@ -15,7 +15,8 @@ interface TestimonialItem {
   rating: number;
   testimonialText: string;
   photoUrl?: string;
-  products?: string[];
+  productName: string;
+  productSize?: string;
   dateStr?: string;
 }
 
@@ -25,91 +26,99 @@ export function TestimonialGallery() {
   const testimonialsQuery = useQuery({
     queryKey: ["public-testimonials-gallery"],
     queryFn: async (): Promise<TestimonialItem[]> => {
-      // 1. Fetch real delivered orders and products in parallel from Supabase
-      const [{ data: orders, error: oErr }, { data: prods }] = await Promise.all([
-        supabase
-          .from("orders")
-          .select(
-            "id, order_number, recipient_name, recipient_kota, courier, recipient_alamat, testimonial_text, testimonial_photo_url, testimonial_rating, cod_proof_url, created_at, order_items(product_name, image_url, size, quantity)",
-          )
-          .eq("status", "delivered")
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase.from("products").select("name, cover_image_url"),
-      ]);
+      // 1. Fetch real delivered orders from Supabase
+      const { data: orders, error: oErr } = await supabase
+        .from("orders")
+        .select(
+          "id, order_number, recipient_name, recipient_kota, courier, recipient_alamat, testimonial_text, testimonial_photo_url, testimonial_rating, cod_proof_url, created_at, order_items(product_id, product_name, image_url, size, quantity)",
+        )
+        .eq("status", "delivered")
+        .order("created_at", { ascending: false })
+        .limit(20);
 
       if (oErr || !orders || orders.length === 0) {
         return [];
       }
 
-      // Filter STRICTLY for orders that have a genuine testimonial or testimonial photo
+      // Filter STRICTLY for orders that have a genuine testimonial or uploaded user photo
       // Never invent or fabricate dummy review text or fake ratings!
       const ordersWithRealReviews = orders.filter(
-        (o: any) => Boolean(o.testimonial_text?.trim() || o.testimonial_photo_url),
+        (o: any) => Boolean(o.testimonial_text?.trim() || o.testimonial_photo_url || o.cod_proof_url),
       );
 
       if (ordersWithRealReviews.length === 0) {
         return [];
       }
 
-      // Map product names to their authentic images
-      const prodMap = new Map(
-        (prods || []).map((p) => [p.name.toLowerCase().trim(), p.cover_image_url]),
-      );
+      const items: TestimonialItem[] = [];
 
-      const items: TestimonialItem[] = await Promise.all(
-        ordersWithRealReviews.map(async (o: any) => {
-          const rawItems = (o.order_items as any[]) || [];
-          const itemNames = rawItems.map((it) => it.product_name).filter(Boolean);
+      for (const o of ordersWithRealReviews) {
+        const rawItems = (o.order_items as any[]) || [];
 
-          // Resolve real photo: Testimonial photo -> COD proof -> Item image -> Product cover image
-          let pUrl = o.testimonial_photo_url || o.cod_proof_url || "";
-          if (pUrl && !pUrl.startsWith("http")) {
-            try {
-              pUrl = await signedUrl("payment-proofs", pUrl);
-            } catch {
-              pUrl = "";
-            }
+        // STRICTLY user-uploaded photo: testimonial photo or COD proof photo.
+        // DO NOT fall back to product catalog stock images!
+        let userPhotoUrl = o.testimonial_photo_url || o.cod_proof_url || "";
+        if (userPhotoUrl && !userPhotoUrl.startsWith("http")) {
+          try {
+            userPhotoUrl = await signedUrl("payment-proofs", userPhotoUrl);
+          } catch {
+            userPhotoUrl = "";
           }
+        }
 
-          if (!pUrl && rawItems.length > 0) {
-            const firstWithImg = rawItems.find((it) => it.image_url)?.image_url;
-            const fromProdMap = prodMap.get(rawItems[0]?.product_name?.toLowerCase()?.trim());
-            pUrl = firstWithImg || fromProdMap || "";
-          }
-
-          // Format clean customer name (removes marketplace/channel tags like "- FB", "(Shopee)")
-          const cleanName = (o.recipient_name || "Pelanggan")
+        // Format clean customer name (removes marketplace/channel tags like "- FB", "(Shopee)")
+        const cleanName =
+          (o.recipient_name || "Pelanggan")
             .replace(/\s*-\s*(FB|Shopee|Facebook|Instagram|WA|WhatsApp).*/i, "")
             .replace(/\s*\([^\)]*\)/g, "")
             .trim() || o.recipient_name || "Pelanggan";
 
-          const isCod =
-            o.courier === "COD" ||
-            (o.recipient_alamat && o.recipient_alamat.toLowerCase().includes("cod")) ||
-            o.order_number?.startsWith("POS-");
+        const isCod =
+          o.courier === "COD" ||
+          (o.recipient_alamat && o.recipient_alamat.toLowerCase().includes("cod")) ||
+          o.order_number?.startsWith("POS-");
 
-          // Testimonial quote - ONLY from real database input
-          const reviewText = o.testimonial_text?.trim() || "";
+        const reviewText = o.testimonial_text?.trim() || "";
+        const rating = Number(o.testimonial_rating) || 5;
+        const dateStr = new Date(o.created_at).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
 
-          return {
+        // Testimonial PER PRODUK (bukan per transaksi):
+        // Setiap produk yang dibeli memiliki kartu testimoninya sendiri
+        if (rawItems.length > 0) {
+          rawItems.forEach((it, idx) => {
+            items.push({
+              id: `${o.id}-${it.product_id || idx}`,
+              orderNumber: o.order_number,
+              recipientName: cleanName,
+              city: o.recipient_kota || "Kota Cimahi",
+              deliveryType: (isCod ? "COD" : "Ekspedisi") as "COD" | "Ekspedisi",
+              rating,
+              testimonialText: reviewText,
+              photoUrl: userPhotoUrl || undefined, // ONLY user photo!
+              productName: it.product_name || "Jersey Sepakbola",
+              productSize: it.size || undefined,
+              dateStr,
+            });
+          });
+        } else {
+          items.push({
             id: o.id,
             orderNumber: o.order_number,
             recipientName: cleanName,
             city: o.recipient_kota || "Kota Cimahi",
             deliveryType: (isCod ? "COD" : "Ekspedisi") as "COD" | "Ekspedisi",
-            rating: Number(o.testimonial_rating) || 5,
+            rating,
             testimonialText: reviewText,
-            photoUrl: pUrl || undefined,
-            products: itemNames.length > 0 ? itemNames : ["Jersey Pilihan"],
-            dateStr: new Date(o.created_at).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-          };
-        }),
-      );
+            photoUrl: userPhotoUrl || undefined,
+            productName: "Jersey Sepakbola",
+            dateStr,
+          });
+        }
+      }
 
       return items;
     },
@@ -255,7 +264,15 @@ export function TestimonialGallery() {
 
               {/* Testimonial Content */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div className="space-y-2.5">
+                <div className="space-y-2">
+                  {/* Nama Produk (Diletakkan di atas bintang agar jelas & menonjol) */}
+                  <div className="font-extrabold text-sm text-foreground line-clamp-1 flex items-center gap-1.5">
+                    <Shirt className="size-3.5 shrink-0 text-primary" />
+                    <span className="truncate" title={item.productName}>
+                      {item.productName}
+                    </span>
+                  </div>
+
                   {/* Stars Rating */}
                   <div className="flex items-center gap-1 text-amber-500">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -276,7 +293,7 @@ export function TestimonialGallery() {
 
                   {/* Review Text */}
                   {item.testimonialText && (
-                    <p className="text-xs text-foreground leading-relaxed italic line-clamp-4">
+                    <p className="text-xs text-foreground leading-relaxed italic line-clamp-4 pt-0.5">
                       &ldquo;{item.testimonialText}&rdquo;
                     </p>
                   )}
@@ -295,17 +312,17 @@ export function TestimonialGallery() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <MapPin className="size-3 text-primary shrink-0" />
-                    <span className="truncate">{item.city}</span>
-                  </div>
-
-                  {item.products && item.products.length > 0 && (
-                    <div className="text-[10px] text-muted-foreground font-mono truncate pt-1 flex items-center gap-1">
-                      <Shirt className="size-3 shrink-0 text-muted-foreground/60" />
-                      <span className="truncate">{item.products[0]}</span>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1 truncate">
+                      <MapPin className="size-3 text-primary shrink-0" />
+                      <span className="truncate">{item.city}</span>
                     </div>
-                  )}
+                    {item.productSize && (
+                      <span className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 shrink-0 font-medium">
+                        Size {item.productSize}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

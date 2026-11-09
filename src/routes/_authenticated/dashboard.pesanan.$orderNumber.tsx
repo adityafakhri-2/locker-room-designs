@@ -198,6 +198,7 @@ function OrderDetail() {
   const [reviewText, setReviewText] = useState("");
   const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
   const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
+  const [selectedReviewProductId, setSelectedReviewProductId] = useState<string>("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
   // Struk / Invoice Download Modal
@@ -576,8 +577,7 @@ function OrderDetail() {
       let photoPath = (order as any).testimonial_photo_url || null;
       if (reviewPhotoFile) {
         const path = `${user.id}/testimonials/${order.id}-${Date.now()}.webp`;
-        await uploadFile("payment-proofs", path, reviewPhotoFile);
-        photoPath = path;
+        photoPath = await uploadFile("payment-proofs", path, reviewPhotoFile);
       }
 
       // 1. Coba melalui RPC aman submit_order_testimonial
@@ -601,6 +601,44 @@ function OrderDetail() {
           .eq("id", order.id);
 
         if (directErr) throw rpcErr;
+      }
+
+      // 2. Simpan juga ulasan ke tabel reviews (ulasan per produk)
+      const targetProdId =
+        selectedReviewProductId || (order as any).order_items?.[0]?.product_id;
+      if (targetProdId) {
+        try {
+          const { data: existingRev } = await supabase
+            .from("reviews")
+            .select("id")
+            .eq("order_id", order.id)
+            .eq("product_id", targetProdId)
+            .maybeSingle();
+
+          if (existingRev?.id) {
+            await supabase
+              .from("reviews")
+              .update({
+                rating: reviewRating,
+                body: reviewText.trim() || null,
+                photos: photoPath ? [photoPath] : [],
+              })
+              .eq("id", existingRev.id);
+          } else {
+            await supabase.from("reviews").insert({
+              order_id: order.id,
+              product_id: targetProdId,
+              user_id: user.id,
+              rating: reviewRating,
+              body: reviewText.trim() || null,
+              photos: photoPath ? [photoPath] : [],
+              approved: true,
+              hidden: false,
+            });
+          }
+        } catch (revSyncErr) {
+          console.warn("[Review Sync Error]", revSyncErr);
+        }
       }
 
       toast.success("Terima kasih! Ulasan & rating bintang Anda berhasil disimpan.");
@@ -1616,6 +1654,50 @@ function OrderDetail() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {/* Pilihan Produk yang Diulas (Ulasan per Produk) */}
+            {order.order_items && order.order_items.length > 1 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold block text-foreground">
+                  Pilih Produk yang Ingin Diulas <span className="text-primary">*</span>
+                </label>
+                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                  {order.order_items.map((it: any) => {
+                    const isSelected =
+                      (selectedReviewProductId || order.order_items[0].product_id) === it.product_id;
+                    return (
+                      <button
+                        type="button"
+                        key={it.id}
+                        onClick={() => setSelectedReviewProductId(it.product_id)}
+                        className={cn(
+                          "p-2 rounded-lg border text-left flex items-center gap-2.5 cursor-pointer transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
+                            : "border-border hover:border-muted-foreground/30 bg-background",
+                        )}
+                      >
+                        {it.image_url ? (
+                          <img
+                            src={it.image_url}
+                            alt=""
+                            className="size-9 object-cover rounded border border-border shrink-0"
+                          />
+                        ) : (
+                          <div className="size-9 rounded bg-muted flex items-center justify-center shrink-0">
+                            <Shirt className="size-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-foreground truncate">{it.product_name}</p>
+                          <p className="text-[10px] text-muted-foreground">Size {it.size} &bull; Qty {it.quantity}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* 1. Rating Bintang Interaktif */}
             <div className="space-y-1.5 bg-muted/30 p-3.5 rounded-lg border border-border">
               <label className="text-xs font-bold block text-foreground">
