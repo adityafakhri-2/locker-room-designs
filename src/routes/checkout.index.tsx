@@ -70,8 +70,8 @@ function CheckoutPage() {
   );
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Delivery Method state (Ekspedisi vs COD)
-  const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "cod">("shipping");
+  // Delivery Method state (Ekspedisi vs COD) - default null agar user wajib memilih terlebih dahulu
+  const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "cod" | null>(null);
   const [codLocationPreset, setCodLocationPreset] = useState<string>(COD_PRESET_LOCATIONS[0]);
   const [codCustomLocation, setCodCustomLocation] = useState("");
   const [codDate, setCodDate] = useState(() => {
@@ -384,6 +384,9 @@ function CheckoutPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) return toast.error("Keranjang kosong");
+    if (!deliveryMethod) {
+      return toast.error("Silakan pilih jenis transaksi terlebih dahulu (Kirim via Ekspedisi atau COD)");
+    }
 
     // ==========================================
     // ALUR 1: METODE COD (KETEMUAN LANGSUNG)
@@ -793,7 +796,20 @@ function CheckoutPage() {
           <div className="space-y-8 w-full max-w-full">
             {/* Pemilihan Metode Pengiriman: Ekspedisi vs COD */}
             <section className="w-full">
-              <h2 className="display-md mb-3 font-extrabold">Pilihan Pengiriman</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="display-md font-extrabold">Pilihan Pengiriman</h2>
+                <span className="text-xs font-medium">
+                  {deliveryMethod ? (
+                    <span className="text-primary font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="size-3.5" /> Metode terpilih
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                      <AlertCircle className="size-3.5" /> Wajib pilih salah satu
+                    </span>
+                  )}
+                </span>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <button
                   type="button"
@@ -802,7 +818,7 @@ function CheckoutPage() {
                     "p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer relative",
                     deliveryMethod === "shipping"
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                      : "border-border hover:border-muted-foreground/40 bg-card/60",
+                      : "border-border hover:border-primary/40 bg-card/60",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -842,7 +858,7 @@ function CheckoutPage() {
                     "p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer relative",
                     deliveryMethod === "cod"
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
-                      : "border-border hover:border-muted-foreground/40 bg-card/60",
+                      : "border-border hover:border-primary/40 bg-card/60",
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -880,8 +896,22 @@ function CheckoutPage() {
               </div>
             </section>
 
-            {/* FORM 1: METODE COD (KETEMUAN LANGSUNG) */}
-            {deliveryMethod === "cod" ? (
+            {/* KONDISI 0: BELUM MEMILIH METODE PENGIRIMAN */}
+            {!deliveryMethod ? (
+              <div className="p-8 sm:p-12 rounded-xl border border-dashed border-border bg-card/30 text-center flex flex-col items-center justify-center space-y-3">
+                <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <Truck className="size-6" />
+                </div>
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h3 className="font-bold text-foreground text-base">
+                    Pilih Jenis Transaksi Terlebih Dahulu
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Silakan klik salah satu kotak di atas: pilih <strong>Kirim via Ekspedisi</strong> untuk pengiriman paket kurir ke rumah atau <strong>COD (Ketemuan Langsung)</strong> untuk transaksi langsung di Cimahi. Formulir pengisian data akan otomatis ditampilkan setelah Anda memilih.
+                  </p>
+                </div>
+              </div>
+            ) : deliveryMethod === "cod" ? (
               <>
                 {/* Data Pemesan COD */}
                 <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-5">
@@ -1155,9 +1185,14 @@ function CheckoutPage() {
             ) : (
               /* FORM 2: METODE EKSPEDISI JNE */
               <>
-                <section className="w-full">
-                  <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-                    <h2 className="display-md">Alamat Pengiriman</h2>
+                <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h2 className="display-md font-extrabold">Alamat Pengiriman</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Tentukan alamat lengkap tujuan pengiriman paket jersey Anda.
+                      </p>
+                    </div>
                     {profileQuery.data && (
                       <Button
                         type="button"
@@ -1172,7 +1207,7 @@ function CheckoutPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                     <div className="sm:col-span-2">
-                      <Label htmlFor="recipient_name" className="flex items-center gap-1.5 h-5 mb-1.5">
+                      <Label htmlFor="recipient_name" className="text-xs font-bold mb-1.5 block">
                         Nama Penerima <span className="text-destructive font-bold">*</span>
                       </Label>
                       <Input
@@ -1184,8 +1219,8 @@ function CheckoutPage() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <Label htmlFor="recipient_no_hp" className="flex items-center gap-1.5 h-5 mb-1.5">
-                        Nomor HP <span className="text-destructive font-bold">*</span>
+                      <Label htmlFor="recipient_no_hp" className="text-xs font-bold mb-1.5 block">
+                        Nomor HP / WhatsApp <span className="text-destructive font-bold">*</span>
                       </Label>
                       <Input
                         id="recipient_no_hp"
@@ -1213,24 +1248,30 @@ function CheckoutPage() {
                     />
 
                     <div className="sm:col-span-2">
-                      <Label htmlFor="note" className="flex items-center gap-1.5 h-5 mb-1.5">
-                        Catatan Pesanan
+                      <Label htmlFor="note" className="text-xs font-bold mb-1.5 block">
+                        Catatan Pesanan <span className="text-muted-foreground font-normal">(Opsional)</span>
                       </Label>
                       <Textarea
                         id="note"
                         placeholder="Contoh: Titipkan ke satpam jika sedang keluar, patokan warna pagar/toko, atau instruksi pengiriman lainnya..."
                         value={form.note}
                         onChange={(e) => set("note", e.target.value)}
+                        className="bg-background text-xs sm:text-sm min-h-[70px]"
                       />
                     </div>
                   </div>
                 </section>
 
-                <section className="w-full">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
-                    <h2 className="display-md font-extrabold">Kurir</h2>
+                <section className="w-full bg-card/50 border border-border p-5 sm:p-6 rounded-xl space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <h2 className="display-md font-extrabold">Pilihan Layanan Kurir</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Pilih jenis layanan pengiriman sesuai estimasi waktu dan ongkir.
+                      </p>
+                    </div>
                     {originLocation && (
-                      <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
+                      <span className="text-xs text-muted-foreground bg-muted/80 px-3 py-1 rounded-full border border-border self-start sm:self-auto">
                         Dikirim dari:{" "}
                         <strong className="font-semibold text-foreground">
                           {originLocation.city}, {originLocation.province}
@@ -1239,18 +1280,18 @@ function CheckoutPage() {
                     )}
                   </div>
                   {!form.recipient_provinsi || !form.recipient_kota || !kecamatan ? (
-                    <div className="border border-dashed border-border p-6 text-center text-sm text-muted-foreground rounded-lg bg-muted/20">
-                      Silakan tentukan provinsi, kota, dan kecamatan alamat pengiriman Anda terlebih
+                    <div className="border border-dashed border-border p-6 text-center text-xs sm:text-sm text-muted-foreground rounded-xl bg-muted/20">
+                      Silakan isi provinsi, kota, dan kecamatan alamat pengiriman di atas terlebih
                       dahulu untuk melihat pilihan layanan kurir JNE.
                     </div>
                   ) : ratesLoading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
                       {[1, 2, 3].map((i) => (
                         <div
                           key={i}
-                          className="border border-border p-4 rounded-lg animate-pulse bg-muted/40 h-20 flex flex-col justify-center"
+                          className="border border-border p-4 rounded-xl animate-pulse bg-muted/40 h-24 flex flex-col justify-center space-y-2"
                         >
-                          <div className="h-4 bg-muted-foreground/20 rounded w-2/3 mb-2"></div>
+                          <div className="h-4 bg-muted-foreground/20 rounded w-2/3"></div>
                           <div className="h-4 bg-muted-foreground/20 rounded w-1/2"></div>
                         </div>
                       ))}
@@ -1266,19 +1307,21 @@ function CheckoutPage() {
                           : isLion
                           ? "/images/lion-logo.png"
                           : "/images/jne-logo.png";
+                        const isSelected = form.courier === r.name;
 
                         return (
                           <button
                             type="button"
                             key={r.name}
                             onClick={() => set("courier", r.name)}
-                            className={`border p-4 text-left cursor-pointer transition-all rounded-lg flex flex-col justify-between ${
-                              form.courier === r.name
-                                ? "border-primary bg-accent/40 shadow-sm ring-1 ring-primary"
-                                : "border-border hover:border-muted-foreground/30"
-                            }`}
+                            className={cn(
+                              "border p-4 text-left cursor-pointer transition-all rounded-xl flex flex-col justify-between relative",
+                              isSelected
+                                ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
+                                : "border-border hover:border-muted-foreground/40 bg-background",
+                            )}
                           >
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center justify-between gap-2 mb-2">
                               <span className="font-bold text-xs sm:text-sm text-foreground">{r.name}</span>
                               <img
                                 src={logoSrc}
@@ -1290,7 +1333,7 @@ function CheckoutPage() {
                                 }}
                               />
                             </div>
-                            <div className="mt-2">
+                            <div className="pt-2 border-t border-border/50">
                               <div className="text-sm font-extrabold text-foreground">
                                 {formatIDR(r.cost)}
                               </div>
@@ -1304,17 +1347,18 @@ function CheckoutPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="border border-dashed border-destructive/20 p-6 text-center text-sm text-destructive rounded-lg bg-destructive/5">
-                      Gagal memuat tarif pengiriman untuk wilayah ini. Silakan hubungi admin atau coba
-                      lagi.
+                    <div className="border border-dashed border-destructive/20 p-6 text-center text-xs sm:text-sm text-destructive rounded-xl bg-destructive/5">
+                      Gagal memuat tarif pengiriman untuk wilayah ini. Silakan periksa kembali alamat atau coba lagi.
                     </div>
                   )}
                 </section>
 
-                <section className="bg-primary/5 border border-primary/20 p-6 rounded-lg w-full">
-                  <h2 className="display-md mb-4 flex items-center gap-2">Metode Pembayaran</h2>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white px-3 py-2 rounded shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
+                <section className="bg-primary/5 border border-primary/20 p-5 sm:p-6 rounded-xl w-full space-y-3">
+                  <h2 className="display-md font-extrabold text-foreground">
+                    Metode Pembayaran Online
+                  </h2>
+                  <div className="flex items-start sm:items-center gap-4 bg-background/80 border border-primary/20 p-4 rounded-xl">
+                    <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-border flex-shrink-0 flex items-center justify-center">
                       <img
                         src="/images/mayar-logo.png"
                         alt="Mayar"
@@ -1326,13 +1370,12 @@ function CheckoutPage() {
                         }}
                       />
                     </div>
-                    <div className="text-sm">
+                    <div className="text-xs sm:text-sm">
                       <p className="font-bold text-foreground">
                         Pembayaran Instan & Otomatis via Mayar
                       </p>
-                      <p className="text-muted-foreground mt-0.5">
-                        Mendukung QRIS, E-Wallet (GoPay, OVO, ShopeePay), Virtual Account (BCA, Mandiri,
-                        BNI), dan Kartu Kredit.
+                      <p className="text-muted-foreground mt-0.5 leading-relaxed">
+                        Mendukung QRIS (Semua Bank & E-Wallet), GoPay, OVO, ShopeePay, Virtual Account (BCA, Mandiri, BRI, BNI), dan Kartu Kredit.
                       </p>
                     </div>
                   </div>
@@ -1422,12 +1465,20 @@ function CheckoutPage() {
               <div className="flex justify-between">
                 <dt>Ongkos kirim</dt>
                 <dd>
-                  {deliveryMethod === "cod" ? (
+                  {!deliveryMethod ? (
+                    <span className="text-muted-foreground text-xs italic">
+                      Pilih metode pengiriman
+                    </span>
+                  ) : deliveryMethod === "cod" ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                       Rp 0 (COD / Gratis)
                     </span>
-                  ) : (
+                  ) : ratesLoading ? (
+                    <span className="text-muted-foreground text-xs animate-pulse">Menghitung...</span>
+                  ) : selectedRate ? (
                     formatIDR(shipping)
+                  ) : (
+                    <span className="text-muted-foreground text-xs italic">Isi alamat kurir</span>
                   )}
                 </dd>
               </div>
@@ -1445,7 +1496,15 @@ function CheckoutPage() {
               <span>Total</span>
               <span>{formatIDR(total)}</span>
             </div>
-            {deliveryMethod === "cod" ? (
+            {!deliveryMethod ? (
+              <Button
+                type="button"
+                disabled
+                className="w-full mt-6 h-12 cursor-not-allowed bg-muted text-muted-foreground font-semibold"
+              >
+                Pilih Jenis Transaksi Dahulu
+              </Button>
+            ) : deliveryMethod === "cod" ? (
               <Button
                 type="submit"
                 className="w-full mt-6 h-12 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"

@@ -125,16 +125,34 @@ function ProductDetail() {
   const related = useQuery({
     queryKey: ["related", q.data?.category_ids, q.data?.id],
     enabled: !!q.data?.category_ids && q.data.category_ids.length > 0,
-    queryFn: async () =>
-      (
-        await supabase
-          .from("products")
-          .select("*")
-          .overlaps("category_ids", q.data!.category_ids)
-          .neq("id", q.data!.id)
-          .eq("is_active", true)
-          .limit(4)
-      ).data ?? [],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .overlaps("category_ids", q.data!.category_ids)
+        .neq("id", q.data!.id)
+        .eq("is_active", true)
+        .gt("stock", 0)
+        .limit(12);
+
+      if (!data) return [];
+
+      return data
+        .filter((p) => {
+          const rawSizeStock = (p.size_stock as Record<string, any> | null) ?? {};
+          const sizesList = (p.sizes ?? []) as string[];
+          if (sizesList.length > 0) {
+            const totalStock = sizesList.reduce((acc, s) => {
+              const st =
+                rawSizeStock[s] !== undefined ? Number(rawSizeStock[s]) || 0 : Number(p.stock) || 0;
+              return acc + st;
+            }, 0);
+            return totalStock >= 1;
+          }
+          return (Number(p.stock) || 0) >= 1;
+        })
+        .slice(0, 4);
+    },
     staleTime: 1000 * 10,
   });
 
