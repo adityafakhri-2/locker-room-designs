@@ -37,6 +37,7 @@ import { OrderReceiptModal } from "@/components/commerce/OrderReceiptModal";
 import { isCodOrder, parseCodInfo } from "@/lib/orderCod";
 import { createWebpFile } from "@/lib/imageCompression";
 import { Textarea } from "@/components/ui/textarea";
+import { InteractiveStarRating } from "@/components/commerce/InteractiveStarRating";
 import {
   Dialog,
   DialogContent,
@@ -194,6 +195,7 @@ function AdminOrderDetail() {
 
   // Testimonial Management States (Fitur 3)
   const [testimonialDialogOpen, setTestimonialDialogOpen] = useState(false);
+  const [orderTestimonialRating, setOrderTestimonialRating] = useState(5);
   const [orderTestimonialText, setOrderTestimonialText] = useState("");
   const [testimonialPhotoFile, setTestimonialPhotoFile] = useState<File | null>(null);
   const [testimonialPhotoPreview, setTestimonialPhotoPreview] = useState<string | null>(null);
@@ -333,10 +335,13 @@ function AdminOrderDetail() {
   });
 
   useEffect(() => {
+    if ((q.data?.order as any)?.testimonial_rating) {
+      setOrderTestimonialRating(Number((q.data.order as any).testimonial_rating));
+    }
     if ((q.data?.order as any)?.testimonial_text) {
       setOrderTestimonialText((q.data.order as any).testimonial_text);
     }
-  }, [(q.data?.order as any)?.testimonial_text]);
+  }, [(q.data?.order as any)?.testimonial_rating, (q.data?.order as any)?.testimonial_text]);
 
   if (!q.data?.order)
     return (
@@ -380,6 +385,7 @@ function AdminOrderDetail() {
       }
 
       const updatePayload: OrderUpdate = {
+        testimonial_rating: orderTestimonialRating,
         testimonial_text: orderTestimonialText.trim() || null,
         testimonial_photo_url: photoPath,
         updated_at: new Date().toISOString(),
@@ -1049,6 +1055,7 @@ function AdminOrderDetail() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      setOrderTestimonialRating(Number((order as any)?.testimonial_rating) || 5);
                       setOrderTestimonialText((order as any)?.testimonial_text || "");
                       setTestimonialPhotoFile(null);
                       setTestimonialPhotoPreview(null);
@@ -1064,14 +1071,24 @@ function AdminOrderDetail() {
                   </Button>
                 </div>
 
-                {(order as any)?.testimonial_text ? (
-                  <div className="p-3 bg-muted/40 border border-border/60 rounded text-xs space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                      Kata Pelanggan:
-                    </span>
-                    <p className="italic text-foreground">
-                      &ldquo;{(order as any)?.testimonial_text}&rdquo;
-                    </p>
+                {(order as any)?.testimonial_text || (order as any)?.testimonial_rating ? (
+                  <div className="p-3 bg-muted/40 border border-border/60 rounded text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <InteractiveStarRating
+                        value={Number((order as any)?.testimonial_rating) || 5}
+                        readOnly
+                        size="sm"
+                        showLabel={false}
+                      />
+                      <span className="text-xs font-bold text-amber-500 tabular-nums">
+                        {(order as any)?.testimonial_rating || 5}.0 / 5.0
+                      </span>
+                    </div>
+                    {(order as any)?.testimonial_text && (
+                      <p className="italic text-foreground">
+                        &ldquo;{(order as any)?.testimonial_text}&rdquo;
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -1329,6 +1346,20 @@ function AdminOrderDetail() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            <div className="space-y-1.5 bg-muted/30 p-3 rounded-lg border border-border">
+              <label className="text-xs font-bold block text-foreground">
+                Rating Kepuasan (1-5 Bintang)
+              </label>
+              <div className="pt-1">
+                <InteractiveStarRating
+                  value={orderTestimonialRating}
+                  onChange={(r) => setOrderTestimonialRating(r)}
+                  size="md"
+                  showLabel={true}
+                />
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-bold block mb-1 text-foreground">
                 Teks Testimoni / Ulasan Pelanggan

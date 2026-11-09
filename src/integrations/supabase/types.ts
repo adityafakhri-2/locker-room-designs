@@ -328,6 +328,7 @@ export type Database = {
           cod_status?: string | null;
           testimonial_text?: string | null;
           testimonial_photo_url?: string | null;
+          testimonial_rating?: number | null;
         };
         Insert: {
           cancel_reason?: string | null;
@@ -362,6 +363,7 @@ export type Database = {
           cod_status?: string | null;
           testimonial_text?: string | null;
           testimonial_photo_url?: string | null;
+          testimonial_rating?: number | null;
         };
         Update: {
           cancel_reason?: string | null;
@@ -396,6 +398,7 @@ export type Database = {
           cod_status?: string | null;
           testimonial_text?: string | null;
           testimonial_photo_url?: string | null;
+          testimonial_rating?: number | null;
         };
         Relationships: [];
       };

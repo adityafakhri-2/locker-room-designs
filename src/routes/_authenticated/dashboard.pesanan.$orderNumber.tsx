@@ -12,10 +12,12 @@ import { CUSTOMER_NAV } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { formatIDR, formatDateTime, statusLabel, BANKS } from "@/lib/format";
 import { uploadFile, signedUrl } from "@/lib/storage";
-import { Clock, AlertCircle, CheckCircle2, Copy, Upload, Image, ExternalLink, HandCoins, MapPin, Calendar, MessageCircle, Phone, Shirt } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle2, Copy, Upload, Image, ExternalLink, HandCoins, MapPin, Calendar, MessageCircle, Phone, Shirt, Star, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isCodOrder, parseCodInfo, formatCodWhatsAppUrl, STORE_PHONE_DISPLAY } from "@/lib/orderCod";
 import { createWebpFile } from "@/lib/imageCompression";
+import { Textarea } from "@/components/ui/textarea";
+import { InteractiveStarRating } from "@/components/commerce/InteractiveStarRating";
 import {
   Dialog,
   DialogContent,
@@ -183,6 +185,20 @@ function OrderDetail() {
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [forceShowUpload, setForceShowUpload] = useState(false);
 
+  // COD completion dialog states
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [codProofFile, setCodProofFile] = useState<File | null>(null);
+  const [codProofPreview, setCodProofPreview] = useState<string | null>(null);
+  const [completingCod, setCompletingCod] = useState(false);
+
+  // Testimonial & Star Rating states (Customer Review)
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
+  const [reviewPhotoPreview, setReviewPhotoPreview] = useState<string | null>(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const q = useQuery({
     queryKey: ["order", orderNumber],
     queryFn: async () => {
@@ -314,6 +330,13 @@ function OrderDetail() {
         } catch {}
       }
 
+      let testimonialPhotoUrl = "";
+      if ((order as any)?.testimonial_photo_url) {
+        try {
+          testimonialPhotoUrl = await signedUrl("payment-proofs", (order as any).testimonial_photo_url);
+        } catch {}
+      }
+
       if (payment) {
         const { data: proofs } = await supabase
           .from("payment_proofs")
@@ -327,7 +350,7 @@ function OrderDetail() {
           if (!codProofUrl) codProofUrl = proofUrl;
         }
       }
-      return { order, proofUrl, proofUploadedAt, codProofUrl };
+      return { order, proofUrl, proofUploadedAt, codProofUrl, testimonialPhotoUrl };
     },
   });
 
@@ -342,10 +365,16 @@ function OrderDetail() {
   const isMayar = payment?.method === "mayar";
   const bank = !isMayar && payment ? BANKS.find((b) => b.code === payment.bank) : null;
 
-  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
-  const [codProofFile, setCodProofFile] = useState<File | null>(null);
-  const [codProofPreview, setCodProofPreview] = useState<string | null>(null);
-  const [completingCod, setCompletingCod] = useState(false);
+  useEffect(() => {
+    if (order) {
+      if ((order as any).testimonial_rating) {
+        setReviewRating(Number((order as any).testimonial_rating));
+      }
+      if ((order as any).testimonial_text) {
+        setReviewText((order as any).testimonial_text);
+      }
+    }
+  }, [order?.id, (order as any)?.testimonial_rating, (order as any)?.testimonial_text]);
 
   const deadline = useMemo(() => {
     const createdAt = order ? new Date(order.created_at) : null;
@@ -531,6 +560,151 @@ function OrderDetail() {
       setCompletingCod(false);
     }
   }
+
+  async function handleSubmitReview() {
+    if (!order || !user) return;
+    if (reviewRating < 1 || reviewRating > 5) {
+      toast.error("Silakan pilih rating 1 sampai 5 bintang");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      let photoPath = (order as any).testimonial_photo_url || null;
+      if (reviewPhotoFile) {
+        const path = `${user.id}/testimonials/${order.id}-${Date.now()}.webp`;
+        await uploadFile("payment-proofs", path, reviewPhotoFile);
+        photoPath = path;
+      }
+
+      // 1. Coba melalui RPC aman submit_order_testimonial
+      const { error: rpcErr } = await (supabase.rpc as any)("submit_order_testimonial", {
+        target_order_id: order.id,
+        rating: reviewRating,
+        review_text: reviewText.trim() || null,
+        photo_url: photoPath,
+      });
+
+      if (rpcErr) {
+        // Fallback update langsung jika diizinkan
+        const { error: directErr } = await supabase
+          .from("orders")
+          .update({
+            testimonial_rating: reviewRating,
+            testimonial_text: reviewText.trim() || null,
+            testimonial_photo_url: photoPath,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", order.id);
+
+        if (directErr) throw rpcErr;
+      }
+
+      toast.success("Terima kasih! Ulasan & rating bintang Anda berhasil disimpan.");
+      setReviewDialogOpen(false);
+      setReviewPhotoFile(null);
+      setReviewPhotoPreview(null);
+      qc.invalidateQueries({ queryKey: ["order", orderNumber] });
+      qc.invalidateQueries({ queryKey: ["public-testimonials-gallery"] });
+    } catch (err) {
+      toast.error("Gagal mengirim ulasan: " + (err as Error).message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  }
+
+  const renderCustomerReviewCard = () => (
+    <Card className="border-amber-500/30 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-transparent space-y-3.5 p-5 shadow-xs">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-full bg-amber-500/20 text-amber-500">
+            <Star className="size-4 fill-amber-500" />
+          </div>
+          <div>
+            <h4 className="font-extrabold text-sm text-foreground">
+              {(order as any)?.testimonial_text || (order as any)?.testimonial_rating
+                ? "Ulasan Anda"
+                : "Ulas Pesanan Ini"}
+            </h4>
+            <span className="text-[11px] text-muted-foreground block">
+              {(order as any)?.testimonial_text || (order as any)?.testimonial_rating
+                ? "Terima kasih atas penilaian Anda!"
+                : "Beri rating bintang dan review Anda"}
+            </span>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setReviewDialogOpen(true)}
+          className="text-xs h-7 px-2.5 border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer font-bold shrink-0"
+        >
+          <Sparkles className="size-3 mr-1" />
+          {(order as any)?.testimonial_text || (order as any)?.testimonial_rating
+            ? "Edit Ulasan"
+            : "Tulis Review"}
+        </Button>
+      </div>
+
+      {(order as any)?.testimonial_text || (order as any)?.testimonial_rating ? (
+        <div className="space-y-2.5 pt-1 border-t border-border/50 text-left">
+          <div className="flex items-center justify-between">
+            <InteractiveStarRating
+              value={Number((order as any)?.testimonial_rating) || 5}
+              readOnly
+              size="sm"
+              showLabel={false}
+            />
+            <span className="text-xs font-extrabold text-amber-600 tabular-nums">
+              {(order as any)?.testimonial_rating || 5}.0 / 5.0
+            </span>
+          </div>
+          {(order as any)?.testimonial_text && (
+            <p className="text-xs text-foreground italic bg-background/80 p-3 rounded-lg border border-border leading-relaxed">
+              &ldquo;{(order as any).testimonial_text}&rdquo;
+            </p>
+          )}
+          {q.data?.testimonialPhotoUrl && (
+            <div className="pt-1">
+              <span className="text-[10px] font-bold text-muted-foreground block mb-1">
+                Foto Ulasan / Unboxing:
+              </span>
+              <a href={q.data.testimonialPhotoUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={q.data.testimonialPhotoUrl}
+                  alt="Foto Ulasan"
+                  className="w-full max-h-40 object-contain rounded-lg border border-border bg-background"
+                />
+              </a>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3 pt-1 border-t border-border/50 text-left">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Bagaimana kepuasan Anda terhadap keaslian jersey, sablon nameset, dan pelayanan kami?
+          </p>
+          <div className="flex items-center justify-center p-2.5 bg-background/70 rounded-lg border border-dashed border-amber-500/30">
+            <InteractiveStarRating
+              value={5}
+              onChange={(r) => {
+                setReviewRating(r);
+                setReviewDialogOpen(true);
+              }}
+              size="md"
+              showLabel={false}
+            />
+          </div>
+          <Button
+            onClick={() => setReviewDialogOpen(true)}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-9 cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <Star className="size-4 fill-white" />
+            Beri Rating Bintang & Ulasan
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
 
   if (q.isLoading)
     return (
@@ -901,36 +1075,39 @@ function OrderDetail() {
               )}
 
               {order.status === "delivered" && (
-                <Card className="border-emerald-500/20 bg-emerald-500/5 space-y-4 text-center p-6">
-                  <div className="space-y-2">
-                    <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
-                    <h4 className="font-extrabold text-base text-emerald-700">Pesanan COD Selesai!</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Transaksi serah terima barang secara langsung telah selesai. Terima kasih telah
-                      berbelanja di <strong>AA Jersey</strong>!
-                    </p>
-                  </div>
-                  {q.data?.codProofUrl && (
-                    <div className="text-left space-y-1.5 pt-2 border-t border-emerald-500/20">
-                      <span className="text-[11px] font-bold text-muted-foreground">Foto Bukti COD:</span>
-                      <a href={q.data.codProofUrl} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={q.data.codProofUrl}
-                          alt="Bukti COD"
-                          className="w-full max-h-48 object-contain rounded border border-border bg-background"
-                        />
-                      </a>
+                <>
+                  <Card className="border-emerald-500/20 bg-emerald-500/5 space-y-4 text-center p-6">
+                    <div className="space-y-2">
+                      <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
+                      <h4 className="font-extrabold text-base text-emerald-700">Pesanan COD Selesai!</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Transaksi serah terima barang secara langsung telah selesai. Terima kasih telah
+                        berbelanja di <strong>AA Jersey</strong>!
+                      </p>
                     </div>
-                  )}
-                  <div className="pt-1">
-                    <Button
-                      className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
-                      asChild
-                    >
-                      <Link to="/shop">Lihat Koleksi Lainnya</Link>
-                    </Button>
-                  </div>
-                </Card>
+                    {q.data?.codProofUrl && (
+                      <div className="text-left space-y-1.5 pt-2 border-t border-emerald-500/20">
+                        <span className="text-[11px] font-bold text-muted-foreground">Foto Bukti COD:</span>
+                        <a href={q.data.codProofUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={q.data.codProofUrl}
+                            alt="Bukti COD"
+                            className="w-full max-h-48 object-contain rounded border border-border bg-background"
+                          />
+                        </a>
+                      </div>
+                    )}
+                    <div className="pt-1">
+                      <Button
+                        className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"
+                        asChild
+                      >
+                        <Link to="/shop">Lihat Koleksi Lainnya</Link>
+                      </Button>
+                    </div>
+                  </Card>
+                  {renderCustomerReviewCard()}
+                </>
               )}
 
               {order.status === "cancelled" && (
@@ -957,24 +1134,27 @@ function OrderDetail() {
                ========================================== */
             <>
               {order.status === "delivered" && (
-                <Card className="border-emerald-500/20 bg-emerald-500/5 space-y-4 text-center p-6">
-                  <div className="space-y-2">
-                    <CheckCircle2 className="size-10 text-emerald-500 mx-auto animate-bounce" />
-                    <h4 className="font-extrabold text-base text-emerald-700">Pesanan Selesai!</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Terima kasih banyak telah berbelanja di <strong>AA Jersey</strong>. Kami
-                      harap Anda menyukai produk kami!
-                    </p>
-                  </div>
-                  <div className="pt-1">
-                    <Button
-                      className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm flex items-center justify-center gap-1.5"
-                      asChild
-                    >
-                      <Link to="/shop">Lihat Koleksi Lainnya</Link>
-                    </Button>
-                  </div>
-                </Card>
+                <>
+                  <Card className="border-emerald-500/20 bg-emerald-500/5 space-y-4 text-center p-6">
+                    <div className="space-y-2">
+                      <CheckCircle2 className="size-10 text-emerald-500 mx-auto animate-bounce" />
+                      <h4 className="font-extrabold text-base text-emerald-700">Pesanan Selesai!</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Terima kasih banyak telah berbelanja di <strong>AA Jersey</strong>. Kami
+                        harap Anda menyukai produk kami!
+                      </p>
+                    </div>
+                    <div className="pt-1">
+                      <Button
+                        className="w-full text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm flex items-center justify-center gap-1.5"
+                        asChild
+                      >
+                        <Link to="/shop">Lihat Koleksi Lainnya</Link>
+                      </Button>
+                    </div>
+                  </Card>
+                  {renderCustomerReviewCard()}
+                </>
               )}
 
               {order.status === "shipped" && (
@@ -1383,6 +1563,122 @@ function OrderDetail() {
               className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
             >
               {completingCod ? "Menyelesaikan..." : "Ya, Selesaikan Pesanan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Tulis Ulasan & Testimoni Pelanggan (Bintang Interaktif) */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Star className="size-5 text-amber-500 fill-amber-500" />
+              <span>Beri Ulasan & Testimoni Pesanan</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              Pesanan #{order.order_number} &bull; Bagikan kepuasan dan ulasan Anda berbelanja di AA Jersey.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* 1. Rating Bintang Interaktif */}
+            <div className="space-y-1.5 bg-muted/30 p-3.5 rounded-lg border border-border">
+              <label className="text-xs font-bold block text-foreground">
+                Rating Kepuasan <span className="text-amber-500">*</span>
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                Klik bintang di bawah untuk menentukan rating kepuasan Anda:
+              </p>
+              <div className="pt-2">
+                <InteractiveStarRating
+                  value={reviewRating}
+                  onChange={(r) => setReviewRating(r)}
+                  size="lg"
+                  showLabel={true}
+                />
+              </div>
+            </div>
+
+            {/* 2. Teks Ulasan */}
+            <div>
+              <label className="text-xs font-bold block mb-1 text-foreground">
+                Ulasan / Testimoni Anda <span className="text-muted-foreground font-normal">(Opsional)</span>
+              </label>
+              <Textarea
+                placeholder="Ceritakan kepuasan Anda mengenai kualitas kain, sablon nameset, detail bordir, atau pelayanan toko..."
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                className="text-xs min-h-[90px]"
+              />
+            </div>
+
+            {/* 3. Foto Unboxing / Jersey */}
+            <div>
+              <label className="text-xs font-bold block mb-1 text-foreground">
+                Unggah Foto Jersey / Unboxing <span className="text-muted-foreground font-normal">(Opsional)</span>
+              </label>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Foto paket saat unboxing atau jersey saat dipakai. Otomatis dikompres ke WebP (Maks 5MB).
+              </p>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const webpFile = await createWebpFile(file);
+                    setReviewPhotoFile(webpFile);
+                    setReviewPhotoPreview(URL.createObjectURL(webpFile));
+                  } catch (err) {
+                    toast.error("Gagal memproses gambar");
+                  }
+                }}
+                className="text-xs w-full file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-border file:text-xs file:font-semibold file:bg-muted hover:file:bg-muted/80 cursor-pointer"
+              />
+            </div>
+
+            {reviewPhotoPreview ? (
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground">Pratinjau Foto Baru:</span>
+                <div className="relative border border-border rounded overflow-hidden max-h-48 bg-muted/20">
+                  <img src={reviewPhotoPreview} alt="Preview" className="w-full h-auto max-h-48 object-contain mx-auto" />
+                </div>
+              </div>
+            ) : q.data?.testimonialPhotoUrl ? (
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground">Foto Ulasan Saat Ini:</span>
+                <div className="relative border border-border rounded overflow-hidden max-h-48 bg-muted/20">
+                  <img src={q.data.testimonialPhotoUrl} alt="Current" className="w-full h-auto max-h-48 object-contain mx-auto" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setReviewDialogOpen(false);
+                setReviewPhotoFile(null);
+                setReviewPhotoPreview(null);
+              }}
+              disabled={submittingReview}
+              className="cursor-pointer text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSubmitReview}
+              disabled={submittingReview}
+              className="cursor-pointer text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold"
+            >
+              {submittingReview ? "Mengirim..." : "Kirim Ulasan Bintang"}
             </Button>
           </DialogFooter>
         </DialogContent>

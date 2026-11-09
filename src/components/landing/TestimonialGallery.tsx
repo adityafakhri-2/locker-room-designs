@@ -12,6 +12,7 @@ interface TestimonialItem {
   recipientName: string;
   city: string;
   deliveryType: "COD" | "Ekspedisi" | "Toko";
+  rating?: number;
   testimonialText: string;
   photoUrl?: string;
   products?: string[];
@@ -99,6 +100,7 @@ export function TestimonialGallery() {
                 recipientName: row.recipient_name || "Pelanggan",
                 city: row.recipient_kota || "Indonesia",
                 deliveryType: (isCod ? "COD" : "Ekspedisi") as "COD" | "Ekspedisi",
+                rating: Number(row.testimonial_rating) || 5,
                 testimonialText:
                   row.testimonial_text ||
                   "Transaksi serah terima barang telah selesai dilaksanakan dengan baik.",
@@ -118,7 +120,7 @@ export function TestimonialGallery() {
         // 2. Fallback direct select on delivered orders
         const { data: orders, error: oErr } = await supabase
           .from("orders")
-          .select("id, order_number, recipient_name, recipient_kota, courier, recipient_alamat, testimonial_text, testimonial_photo_url, cod_proof_url, created_at")
+          .select("id, order_number, recipient_name, recipient_kota, courier, recipient_alamat, testimonial_text, testimonial_photo_url, testimonial_rating, cod_proof_url, created_at")
           .eq("status", "delivered")
           .order("created_at", { ascending: false })
           .limit(6);
@@ -142,6 +144,7 @@ export function TestimonialGallery() {
                   recipientName: o.recipient_name,
                   city: o.recipient_kota || "Jawa Barat",
                   deliveryType: (isCod ? "COD" : "Ekspedisi") as "COD" | "Ekspedisi",
+                  rating: Number(o.testimonial_rating) || 5,
                   testimonialText:
                     o.testimonial_text ||
                     "Serah terima pesanan selesai, produk sesuai deskripsi dan kualitas terbaik.",
@@ -277,12 +280,22 @@ export function TestimonialGallery() {
             {/* Testimonial Content */}
             <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
               <div className="space-y-2.5">
-                {/* 5 Stars Rating */}
+                {/* Stars Rating */}
                 <div className="flex items-center gap-1 text-amber-500">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="size-3.5 fill-amber-500 text-amber-500" />
+                    <Star
+                      key={i}
+                      className={cn(
+                        "size-3.5 transition-colors",
+                        i < (item.rating || 5)
+                          ? "fill-amber-400 text-amber-400"
+                          : "fill-muted/20 text-muted-foreground/30",
+                      )}
+                    />
                   ))}
-                  <span className="text-[11px] font-bold text-muted-foreground ml-1">5.0</span>
+                  <span className="text-[11px] font-bold text-muted-foreground ml-1 tabular-nums">
+                    {(item.rating || 5)}.0
+                  </span>
                 </div>
 
                 {/* Review Text */}
