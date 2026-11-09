@@ -152,6 +152,7 @@ function RootShell({ children }: { children: ReactNode }) {
 import { NavigationProgress } from "@/components/common/NavigationProgress";
 import { InitialBrandLoader } from "@/components/common/InitialBrandLoader";
 import { LogoutOverlay } from "@/components/common/LogoutOverlay";
+import { ScrollLockRelease } from "@/components/common/ScrollLockRelease";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -161,6 +162,7 @@ function RootComponent() {
       <InitialBrandLoader />
       <NavigationProgress />
       <LogoutOverlay />
+      <ScrollLockRelease />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster position="bottom-right" />

@@ -882,21 +882,26 @@ function ProductForm() {
               </p>
             </div>
             <div>
-              <Label className="mb-1.5 block">Slug (otomatis jika kosong)</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Slug (otomatis jika kosong)</Label>
+              </div>
               <Input
                 value={form.slug}
                 onChange={(e) => set("slug", e.target.value)}
                 placeholder="slug-produk-otomatis"
+                className="h-9"
               />
             </div>
             <div>
-              <Label className="mb-1.5 block">Kategori</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Kategori</Label>
+              </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full flex items-center justify-between font-normal hover:bg-background border-border h-10 px-3 py-2 text-sm text-foreground bg-background rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full flex items-center justify-between font-normal hover:bg-background border-border h-9 px-3 text-sm text-foreground bg-background rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   >
                     <span className="truncate">
                       {form.category_ids.length > 0
@@ -1133,22 +1138,27 @@ function ProductForm() {
               </div>
             </div>
             <div>
-              <Label className="mb-1.5 block">Stok Total (Otomatis dari ukuran)</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Stok Total (Otomatis dari ukuran)</Label>
+              </div>
               <Input
                 type="number"
                 disabled
                 value={totalStockCalculated}
-                className="bg-muted cursor-not-allowed"
+                className="h-9 bg-muted cursor-not-allowed"
                 placeholder="Total stok otomatis"
               />
             </div>
 
             <div className="relative">
-              <Label className="mb-1.5 block">Brand</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Brand</Label>
+              </div>
               <Input
                 value={form.brand}
                 onChange={(e) => set("brand", e.target.value)}
                 placeholder="Ketik atau pilih brand"
+                className="h-9"
                 onFocus={() => setShowBrandSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowBrandSuggestions(false), 200)}
                 onKeyDown={(e) => {
@@ -1174,11 +1184,14 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label className="mb-1.5 block">Tim</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Tim</Label>
+              </div>
               <Input
                 value={form.team}
                 onChange={(e) => set("team", e.target.value)}
                 placeholder="Ketik atau pilih tim"
+                className="h-9"
                 onFocus={() => setShowTeamSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowTeamSuggestions(false), 200)}
                 onKeyDown={(e) => {
@@ -1204,11 +1217,14 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label className="mb-1.5 block">Liga</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Liga</Label>
+              </div>
               <Input
                 value={form.league}
                 onChange={(e) => set("league", e.target.value)}
                 placeholder="Ketik atau pilih liga"
+                className="h-9"
                 onFocus={() => setShowLeagueSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowLeagueSuggestions(false), 200)}
                 onKeyDown={(e) => {
@@ -1234,11 +1250,14 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label className="mb-1.5 block">Negara</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Negara</Label>
+              </div>
               <Input
                 value={form.country}
                 onChange={(e) => set("country", e.target.value)}
                 placeholder="Ketik atau pilih negara"
+                className="h-9"
                 onFocus={() => setShowCountrySuggestions(true)}
                 onBlur={() => setTimeout(() => setShowCountrySuggestions(false), 200)}
                 onKeyDown={(e) => {
@@ -1264,13 +1283,15 @@ function ProductForm() {
             </div>
 
             <div className="relative">
-              <Label className="mb-1.5 block">Tahun Rilis</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Tahun Rilis</Label>
+              </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full flex items-center justify-between font-normal hover:bg-background border-border h-10 px-3 py-2 text-sm text-foreground bg-background rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full flex items-center justify-between font-normal hover:bg-background border-border h-9 px-3 text-sm text-foreground bg-background rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   >
                     <span>{form.release_year || "Pilih Tahun Rilis"}</span>
                     <CalendarIcon className="h-4 w-4 opacity-50 shrink-0" />
@@ -1300,13 +1321,43 @@ function ProductForm() {
                 </PopoverContent>
               </Popover>
             </div>
+
             <div>
-              <Label className="mb-1.5 block">Ukuran (pisahkan koma)</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Ukuran (pisahkan koma)</Label>
+              </div>
               <Input
                 value={form.sizes}
                 onChange={(e) => set("sizes", e.target.value)}
                 placeholder="Contoh: S, M, L, XL"
+                className="h-9"
               />
+            </div>
+
+            <div>
+              <div className="h-5 flex items-center justify-between mb-1.5">
+                <Label className="text-xs text-muted-foreground font-medium">Preset Ukuran Cepat</Label>
+                <span className="text-[10px] text-muted-foreground hidden sm:inline">Pilih preset</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 h-9">
+                {[
+                  { label: "S, M, L, XL", val: "S, M, L, XL" },
+                  { label: "S - XXL", val: "S, M, L, XL, XXL" },
+                  { label: "S, M, L", val: "S, M, L" },
+                  { label: "All Size", val: "All Size" },
+                ].map((preset) => (
+                  <Button
+                    key={preset.val}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => set("sizes", preset.val)}
+                    className="h-9 px-1 text-[11px] font-medium border-border hover:border-primary hover:text-primary transition-colors text-center truncate"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             <div className="sm:col-span-2 border border-border p-4 rounded-xl bg-muted/20 space-y-3">
@@ -1370,7 +1421,7 @@ function ProductForm() {
                       key={s}
                       className="bg-card border border-border p-3.5 rounded-xl shadow-sm space-y-2.5"
                     >
-                      <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
+                      <div className="h-6 flex items-center justify-between border-b border-border/50 pb-1.5">
                         <span className="font-extrabold text-xs uppercase tracking-wider text-primary">
                           Ukuran {s}
                         </span>
@@ -1391,9 +1442,11 @@ function ProductForm() {
                       </div>
 
                       <div className="space-y-1">
-                        <Label className="text-[11px] font-semibold text-muted-foreground block">
-                          Jumlah Stok (pcs)
-                        </Label>
+                        <div className="h-4 flex items-center">
+                          <Label className="text-[11px] font-semibold text-muted-foreground">
+                            Jumlah Stok (pcs)
+                          </Label>
+                        </div>
                         <Input
                           type="number"
                           min={0}
@@ -1408,14 +1461,16 @@ function ProductForm() {
                               setSizeStocks((prev) => ({ ...prev, [s]: val }));
                             }
                           }}
-                          className="h-8 text-xs font-mono font-bold"
+                          className="h-9 text-xs font-mono font-bold"
                         />
                       </div>
 
                       <div className="space-y-1">
-                        <Label className="text-[11px] font-semibold text-muted-foreground block">
-                          Harga Modal / HPP (Rp)
-                        </Label>
+                        <div className="h-4 flex items-center">
+                          <Label className="text-[11px] font-semibold text-muted-foreground">
+                            Harga Modal / HPP (Rp)
+                          </Label>
+                        </div>
                         <Input
                           type="text"
                           placeholder={form.cost_price || "Contoh: 65.000"}
@@ -1424,7 +1479,7 @@ function ProductForm() {
                             const formatted = formatThousand(e.target.value);
                             setSizeCostPrices((prev) => ({ ...prev, [s]: formatted }));
                           }}
-                          className="h-8 text-xs font-mono font-bold"
+                          className="h-9 text-xs font-mono font-bold"
                         />
                       </div>
                     </div>
@@ -1438,129 +1493,131 @@ function ProductForm() {
               </div>
             </div>
 
-            <div className="relative">
-              <Label className="mb-1.5 block">Kondisi</Label>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <button
-                    type="button"
-                    className="absolute top-0 right-0 text-xs text-primary hover:underline cursor-pointer"
-                  >
-                    Kelola Kondisi
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md bg-background border border-border p-6 rounded-lg shadow-lg">
-                  <DialogHeader>
-                    <DialogTitle>Kelola Pilihan Kondisi</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Kondisi baru (misal: brand new)"
-                        value={newConditionVal}
-                        onChange={(e) => setNewConditionVal(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        disabled={addConditionMutation.isPending || !newConditionVal.trim()}
-                        onClick={() => {
-                          addConditionMutation.mutate(newConditionVal, {
-                            onSuccess: () => setNewConditionVal(""),
-                          });
-                        }}
-                      >
-                        <Plus className="size-4 mr-1" /> Tambah
-                      </Button>
-                    </div>
-
-                    <div className="border border-border rounded-md divide-y divide-border max-h-60 overflow-y-auto">
-                      {conditionsQuery.data?.map((c) => (
-                        <div
-                          key={c.id}
-                          className="flex items-center justify-between p-3 bg-card hover:bg-muted/10"
+            <div>
+              <div className="h-5 flex items-center justify-between mb-1.5">
+                <Label>Kondisi</Label>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline cursor-pointer font-medium"
+                    >
+                      Kelola Kondisi
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md bg-background border border-border p-6 rounded-lg shadow-lg">
+                    <DialogHeader>
+                      <DialogTitle>Kelola Pilihan Kondisi</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Kondisi baru (misal: brand new)"
+                          value={newConditionVal}
+                          onChange={(e) => setNewConditionVal(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          disabled={addConditionMutation.isPending || !newConditionVal.trim()}
+                          onClick={() => {
+                            addConditionMutation.mutate(newConditionVal, {
+                              onSuccess: () => setNewConditionVal(""),
+                            });
+                          }}
                         >
-                          {editingConditionId === c.id ? (
-                            <div className="flex items-center gap-2 flex-1 mr-2">
-                              <Input
-                                value={editingConditionVal}
-                                onChange={(e) => setEditingConditionVal(e.target.value)}
-                                className="h-8 flex-1 py-1 text-sm"
-                                autoFocus
-                                placeholder="Edit nama kondisi"
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="h-8 px-2"
-                                disabled={
-                                  editConditionMutation.isPending || !editingConditionVal.trim()
-                                }
-                                onClick={() => {
-                                  editConditionMutation.mutate(
-                                    { id: c.id, name: editingConditionVal },
-                                    {
-                                      onSuccess: () => setEditingConditionId(null),
-                                    },
-                                  );
-                                }}
-                              >
-                                Simpan
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => setEditingConditionId(null)}
-                              >
-                                Batal
-                              </Button>
-                            </div>
-                          ) : (
-                            <>
-                              <span className="text-sm font-semibold">{c.name}</span>
-                              <div className="flex items-center gap-1">
-                                <button
+                          <Plus className="size-4 mr-1" /> Tambah
+                        </Button>
+                      </div>
+
+                      <div className="border border-border rounded-md divide-y divide-border max-h-60 overflow-y-auto">
+                        {conditionsQuery.data?.map((c) => (
+                          <div
+                            key={c.id}
+                            className="flex items-center justify-between p-3 bg-card hover:bg-muted/10"
+                          >
+                            {editingConditionId === c.id ? (
+                              <div className="flex items-center gap-2 flex-1 mr-2">
+                                <Input
+                                  value={editingConditionVal}
+                                  onChange={(e) => setEditingConditionVal(e.target.value)}
+                                  className="h-8 flex-1 py-1 text-sm"
+                                  autoFocus
+                                  placeholder="Edit nama kondisi"
+                                />
+                                <Button
                                   type="button"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  disabled={
+                                    editConditionMutation.isPending || !editingConditionVal.trim()
+                                  }
                                   onClick={() => {
-                                    setEditingConditionId(c.id);
-                                    setEditingConditionVal(c.name);
+                                    editConditionMutation.mutate(
+                                      { id: c.id, name: editingConditionVal },
+                                      {
+                                        onSuccess: () => setEditingConditionId(null),
+                                      },
+                                    );
                                   }}
-                                  className="text-xs text-primary hover:underline cursor-pointer px-2 py-1"
                                 >
-                                  Edit
-                                </button>
-                                <button
+                                  Simpan
+                                </Button>
+                                <Button
                                   type="button"
-                                  disabled={deleteConditionMutation.isPending}
-                                  onClick={() => {
-                                    setConditionToDelete({ id: c.id, name: c.name });
-                                  }}
-                                  className="text-xs text-destructive hover:underline cursor-pointer px-2 py-1"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  onClick={() => setEditingConditionId(null)}
                                 >
-                                  Hapus
-                                </button>
+                                  Batal
+                                </Button>
                               </div>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                      {conditionsQuery.data?.length === 0 && (
-                        <p className="p-4 text-center text-xs text-muted-foreground">
-                          Belum ada pilihan kondisi.
-                        </p>
-                      )}
+                            ) : (
+                              <>
+                                <span className="text-sm font-semibold">{c.name}</span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingConditionId(c.id);
+                                      setEditingConditionVal(c.name);
+                                    }}
+                                    className="text-xs text-primary hover:underline cursor-pointer px-2 py-1"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={deleteConditionMutation.isPending}
+                                    onClick={() => {
+                                      setConditionToDelete({ id: c.id, name: c.name });
+                                    }}
+                                    className="text-xs text-destructive hover:underline cursor-pointer px-2 py-1"
+                                  >
+                                    Hapus
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        {conditionsQuery.data?.length === 0 && (
+                          <p className="p-4 text-center text-xs text-muted-foreground">
+                            Belum ada pilihan kondisi.
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <Select
                 key={conditionsQuery.data?.length ?? 0}
                 value={form.condition || undefined}
                 onValueChange={(v) => set("condition", v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Pilih Kondisi" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1574,12 +1631,14 @@ function ProductForm() {
             </div>
 
             <div>
-              <Label className="mb-1.5 block">Authenticity Badge</Label>
+              <div className="h-5 flex items-center mb-1.5">
+                <Label>Authenticity Badge</Label>
+              </div>
               <Select
                 value={form.authenticity_badge || undefined}
                 onValueChange={(v) => set("authenticity_badge", v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Pilih Authenticity Badge" />
                 </SelectTrigger>
                 <SelectContent>

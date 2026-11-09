@@ -10,10 +10,10 @@ test.describe("Basic Smoke Test", () => {
 
     // Verify main hero heading is visible
     const heroHeading = page.locator("h1");
-    await expect(heroHeading).toContainText("Jersey Original");
+    await expect(heroHeading).toContainText("SAATNYA TAMPIL MENYALA");
 
     // Verify key action button exists
-    const shopButton = page.locator("text=Belanja Sekarang").first();
+    const shopButton = page.locator("text=Gas Cek Koleksi").first();
     await expect(shopButton).toBeVisible();
   });
 

@@ -44,9 +44,14 @@ import {
   ChevronsUpDown,
   Loader2,
   X,
+  Camera,
+  Sparkles,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { createWebpFile } from "@/lib/imageCompression";
+import { uploadFile } from "@/lib/storage";
 import { OrderReceiptModal, OrderReceiptData } from "@/components/commerce/OrderReceiptModal";
 
 interface OrderItemRow {
@@ -87,6 +92,9 @@ export function CreateManualOrderDialog({
   const [platformFee, setPlatformFee] = useState<number>(0);
   const [notes, setNotes] = useState("Transaksi Langsung di Outlet Cimahi");
   const [testimonialText, setTestimonialText] = useState("");
+  const [testimonialPhotoFile, setTestimonialPhotoFile] = useState<File | null>(null);
+  const [testimonialPhotoPreview, setTestimonialPhotoPreview] = useState<string | null>(null);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
 
   // Items State
   const [items, setItems] = useState<OrderItemRow[]>([
@@ -365,6 +373,17 @@ export function CreateManualOrderDialog({
         formattedNote = `${formattedNote} [Biaya Platform: Rp ${platformFee.toLocaleString("id-ID")}]`;
       }
 
+      // 0. Upload testimonial photo if provided
+      let photoPath: string | null = null;
+      if (testimonialPhotoFile && user) {
+        try {
+          const uploadPath = `${user.id}/testimonials/${orderNumber}-${Date.now()}.webp`;
+          photoPath = await uploadFile("payment-proofs", uploadPath, testimonialPhotoFile);
+        } catch (uploadErr) {
+          console.warn("Gagal mengunggah foto testimoni:", uploadErr);
+        }
+      }
+
       // 1. Insert into orders table
       const orderPayload: any = {
         order_number: orderNumber,
@@ -383,6 +402,8 @@ export function CreateManualOrderDialog({
         status: "delivered", // Offline orders are fulfilled immediately
         note: formattedNote,
         testimonial_text: testimonialText.trim() || null,
+        testimonial_photo_url: photoPath,
+        testimonial_rating: testimonialText.trim() || photoPath ? 5 : null,
         created_at: dateObj.toISOString(),
         updated_at: dateObj.toISOString(),
       };
@@ -393,14 +414,22 @@ export function CreateManualOrderDialog({
         .select()
         .single();
 
-      // Graceful fallback if platform_fee or testimonial_text column has not been added to remote Supabase yet
+      // Graceful fallback if platform_fee or testimonial columns have not been added to remote Supabase yet
       if (
         orderError &&
         (orderError.message?.includes("platform_fee") ||
           orderError.message?.includes("testimonial_text") ||
+          orderError.message?.includes("testimonial_photo_url") ||
+          orderError.message?.includes("testimonial_rating") ||
           (orderError as any).code === "PGRST204")
       ) {
-        const { platform_fee: _p, testimonial_text: _t, ...fallbackPayload } = orderPayload;
+        const {
+          platform_fee: _p,
+          testimonial_text: _t,
+          testimonial_photo_url: _tpu,
+          testimonial_rating: _tr,
+          ...fallbackPayload
+        } = orderPayload;
         const retryRes = await supabase
           .from("orders")
           .insert(fallbackPayload)
@@ -410,11 +439,15 @@ export function CreateManualOrderDialog({
         orderError = retryRes.error;
       }
 
-      if (orderError) throw new Error("Gagal membuat pesanan: " + orderError.message);
+      if (orderError || !newOrder) {
+        throw new Error("Gagal membuat pesanan: " + (orderError?.message || "Data pesanan tidak ditemukan"));
+      }
+
+      const createdOrderRecord = newOrder;
 
       // 2. Insert into order_items table
       const orderItemsPayload = validItems.map((it) => ({
-        order_id: newOrder.id,
+        order_id: createdOrderRecord.id,
         product_id: it.productId,
         product_name: it.productName,
         product_slug: it.productSlug || null,
@@ -434,7 +467,7 @@ export function CreateManualOrderDialog({
 
       // 3. Insert into payments table
       const paymentPayload: any = {
-        order_id: newOrder.id,
+        order_id: createdOrderRecord.id,
         amount: grandTotal,
         status: "approved",
         method: paymentMethod,
@@ -484,8 +517,28 @@ export function CreateManualOrderDialog({
         }
       }
 
+      // 5. Sync review if testimonial text or photo is provided
+      if ((testimonialText.trim() || photoPath) && validItems[0]?.productId) {
+        try {
+          await supabase.from("reviews").insert({
+            order_id: createdOrderRecord.id,
+            product_id: validItems[0].productId,
+            user_id: selectedCustomerId || user?.id || "00000000-0000-0000-0000-000000000000",
+            rating: 5,
+            body: testimonialText.trim() || "Pelanggan puas dengan kondisi jersey original dan pelayanan di toko.",
+            photos: photoPath ? [photoPath] : [],
+            approved: true,
+            hidden: false,
+          });
+          qc.invalidateQueries({ queryKey: ["admin-reviews"] });
+          qc.invalidateQueries({ queryKey: ["public-testimonials-gallery"] });
+        } catch (revErr) {
+          console.warn("[Manual Order Review Sync Warning]", revErr);
+        }
+      }
+
       return {
-        ...newOrder,
+        ...createdOrderRecord,
         platform_fee: Number(platformFee) || 0,
         payments: [paymentPayload],
         order_items: orderItemsPayload,
@@ -498,6 +551,10 @@ export function CreateManualOrderDialog({
       qc.invalidateQueries({ queryKey: ["admin-reports"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["products-for-manual-order"] });
+
+      // Reset testimonial photo state
+      setTestimonialPhotoFile(null);
+      setTestimonialPhotoPreview(null);
 
       // Open receipt modal
       setCreatedOrderForReceipt(createdOrder as any);
@@ -651,10 +708,10 @@ export function CreateManualOrderDialog({
                         <CalendarIcon className="size-3.5 text-primary" />
                         {selectedDate
                           ? selectedDate.toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
                           : "Pilih Tanggal"}
                       </span>
                       <ChevronsUpDown className="size-3 text-muted-foreground" />
@@ -739,15 +796,15 @@ export function CreateManualOrderDialog({
                 {items.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl border border-border bg-card shadow-sm space-y-3"
+                    className="p-3.5 sm:p-4 rounded-xl border border-border bg-card shadow-xs space-y-3.5"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-xs font-bold text-muted-foreground pt-2">
+                    <div className="flex items-center justify-between gap-2.5">
+                      <span className="inline-flex items-center justify-center px-2 py-1 rounded-md bg-muted text-[11px] font-extrabold text-muted-foreground shrink-0">
                         #{idx + 1}
                       </span>
 
                       {/* Searchable Jersey Combobox */}
-                      <div className="flex-1 min-w-[200px]">
+                      <div className="flex-1 min-w-0">
                         <Popover
                           open={openProductPopoverIndex === idx}
                           onOpenChange={(open) => {
@@ -760,29 +817,39 @@ export function CreateManualOrderDialog({
                               variant="outline"
                               role="combobox"
                               className={cn(
-                                "w-full justify-between h-10 text-xs font-normal bg-background border-input cursor-pointer",
+                                "w-full justify-between h-10 px-3 text-xs font-normal bg-background border-input cursor-pointer",
                                 !item.productId && "text-muted-foreground",
                               )}
                             >
-                              <div className="flex items-center gap-2 truncate">
-                                {item.coverImage && (
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {item.coverImage ? (
                                   <img
                                     src={item.coverImage}
                                     alt=""
-                                    className="size-6 rounded object-cover border border-border"
+                                    className="size-6 rounded object-cover border border-border shrink-0"
                                   />
+                                ) : (
+                                  <Shirt className="size-4 text-muted-foreground shrink-0" />
                                 )}
                                 <span className="truncate font-semibold text-foreground">
                                   {item.productName
-                                    ? `${item.productName} — ${formatIDR(item.unitPrice)} (Stok: ${item.totalStock} pcs)`
+                                    ? item.productName
                                     : "Pilih Jersey dari Katalog..."}
                                 </span>
+                                {item.productName && (
+                                  <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono shrink-0">
+                                    <span>— {formatIDR(item.unitPrice)}</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-sans font-semibold text-foreground">
+                                      Stok: {item.totalStock} pcs
+                                    </span>
+                                  </span>
+                                )}
                               </div>
                               <ChevronsUpDown className="ml-2 size-3.5 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent
-                            className="w-[340px] sm:w-[460px] p-0 z-[100] bg-popover border border-border shadow-2xl rounded-xl overscroll-contain"
+                            className="w-[calc(100vw-2.5rem)] sm:w-[460px] p-0 z-[100] bg-popover border border-border shadow-2xl rounded-xl overscroll-contain"
                             align="start"
                             data-radix-scroll-lock-ignore="true"
                             onWheelCapture={(e) => e.stopPropagation()}
@@ -883,7 +950,7 @@ export function CreateManualOrderDialog({
                         size="sm"
                         onClick={() => handleRemoveItem(idx)}
                         disabled={items.length <= 1}
-                        className="h-10 w-10 p-0 text-destructive hover:bg-destructive/10 cursor-pointer"
+                        className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10 cursor-pointer shrink-0"
                         title="Hapus jersey ini"
                       >
                         <Trash2 className="size-4" />
@@ -892,16 +959,16 @@ export function CreateManualOrderDialog({
 
                     {/* Baris Detail Ukuran, Qty, Harga Satuan, & Subtotal */}
                     {item.productId && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/50 text-xs">
-                        <div>
-                          <Label className="text-[11px] text-muted-foreground block mb-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-12 gap-3 pt-3 border-t border-border/50 text-xs">
+                        <div className="sm:col-span-3">
+                          <Label className="text-[11px] font-medium text-muted-foreground block mb-1.5">
                             Pilih Ukuran
                           </Label>
                           <Select
                             value={item.size}
                             onValueChange={(sz) => handleUpdateItem(idx, "size", sz)}
                           >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger className="h-9 text-xs bg-background">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -917,8 +984,8 @@ export function CreateManualOrderDialog({
                           </Select>
                         </div>
 
-                        <div>
-                          <Label className="text-[11px] text-muted-foreground block mb-1">
+                        <div className="sm:col-span-2">
+                          <Label className="text-[11px] font-medium text-muted-foreground block mb-1.5">
                             Jumlah (Qty)
                           </Label>
                           <Input
@@ -932,12 +999,12 @@ export function CreateManualOrderDialog({
                                 Math.max(1, parseInt(e.target.value) || 1),
                               )
                             }
-                            className="h-8 text-xs font-mono font-semibold"
+                            className="h-9 text-xs font-mono font-semibold bg-background"
                           />
                         </div>
 
-                        <div>
-                          <Label className="text-[11px] text-muted-foreground block mb-1">
+                        <div className="sm:col-span-4">
+                          <Label className="text-[11px] font-medium text-muted-foreground block mb-1.5">
                             Harga Satuan (Rp)
                           </Label>
                           <Input
@@ -951,27 +1018,27 @@ export function CreateManualOrderDialog({
                                 Math.max(0, parseInt(e.target.value) || 0),
                               )
                             }
-                            className="h-8 text-xs font-mono font-bold"
+                            className="h-9 text-xs font-mono font-bold bg-background"
                             title="Harga satuan jersey (dapat disesuaikan jika ada nego per item)"
                           />
                         </div>
 
-                        <div>
-                          <Label className="text-[11px] text-muted-foreground block mb-1">
+                        <div className="sm:col-span-3">
+                          <Label className="text-[11px] font-medium text-muted-foreground block mb-1.5">
                             Subtotal
                           </Label>
-                          <div className="h-8 px-2 rounded border border-border bg-muted/40 flex flex-col justify-center font-mono text-xs">
-                            <span className="font-bold text-foreground">
+                          <div className="h-9 px-3 rounded-md border border-border bg-muted/40 flex flex-col justify-center font-mono text-xs">
+                            <span className="font-bold text-foreground truncate">
                               {formatIDR(item.unitPrice * item.quantity)}
                             </span>
                             {totalDeductions > 0 && subtotal > 0 && (
-                              <span className="text-[9px] text-rose-600 dark:text-rose-400 font-medium">
+                              <span className="text-[9px] text-rose-600 dark:text-rose-400 font-medium truncate">
                                 Net: {formatIDR(
                                   Math.round(
                                     Math.max(
                                       0,
                                       item.unitPrice * item.quantity -
-                                        (totalDeductions * (item.unitPrice * item.quantity)) / subtotal,
+                                      (totalDeductions * (item.unitPrice * item.quantity)) / subtotal,
                                     ),
                                   ),
                                 )}
@@ -986,149 +1053,220 @@ export function CreateManualOrderDialog({
               </div>
             </div>
 
-            {/* Bagian 3: Diskon, Biaya Platform, Ongkir & Catatan */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-xl bg-muted/20 border border-border">
-              <div>
-                <Label className="text-xs font-semibold block mb-1.5">
-                  Potongan Diskon (Rp)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={discountAmount || ""}
-                  placeholder="0"
-                  onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="h-9 text-xs font-mono"
-                />
-                {discountAmount > 0 && items.length > 1 && (
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    * Didistribusikan proporsional ke {items.length} jersey.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label className="text-xs font-semibold">
-                    Biaya Platform (Rp)
-                  </Label>
-                  {subtotal > 0 && (
-                    <div className="flex items-center gap-1 text-[10px]">
-                      <button
-                        type="button"
-                        onClick={() => setPlatformFee(Math.round(subtotal * 0.105))}
-                        className="px-1.5 py-0.5 rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground font-mono cursor-pointer"
-                        title="Hitung biaya admin Shopee 10.5%"
-                      >
-                        Shopee 10.5%
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPlatformFee(Math.round(subtotal * 0.1))}
-                        className="px-1.5 py-0.5 rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground font-mono cursor-pointer"
-                        title="Hitung biaya admin TikTok 10%"
-                      >
-                        TikTok 10%
-                      </button>
-                    </div>
+            {/* Bagian 3: Rincian Biaya Tambahan, Catatan & Testimoni */}
+            <div className="p-4 rounded-xl bg-muted/20 border border-border space-y-4">
+              {/* Baris 1: 3 Kolom Angka Sejajar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <div className="h-5 flex items-center mb-1.5">
+                    <Label className="text-xs font-semibold">
+                      Potongan Diskon (Rp)
+                    </Label>
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={discountAmount || ""}
+                    placeholder="0"
+                    onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="h-9 text-xs font-mono bg-background"
+                  />
+                  {discountAmount > 0 && items.length > 1 && (
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      * Didistribusikan proporsional ke {items.length} jersey.
+                    </p>
                   )}
                 </div>
-                <Input
-                  type="number"
-                  min={0}
-                  value={platformFee || ""}
-                  placeholder="0 (Shopee/Tokped/TikTok)"
-                  onChange={(e) => setPlatformFee(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="h-9 text-xs font-mono"
-                />
-                {platformFee > 0 && (
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
-                    * Potongan admin/komisi ({((platformFee / (subtotal || 1)) * 100).toFixed(1)}%).
-                  </p>
-                )}
+
+                <div>
+                  <div className="h-5 flex items-center mb-1.5">
+                    <Label className="text-xs font-semibold">
+                      Biaya Platform (Rp)
+                    </Label>
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={platformFee || ""}
+                    placeholder="0 (Shopee / Tokped / TikTok)"
+                    onChange={(e) => setPlatformFee(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="h-9 text-xs font-mono bg-background"
+                  />
+                </div>
+
+                <div>
+                  <div className="h-5 flex items-center mb-1.5">
+                    <Label className="text-xs font-semibold">
+                      Biaya Ongkir (Rp)
+                    </Label>
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={shippingCost || ""}
+                    placeholder="0 (Ambil di Toko / COD)"
+                    onChange={(e) => setShippingCost(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="h-9 text-xs font-mono bg-background"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label className="text-xs font-semibold block mb-1.5">
-                  Biaya Ongkir (Rp)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={shippingCost || ""}
-                  placeholder="0 (Ambil di Toko)"
-                  onChange={(e) => setShippingCost(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="h-9 text-xs font-mono"
-                />
-              </div>
+              {/* Baris 2: Catatan Transaksi & Testimoni Pelanggan (Dengan Upload Foto WebP) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-3.5 border-t border-border/60">
+                <div>
+                  <div className="h-5 flex items-center mb-1.5">
+                    <Label className="text-xs font-semibold">
+                      Catatan Transaksi
+                    </Label>
+                  </div>
+                  <Input
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Contoh: Transaksi Langsung di Outlet Cimahi"
+                    className="h-9 text-xs bg-background"
+                  />
+                </div>
 
-              <div>
-                <Label className="text-xs font-semibold block mb-1.5">
-                  Catatan Transaksi
-                </Label>
-                <Input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Contoh: Admin shopee 10.5% / J&T"
-                  className="h-9 text-xs"
-                />
-              </div>
+                <div className="space-y-2">
+                  <div className="h-5 flex items-center justify-between gap-2 mb-1.5">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <span>Testimoni Pelanggan (Opsional)</span>
+                    </Label>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium shrink-0 leading-none">
+                      Tampil di Galeri
+                    </span>
+                  </div>
+                  <Input
+                    value={testimonialText}
+                    onChange={(e) => setTestimonialText(e.target.value)}
+                    placeholder="Contoh: Jersey mantap, 100% original & bahan nyaman!"
+                    className="h-9 text-xs bg-background"
+                  />
 
-              <div>
-                <Label className="text-xs font-semibold block mb-1.5 flex items-center justify-between">
-                  <span>Testimoni / Ulasan Pelanggan (Opsional)</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">
-                    Ditampilkan di Galeri Testimoni
-                  </span>
-                </Label>
-                <Input
-                  value={testimonialText}
-                  onChange={(e) => setTestimonialText(e.target.value)}
-                  placeholder="Contoh: Jersey mantap, 100% original & bahan nyaman!"
-                  className="h-9 text-xs"
-                />
+                  {/* Upload Foto Testimoni (Otomatis Kompres & Convert ke WebP) */}
+                  <div>
+                    {!testimonialPhotoPreview ? (
+                      <label className="flex items-center justify-between gap-2 p-2 rounded-lg border border-dashed border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors text-xs text-muted-foreground group">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Camera className="size-3.5 text-primary group-hover:scale-110 transition-transform shrink-0" />
+                          <span className="truncate text-[11px]">
+                            {isCompressingPhoto
+                              ? "Mengompres & konversi ke WebP..."
+                              : "Unggah Foto Testimoni (Otomatis WebP)"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] bg-muted px-2 py-0.5 rounded border border-border text-foreground font-medium shrink-0">
+                          Pilih Foto
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isCompressingPhoto}
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              setIsCompressingPhoto(true);
+                              const webpFile = await createWebpFile(file);
+                              setTestimonialPhotoFile(webpFile);
+                              setTestimonialPhotoPreview(URL.createObjectURL(webpFile));
+                              toast.success("Foto berhasil dikompres & dikonversi ke WebP!");
+                            } catch (err) {
+                              toast.error("Gagal memproses gambar");
+                            } finally {
+                              setIsCompressingPhoto(false);
+                            }
+                          }}
+                        />
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2.5 p-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={testimonialPhotoPreview}
+                            alt="Pratinjau Foto Testimoni"
+                            className="size-9 rounded object-cover border border-border shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold text-foreground truncate flex items-center gap-1">
+                              <Check className="size-3 text-emerald-600 shrink-0" />
+                              <span>Foto WebP Siap Diunggah</span>
+                            </p>
+                            <p className="text-[10px] text-muted-foreground font-mono">
+                              {(testimonialPhotoFile?.size ? (testimonialPhotoFile.size / 1024).toFixed(0) : "0")} KB • Format WebP
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setTestimonialPhotoFile(null);
+                            setTestimonialPhotoPreview(null);
+                          }}
+                          className="size-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer shrink-0"
+                          title="Hapus foto"
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Bagian 4: Ringkasan Finansial Realtime */}
-            <div className="p-4 rounded-xl bg-primary/[0.04] border border-primary/20 space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Subtotal Produk:</span>
-                <span className="font-mono font-semibold text-foreground">{formatIDR(subtotal)}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-xs text-rose-600 font-semibold">
-                  <span>Potongan Diskon:</span>
-                  <span className="font-mono">-{formatIDR(discountAmount)}</span>
-                </div>
-              )}
-              {platformFee > 0 && (
-                <div className="flex justify-between text-xs text-amber-600 dark:text-amber-400 font-semibold">
-                  <span>Biaya Platform (Marketplace):</span>
-                  <span className="font-mono">-{formatIDR(platformFee)}</span>
-                </div>
-              )}
-              {shippingCost > 0 && (
+            <div className="p-4 rounded-xl bg-primary/[0.04] border border-primary/20 space-y-2.5">
+              <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Biaya Pengiriman:</span>
-                  <span className="font-mono">{formatIDR(shippingCost)}</span>
+                  <span>Subtotal Produk:</span>
+                  <span className="font-mono font-semibold text-foreground">{formatIDR(subtotal)}</span>
                 </div>
-              )}
-
-              <div className="flex justify-between text-sm font-black text-foreground pt-2 border-t border-primary/20">
-                <span>TOTAL HARGA BAYAR:</span>
-                <span className="font-mono text-base text-primary">{formatIDR(grandTotal)}</span>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-xs text-rose-600 font-semibold">
+                    <span>Potongan Diskon:</span>
+                    <span className="font-mono">-{formatIDR(discountAmount)}</span>
+                  </div>
+                )}
+                {platformFee > 0 && (
+                  <div className="flex justify-between text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                    <span>Biaya Platform (Marketplace):</span>
+                    <span className="font-mono">-{formatIDR(platformFee)}</span>
+                  </div>
+                )}
+                {shippingCost > 0 && (
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Biaya Pengiriman:</span>
+                    <span className="font-mono">{formatIDR(shippingCost)}</span>
+                  </div>
+                )}
               </div>
 
-              <div className="pt-2 border-t border-dashed border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <Coins className="size-3 text-amber-500" />
-                  Total HPP Modal: <strong className="font-mono">{formatIDR(totalCostPrice)}</strong>
-                </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                  <TrendingUp className="size-3.5" />
-                  Laba Bersih: {formatIDR(estimatedProfit)} ({marginPercent.toFixed(1)}%)
-                </span>
+              <div className="flex items-center justify-between text-sm font-black text-foreground pt-2.5 border-t border-primary/20">
+                <span>TOTAL HARGA BAYAR:</span>
+                <span className="font-mono text-base sm:text-lg text-primary">{formatIDR(grandTotal)}</span>
+              </div>
+
+              <div className="pt-2.5 border-t border-dashed border-primary/20 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center justify-between sm:justify-start gap-1.5 px-2.5 py-1.5 rounded-lg bg-background/70 border border-border/60 text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Coins className="size-3.5 text-amber-500 shrink-0" />
+                    <span>Total HPP Modal:</span>
+                  </span>
+                  <strong className="font-mono text-foreground">{formatIDR(totalCostPrice)}</strong>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/[0.06] border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="size-3.5 shrink-0" />
+                    <span>Laba Bersih:</span>
+                  </span>
+                  <span className="font-mono">
+                    {formatIDR(estimatedProfit)} ({marginPercent.toFixed(1)}%)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
