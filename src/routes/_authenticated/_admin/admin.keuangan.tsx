@@ -110,6 +110,7 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
   const sizeSoldMap: Record<string, number> = {};
   const productSoldMap: Record<string, number> = {};
   const orderItemCostMap: Record<string, number> = {};
+  const sizeSoldTotalCostMap: Record<string, number> = {};
 
   orders.forEach((o) => {
     const orderItems = (o as any).order_items || [];
@@ -120,8 +121,10 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
         if (it.size) {
           const key = `${it.product_id}-${String(it.size).toUpperCase().trim()}`;
           sizeSoldMap[key] = (sizeSoldMap[key] || 0) + qty;
-          if (Number(it.cost_price) > 0) {
-            orderItemCostMap[key] = Number(it.cost_price);
+          const itCost = Number(it.cost_price) || 0;
+          if (itCost > 0) {
+            orderItemCostMap[key] = itCost;
+            sizeSoldTotalCostMap[key] = (sizeSoldTotalCostMap[key] || 0) + itCost * qty;
           }
         }
       }
@@ -173,6 +176,13 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
               : defaultCost;
 
         const totalProcured = qty + szSold;
+        const historicalSoldCost =
+          sizeSoldTotalCostMap[szKey] !== undefined && sizeSoldTotalCostMap[szKey] > 0
+            ? sizeSoldTotalCostMap[szKey]
+            : szSold * szCost;
+        const currentStockCost = qty * szCost;
+        const totalVariantCost = historicalSoldCost + currentStockCost;
+        const effectiveAvgCost = totalProcured > 0 ? Math.round(totalVariantCost / totalProcured) : szCost;
 
         items.push({
           id: `${p.id}-${sz}`,
@@ -183,8 +193,8 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
           stock: qty,
           sold: szSold,
           totalProcured,
-          costPrice: szCost,
-          totalCost: szCost * totalProcured,
+          costPrice: effectiveAvgCost,
+          totalCost: totalVariantCost,
         });
       });
 
@@ -203,6 +213,11 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
                     ? Number(orderItemCostMap[szKey])
                     : defaultCost;
 
+              const historicalSoldCost =
+                sizeSoldTotalCostMap[szKey] !== undefined && sizeSoldTotalCostMap[szKey] > 0
+                  ? sizeSoldTotalCostMap[szKey]
+                  : soldQty * szCost;
+
               items.push({
                 id: `${p.id}-${soldSz}`,
                 productId: p.id,
@@ -213,7 +228,7 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
                 sold: soldQty,
                 totalProcured: soldQty,
                 costPrice: szCost,
-                totalCost: szCost * soldQty,
+                totalCost: historicalSoldCost,
               });
             }
           }
@@ -229,6 +244,13 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
             ? Number(sizeCostMap[sz])
             : defaultCost;
         const totalProcured = qty + szSold;
+        const historicalSoldCost =
+          sizeSoldTotalCostMap[szKey] !== undefined && sizeSoldTotalCostMap[szKey] > 0
+            ? sizeSoldTotalCostMap[szKey]
+            : szSold * szCost;
+        const currentStockCost = qty * szCost;
+        const totalVariantCost = historicalSoldCost + currentStockCost;
+        const effectiveAvgCost = totalProcured > 0 ? Math.round(totalVariantCost / totalProcured) : szCost;
 
         items.push({
           id: `${p.id}-${sz}`,
@@ -239,8 +261,8 @@ function expandProductsToSizeVariants(products: any[], orders: any[] = []): Jers
           stock: qty,
           sold: szSold,
           totalProcured,
-          costPrice: szCost,
-          totalCost: szCost * totalProcured,
+          costPrice: effectiveAvgCost,
+          totalCost: totalVariantCost,
         });
       });
     } else {
