@@ -122,17 +122,6 @@
     overflow-x: clip;
     width: 100%;
   }
-
-  /* Prevent Radix UI & react-remove-scroll from locking body scroll and shifting layout */
-  html body[data-scroll-locked] {
-    overflow: visible !important;
-    margin-right: 0px !important;
-    padding-right: 0px !important;
-    --removed-body-scroll-bar-size: 0px !important;
-  }
-  body[data-scroll-locked] {
-    pointer-events: auto !important;
-  }
   h1,
   h2,
   h3,
@@ -221,6 +210,22 @@
   }
 }
 
+@keyframes hero-zoom-out {
+  0% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-hero-zoom-out {
+  animation: hero-zoom-out 4500ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: center center;
+}
+
 /* Aturan Print Bersih untuk Struk Kasir & Invoice */
 @media print {
   body * {
@@ -248,7 +253,5 @@
 
   html, body {
     background: #ffffff !important;
-    height: auto !important;
-    overflow: visible !important;
   }
 }

@@ -54,26 +54,39 @@ export const HERO_SLIDES: HeroSlide[] = [
   },
 ];
 
-const AUTOPLAY_INTERVAL_MS = 6000;
+const AUTOPLAY_INTERVAL_MS = 4000;
 
 export function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [previousSlide, setPreviousSlide] = useState<number | null>(null);
   const touchStartX = useRef<number | null>(null);
 
+  const goToSlide = useCallback((index: number) => {
+    setCurrentSlide((prev) => {
+      if (prev === index) return prev;
+      setPreviousSlide(prev);
+      return index;
+    });
+  }, []);
+
   const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => {
+      setPreviousSlide(prev);
+      return (prev + 1) % HERO_SLIDES.length;
+    });
   }, []);
 
   const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => {
+      setPreviousSlide(prev);
+      return (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length;
+    });
   }, []);
 
   useEffect(() => {
-    if (isPaused) return;
     const timer = window.setInterval(nextSlide, AUTOPLAY_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [isPaused, nextSlide]);
+  }, [currentSlide, nextSlide]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -107,38 +120,48 @@ export function Hero() {
       id="top"
       aria-roledescription="carousel"
       aria-label="Sorotan Koleksi Utama AA Jersey"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       className="relative h-dvh min-h-[620px] w-full bg-neutral-950 text-white overflow-hidden flex flex-col justify-end outline-none"
     >
-      {/* Background Slides */}
+      {/* Background Slides with Ken Burns Zoom-Out & Seamless Crossfade */}
       <div className="absolute inset-0">
         {HERO_SLIDES.map((slide, index) => {
           const isActive = index === currentSlide;
+          const isPrevious = index === previousSlide;
+
           return (
             <div
               key={slide.id}
               aria-hidden={!isActive}
               className={cn(
-                "absolute inset-0 transition-opacity duration-1000 ease-out",
-                isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none",
+                "absolute inset-0 transition-opacity duration-1200 ease-in-out will-change-[opacity]",
+                isActive
+                  ? "opacity-100 z-10"
+                  : isPrevious
+                    ? "opacity-0 z-[5] pointer-events-none"
+                    : "opacity-0 z-0 pointer-events-none",
               )}
             >
               <img
+                key={isActive ? `${slide.id}-${currentSlide}` : `${slide.id}-idle`}
                 src={slide.image}
                 alt={slide.alt}
                 width={1920}
                 height={1080}
                 fetchPriority={index === 0 ? "high" : "auto"}
-                loading={index === 0 ? "eager" : "lazy"}
+                loading="eager"
+                decoding="async"
                 className={cn(
-                  "size-full object-cover transition-transform duration-[6000ms] ease-out",
+                  "size-full object-cover will-change-transform",
                   slide.objectPosition ?? "object-center",
-                  isActive ? "scale-100" : "scale-105",
+                  isActive
+                    ? "animate-hero-zoom-out"
+                    : isPrevious
+                      ? "scale-100"
+                      : "scale-[1.12]",
                 )}
               />
             </div>
@@ -163,7 +186,7 @@ export function Hero() {
         <div
           key={activeSlide.id}
           aria-live="polite"
-          className="max-w-6xl mx-auto flex flex-col items-center animate-in fade-in slide-in-from-bottom-3 duration-500"
+          className="max-w-6xl mx-auto flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out"
         >
           <h1 className="font-display font-black uppercase tracking-tight text-white text-3xl sm:text-5xl md:text-6xl lg:text-[4.25rem] xl:text-[4.75rem] leading-[0.98] drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)]">
             {activeSlide.title}
@@ -208,12 +231,12 @@ export function Hero() {
               role="tab"
               aria-selected={isActive}
               aria-label={`Tampilkan slide ${index + 1}: ${slide.title}`}
-              onClick={() => setCurrentSlide(index)}
+              onClick={() => goToSlide(index)}
               className="group py-2 focus-visible:outline-none cursor-pointer"
             >
               <span
                 className={cn(
-                  "block h-1 rounded-full transition-all duration-300",
+                  "block h-1 rounded-full transition-all duration-500 ease-out",
                   isActive
                     ? "w-12 sm:w-14 bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
                     : "w-10 sm:w-12 bg-white/35 group-hover:bg-white/65",
