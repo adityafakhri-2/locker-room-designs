@@ -332,23 +332,25 @@ export function AdminAIFloatingChat() {
   return (
     <>
       {/* Floating Trigger Button (Bottom Right) */}
-      <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2">
+      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-3 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2">
         {!isOpen && (
           <button
             type="button"
             onClick={() => setIsOpen(true)}
             aria-label="Buka Asisten Toko AA Jersey"
-            className="group relative flex items-center gap-2.5 px-4 py-3 bg-neutral-900 dark:bg-neutral-800 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border border-white/10 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
+            className="group relative flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-neutral-900/95 dark:bg-neutral-800/95 backdrop-blur-md text-white rounded-full shadow-lg hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border border-white/15 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none"
           >
             {/* Status Pulse Indicator */}
-            <span className="relative flex size-2.5">
+            <span className="relative flex size-2 sm:size-2.5">
               <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500" />
+              <span className="relative inline-flex rounded-full size-2 sm:size-2.5 bg-emerald-500" />
             </span>
 
-            <div className="flex items-center gap-2">
-              <MessageSquare className="size-4 text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
-              <span className="text-xs font-bold tracking-tight">Tanya Asisten</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <MessageSquare className="size-3.5 sm:size-4 text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
+              <span className="text-[11px] sm:text-xs font-semibold sm:font-bold tracking-tight">
+                Tanya Asisten
+              </span>
             </div>
           </button>
         )}
@@ -359,7 +361,7 @@ export function AdminAIFloatingChat() {
         <div
           role="dialog"
           aria-label="Jendela Asisten Toko AA Jersey"
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-32px)] sm:w-[420px] h-[560px] max-h-[85vh] bg-card text-card-foreground border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-24px)] sm:w-[420px] h-[520px] max-h-[calc(100vh-6rem)] bg-card text-card-foreground border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300"
         >
           {/* Header */}
           <div className="px-4 py-3.5 bg-muted/60 border-b border-border flex items-center justify-between gap-3 shrink-0">
