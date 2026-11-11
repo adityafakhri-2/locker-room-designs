@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminAIFloatingChat } from "@/components/admin/AdminAIFloatingChat";
 
 export const Route = createFileRoute("/_authenticated/_admin")({
   beforeLoad: async ({ context }) => {
@@ -14,5 +15,14 @@ export const Route = createFileRoute("/_authenticated/_admin")({
       .maybeSingle();
     if (!data) throw redirect({ to: "/dashboard" });
   },
-  component: () => <Outlet />,
+  component: AdminLayout,
 });
+
+function AdminLayout() {
+  return (
+    <>
+      <Outlet />
+      <AdminAIFloatingChat />
+    </>
+  );
+}
